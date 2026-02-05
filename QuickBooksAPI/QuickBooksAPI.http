@@ -1,0 +1,6 @@
+@QuickBooksAPI_HostAddress = http://localhost:5220
+
+GET {{QuickBooksAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,93 @@
+﻿using Dapper;
+using Microsoft.Data.SqlClient;
+using QuickBooksAPI.DataAccessLayer.Models;
+using System.Data;
+
+namespace QuickBooksAPI.DataAccessLayer.Repos
+{
+    public class CustomerRepository : ICustomerRepository
+    {
+        private readonly string _connectionString;
+        public CustomerRepository(string connectionString)
+        {
+            _connectionString = connectionString;
+        }
+        private IDbConnection CreateConnection()
+        {
+            return new SqlConnection(_connectionString);
+        }
+        public async Task<int> UpsertCustomersAsync(IEnumerable<Customer> customers, int userId, string realmId)
+        {
+            if (customers == null || !customers.Any()) return 0;
+
+            using var connection = CreateConnection();
+
+            var table = new DataTable();
+            table.Columns.Add("QboId", typeof(string));
+            table.Columns.Add("SyncToken", typeof(string));
+            table.Columns.Add("GivenName", typeof(string));
+            table.Columns.Add("FamilyName", typeof(string));
+            table.Columns.Add("DisplayName", typeof(string));
+            table.Columns.Add("CompanyName", typeof(string));
+            table.Columns.Add("Active", typeof(bool));
+            table.Columns.Add("Balance", typeof(decimal));
+            table.Columns.Add("PrimaryEmailAddr", typeof(string));
+            table.Columns.Add("PrimaryPhone", typeof(string));
+            table.Columns.Add("BillAddrLine1", typeof(string));
+            table.Columns.Add("BillAddrCity", typeof(string));
+            table.Columns.Add("BillAddrPostalCode", typeof(string));
+            table.Columns.Add("BillAddrCountrySubDivisionCode", typeof(string));
+            table.Columns.Add("CreateTime", typeof(DateTime));
+            table.Columns.Add("LastUpdatedTime", typeof(DateTime));
+            table.Columns.Add("UserId", typeof(int));
+            table.Columns.Add("RealmId", typeof(string));
+
+            foreach (var c in customers)
+            {
+                table.Rows.Add(
+                    c.QboId,
+                    c.SyncToken,
+                    c.GivenName,
+                    c.FamilyName,
+                    c.DisplayName,
+                    c.CompanyName,
+                    c.Active,
+                    c.Balance,
+                    c.PrimaryEmailAddr,
+                    c.PrimaryPhone,
+                    c.BillAddrLine1,
+                    c.BillAddrCity,
+                    c.BillAddrPostalCode,
+                    c.BillAddrCountrySubDivisionCode,
+                    c.CreateTime,
+                    c.LastUpdatedTime,
+                    userId,
+                    realmId
+                );
+            }
+
+            var parameters = new DynamicParameters();
+            parameters.Add(
+                "@Customers",
+                table.AsTableValuedParameter("dbo.CustomerUpsertType")
+            );
+
+            return await connection.ExecuteAsync(
+                "dbo.UpsertCustomer",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+        }
+
+        public async Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId)
+        {
+            using var connection = CreateConnection();
+            string sql = @"
+                SELECT MAX(LastUpdatedTime) 
+                FROM Customer 
+                WHERE UserId = @UserId AND RealmId = @RealmId";
+
+            return await connection.QuerySingleOrDefaultAsync<DateTime?>(sql, new { UserId = userId, RealmId = realmId });
+        }
+    }
+}
