@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
@@ -14,103 +14,87 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             _connectionString = connectionString;
         }
 
-        private IDbConnection CreateConnection()
+        public IDbConnection CreateOpenConnection()
         {
-            return new SqlConnection(_connectionString);
+            var conn = new SqlConnection(_connectionString);
+            conn.Open();
+            return conn;
         }
+
         public async Task<int> UpsertProductsAsync(IEnumerable<Products> products)
         {
-            using var connection = CreateConnection();
+            if (products == null || !products.Any())
+                return 0;
 
-            var sql = @"
-                MERGE Products AS target
-                USING (VALUES
-                    {0}
-                ) AS source
-                (QBOId, Name, Description, Active, FullyQualifiedName, Taxable, UnitPrice, Type,
-                    IncomeAccountRefValue, IncomeAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
-                    Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId)
-                ON target.QBOId = source.QBOId AND target.UserId = source.UserId AND target.RealmId = source.RealmId
-                WHEN MATCHED THEN
-                    UPDATE SET
-                        Name = source.Name,
-                        Description = source.Description,
-                        Active = source.Active,
-                        FullyQualifiedName = source.FullyQualifiedName,
-                        Taxable = source.Taxable,
-                        UnitPrice = source.UnitPrice,
-                        Type = source.Type,
-                        IncomeAccountRefValue = source.IncomeAccountRefValue,
-                        IncomeAccountRefName = source.IncomeAccountRefName,
-                        PurchaseCost = source.PurchaseCost,
-                        TrackQtyOnHand = source.TrackQtyOnHand,
-                        QtyOnHand = source.QtyOnHand,
-                        Domain = source.Domain,
-                        Sparse = source.Sparse,
-                        SyncToken = source.SyncToken,
-                        CreateTime = source.CreateTime,
-                        LastUpdatedTime = source.LastUpdatedTime
-                WHEN NOT MATCHED THEN
-                    INSERT (
-                        QBOId, Name, Description, Active, FullyQualifiedName, Taxable, UnitPrice, Type,
-                        IncomeAccountRefValue, IncomeAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
-                        Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
-                    )
-                    VALUES (
-                        source.QBOId, source.Name, source.Description, source.Active, source.FullyQualifiedName, source.Taxable,
-                        source.UnitPrice, source.Type, source.IncomeAccountRefValue, source.IncomeAccountRefName,
-                        source.PurchaseCost, source.TrackQtyOnHand, source.QtyOnHand, source.Domain, source.Sparse, source.SyncToken,
-                        source.CreateTime, source.LastUpdatedTime, source.UserId, source.RealmId
-                    );";
+            using var connection = CreateOpenConnection();
 
-            var valuesList = products.Select((p, i) =>
-                $"(@QBOId{i}, @Name{i}, @Description{i}, @Active{i}, @FullyQualifiedName{i}, @Taxable{i}, @UnitPrice{i}, @Type{i}, " +
-                $"@IncomeAccountRefValue{i}, @IncomeAccountRefName{i}, @PurchaseCost{i}, @TrackQtyOnHand{i}, @QtyOnHand{i}, " +
-                $"@Domain{i}, @Sparse{i}, @SyncToken{i}, @CreateTime{i}, @LastUpdatedTime{i}, @UserId{i}, @RealmId{i})");
-
-
-
-            sql = string.Format(sql, string.Join(", ", valuesList));
-
+            var productsTable = BuildProductTable(products);
             var parameters = new DynamicParameters();
-            int idx = 0;
-            foreach (var p in products)
-            {
-                parameters.Add($"@QBOId{idx}", p.QBOId);
-                parameters.Add($"@Name{idx}", p.Name);
-                parameters.Add($"@Description{idx}", p.Description);
-                parameters.Add($"@Active{idx}", p.Active);
-                parameters.Add($"@FullyQualifiedName{idx}", p.FullyQualifiedName);
-                parameters.Add($"@Taxable{idx}", p.Taxable);
-                parameters.Add($"@UnitPrice{idx}", p.UnitPrice);
-                parameters.Add($"@Type{idx}", p.Type);
-                parameters.Add($"@IncomeAccountRefValue{idx}", p.IncomeAccountRefValue);
-                parameters.Add($"@IncomeAccountRefName{idx}", p.IncomeAccountRefName);
-                parameters.Add($"@PurchaseCost{idx}", p.PurchaseCost);
-                parameters.Add($"@TrackQtyOnHand{idx}", p.TrackQtyOnHand);
-                parameters.Add($"@QtyOnHand{idx}", p.QtyOnHand);
-                parameters.Add($"@Domain{idx}", p.Domain);
-                parameters.Add($"@Sparse{idx}", p.Sparse);
-                parameters.Add($"@SyncToken{idx}", p.SyncToken);
-                parameters.Add($"@CreateTime{idx}", p.CreateTime);
-                parameters.Add($"@LastUpdatedTime{idx}", p.LastUpdatedTime);
-                parameters.Add($"@UserId{idx}", p.UserId);
-                parameters.Add($"@RealmId{idx}", p.RealmId);
-                idx++;
-            }
+            parameters.Add("@Products", productsTable.AsTableValuedParameter("dbo.ProductUpsertType"));
 
-            return await connection.ExecuteAsync(sql, parameters);
+            return await connection.ExecuteAsync("dbo.UpsertProduct", parameters, commandType: CommandType.StoredProcedure);
         }
 
         public async Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId)
         {
-            using var connection = CreateConnection();
+            using var connection = CreateOpenConnection();
             string sql = @"
                 SELECT MAX(LastUpdatedTime) 
                 FROM Products 
                 WHERE UserId = @UserId AND RealmId = @RealmId";
 
             return await connection.QuerySingleOrDefaultAsync<DateTime?>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
+        private static DataTable BuildProductTable(IEnumerable<Products> products)
+        {
+            var table = new DataTable();
+            table.Columns.Add("QBOId", typeof(string));
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Description", typeof(string));
+            table.Columns.Add("Active", typeof(bool));
+            table.Columns.Add("FullyQualifiedName", typeof(string));
+            table.Columns.Add("Taxable", typeof(bool));
+            table.Columns.Add("UnitPrice", typeof(decimal));
+            table.Columns.Add("Type", typeof(string));
+            table.Columns.Add("IncomeAccountRefValue", typeof(string));
+            table.Columns.Add("IncomeAccountRefName", typeof(string));
+            table.Columns.Add("PurchaseCost", typeof(decimal));
+            table.Columns.Add("TrackQtyOnHand", typeof(bool));
+            table.Columns.Add("QtyOnHand", typeof(decimal));
+            table.Columns.Add("Domain", typeof(string));
+            table.Columns.Add("Sparse", typeof(bool));
+            table.Columns.Add("SyncToken", typeof(string));
+            table.Columns.Add("CreateTime", typeof(DateTime));
+            table.Columns.Add("LastUpdatedTime", typeof(DateTime));
+            table.Columns.Add("UserId", typeof(int));
+            table.Columns.Add("RealmId", typeof(string));
+
+            foreach (var p in products)
+            {
+                table.Rows.Add(
+                    p.QBOId,
+                    p.Name,
+                    string.IsNullOrEmpty(p.Description) ? DBNull.Value : p.Description,
+                    p.Active,
+                    p.FullyQualifiedName,
+                    p.Taxable,
+                    p.UnitPrice,
+                    p.Type,
+                    string.IsNullOrEmpty(p.IncomeAccountRefValue) ? DBNull.Value : p.IncomeAccountRefValue,
+                    string.IsNullOrEmpty(p.IncomeAccountRefName) ? DBNull.Value : p.IncomeAccountRefName,
+                    p.PurchaseCost,
+                    p.TrackQtyOnHand,
+                    p.QtyOnHand ?? (object)DBNull.Value,
+                    string.IsNullOrEmpty(p.Domain) ? DBNull.Value : p.Domain,
+                    p.Sparse,
+                    p.SyncToken,
+                    p.CreateTime,
+                    p.LastUpdatedTime,
+                    p.UserId,
+                    p.RealmId);
+            }
+            return table;
         }
     }
 }
