@@ -15,85 +15,74 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             _connectionString = connectionString;
         }
 
-        private IDbConnection CreateConnection()
+        public IDbConnection CreateOpenConnection()
         {
-            return new SqlConnection(_connectionString);
+            var conn = new SqlConnection(_connectionString);
+            conn.Open();
+            return conn;
         }
 
         public async Task<int> UpsertChartOfAccountsAsync(IEnumerable<ChartOfAccounts> accounts)
         {
-            using var connection = CreateConnection();
+            if (accounts == null || !accounts.Any())
+                return 0;
 
-            var sql = @"
-                        MERGE ChartOfAccounts AS target
-                        USING (VALUES
-                            {0}
-                        ) AS source
-                        (QBOId, Name, SubAccount, FullyQualifiedName, Active, Classification, AccountType, AccountSubType,
-                         CurrentBalance, CurrentBalanceWithSubAccounts, CurrencyRefValue, CurrencyRefName, Domain, Sparse, SyncToken,
-                         CreateTime, LastUpdatedTime, UserId, RealmId)
-                        ON target.QBOId = source.QBOId AND target.UserId = source.UserId AND target.RealmId = source.RealmId
-                        WHEN MATCHED THEN
-                            UPDATE SET
-                                Name = source.Name,
-                                SubAccount = source.SubAccount,
-                                FullyQualifiedName = source.FullyQualifiedName,
-                                Active = source.Active,
-                                Classification = source.Classification,
-                                AccountType = source.AccountType,
-                                AccountSubType = source.AccountSubType,
-                                CurrentBalance = source.CurrentBalance,
-                                CurrentBalanceWithSubAccounts = source.CurrentBalanceWithSubAccounts,
-                                CurrencyRefValue = source.CurrencyRefValue,
-                                CurrencyRefName = source.CurrencyRefName,
-                                Domain = source.Domain,
-                                Sparse = source.Sparse,
-                                SyncToken = source.SyncToken,
-                                CreateTime = source.CreateTime,
-                                LastUpdatedTime = source.LastUpdatedTime
-                        WHEN NOT MATCHED THEN
-                            INSERT (QBOId, Name, SubAccount, FullyQualifiedName, Active, Classification, AccountType, AccountSubType,
-                                    CurrentBalance, CurrentBalanceWithSubAccounts, CurrencyRefValue, CurrencyRefName, Domain, Sparse, SyncToken,
-                                    CreateTime, LastUpdatedTime, UserId, RealmId)
-                            VALUES (source.QBOId, source.Name, source.SubAccount, source.FullyQualifiedName, source.Active, source.Classification,
-                                    source.AccountType, source.AccountSubType, source.CurrentBalance, source.CurrentBalanceWithSubAccounts,
-                                    source.CurrencyRefValue, source.CurrencyRefName, source.Domain, source.Sparse, source.SyncToken,
-                                    source.CreateTime, source.LastUpdatedTime, source.UserId, source.RealmId);";
+            using var connection = CreateOpenConnection();
 
-            var valuesList = accounts.Select((a, i) =>
-                $"(@QBOId{i}, @Name{i}, @SubAccount{i}, @FullyQualifiedName{i}, @Active{i}, @Classification{i}, @AccountType{i}, @AccountSubType{i}, " +
-                $"@CurrentBalance{i}, @CurrentBalanceWithSubAccounts{i}, @CurrencyRefValue{i}, @CurrencyRefName{i}, @Domain{i}, @Sparse{i}, @SyncToken{i}, " +
-                $"@CreateTime{i}, @LastUpdatedTime{i}, @UserId{i}, @RealmId{i})");
-
-            sql = string.Format(sql, string.Join(", ", valuesList));
-
+            var accountsTable = BuildChartOfAccountsTable(accounts);
             var parameters = new DynamicParameters();
-            int idx = 0;
+            parameters.Add("@Accounts", accountsTable.AsTableValuedParameter("dbo.ChartOfAccountsUpsertType"));
+
+            return await connection.ExecuteAsync("dbo.UpsertChartOfAccounts", parameters, commandType: CommandType.StoredProcedure);
+        }
+
+        private static DataTable BuildChartOfAccountsTable(IEnumerable<ChartOfAccounts> accounts)
+        {
+            var table = new DataTable();
+            table.Columns.Add("QBOId", typeof(string));
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("SubAccount", typeof(bool));
+            table.Columns.Add("FullyQualifiedName", typeof(string));
+            table.Columns.Add("Active", typeof(bool));
+            table.Columns.Add("Classification", typeof(string));
+            table.Columns.Add("AccountType", typeof(string));
+            table.Columns.Add("AccountSubType", typeof(string));
+            table.Columns.Add("CurrentBalance", typeof(decimal));
+            table.Columns.Add("CurrentBalanceWithSubAccounts", typeof(decimal));
+            table.Columns.Add("CurrencyRefValue", typeof(string));
+            table.Columns.Add("CurrencyRefName", typeof(string));
+            table.Columns.Add("Domain", typeof(string));
+            table.Columns.Add("Sparse", typeof(bool));
+            table.Columns.Add("SyncToken", typeof(string));
+            table.Columns.Add("CreateTime", typeof(DateTime));
+            table.Columns.Add("LastUpdatedTime", typeof(DateTime));
+            table.Columns.Add("UserId", typeof(int));
+            table.Columns.Add("RealmId", typeof(string));
+
             foreach (var a in accounts)
             {
-                parameters.Add($"@QBOId{idx}", a.QBOId);
-                parameters.Add($"@Name{idx}", a.Name);
-                parameters.Add($"@SubAccount{idx}", a.SubAccount);
-                parameters.Add($"@FullyQualifiedName{idx}", a.FullyQualifiedName);
-                parameters.Add($"@Active{idx}", a.Active);
-                parameters.Add($"@Classification{idx}", a.Classification);
-                parameters.Add($"@AccountType{idx}", a.AccountType);
-                parameters.Add($"@AccountSubType{idx}", a.AccountSubType);
-                parameters.Add($"@CurrentBalance{idx}", a.CurrentBalance);
-                parameters.Add($"@CurrentBalanceWithSubAccounts{idx}", a.CurrentBalanceWithSubAccounts);
-                parameters.Add($"@CurrencyRefValue{idx}", a.CurrencyRefValue);
-                parameters.Add($"@CurrencyRefName{idx}", a.CurrencyRefName);
-                parameters.Add($"@Domain{idx}", a.Domain);
-                parameters.Add($"@Sparse{idx}", a.Sparse);
-                parameters.Add($"@SyncToken{idx}", a.SyncToken);
-                parameters.Add($"@CreateTime{idx}", a.CreateTime);
-                parameters.Add($"@LastUpdatedTime{idx}", a.LastUpdatedTime);
-                parameters.Add($"@UserId{idx}", a.UserId);
-                parameters.Add($"@RealmId{idx}", a.RealmId);
-                idx++;
+                table.Rows.Add(
+                    a.QBOId,
+                    a.Name,
+                    a.SubAccount,
+                    a.FullyQualifiedName,
+                    a.Active,
+                    string.IsNullOrEmpty(a.Classification) ? DBNull.Value : a.Classification,
+                    string.IsNullOrEmpty(a.AccountType) ? DBNull.Value : a.AccountType,
+                    string.IsNullOrEmpty(a.AccountSubType) ? DBNull.Value : a.AccountSubType,
+                    a.CurrentBalance,
+                    a.CurrentBalanceWithSubAccounts,
+                    string.IsNullOrEmpty(a.CurrencyRefValue) ? DBNull.Value : a.CurrencyRefValue,
+                    string.IsNullOrEmpty(a.CurrencyRefName) ? DBNull.Value : a.CurrencyRefName,
+                    string.IsNullOrEmpty(a.Domain) ? DBNull.Value : a.Domain,
+                    a.Sparse,
+                    a.SyncToken,
+                    a.CreateTime,
+                    a.LastUpdatedTime,
+                    a.UserId,
+                    a.RealmId);
             }
-
-            return await connection.ExecuteAsync(sql, parameters);
+            return table;
         }
     }
 }

@@ -24,122 +24,41 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
 
         public async Task<int> UpsertJournalEntryHeadersAsync(IEnumerable<QBOJournalEntryHeader> entries, IDbConnection connection, IDbTransaction tx)
         {
-            var sql = @"
-        MERGE QBOJournalEntryHeader AS target
-        USING (VALUES
-            {0}
-        ) AS source
-        (QBJournalEntryId, SyncToken, Domain, TxnDate, Sparse, Adjustment,
-         CreateTime, LastUpdatedTime, RawJson, QBRealmId)
-        ON target.QBJournalEntryId = source.QBJournalEntryId
-           AND target.QBRealmId = source.QBRealmId
-        WHEN MATCHED THEN
-            UPDATE SET
-                SyncToken = source.SyncToken,
-                Domain = source.Domain,
-                TxnDate = source.TxnDate,
-                Sparse = source.Sparse,
-                Adjustment = source.Adjustment,
-                CreateTime = source.CreateTime,
-                LastUpdatedTime = source.LastUpdatedTime,
-                RawJson = source.RawJson
-        WHEN NOT MATCHED THEN
-            INSERT (
-                QBJournalEntryId, SyncToken, Domain, TxnDate, Sparse, Adjustment,
-                CreateTime, LastUpdatedTime, RawJson, QBRealmId
-            )
-            VALUES (
-                source.QBJournalEntryId, source.SyncToken, source.Domain, source.TxnDate,
-                source.Sparse, source.Adjustment, source.CreateTime,
-                source.LastUpdatedTime, source.RawJson, source.QBRealmId
-            );";
+            if (entries == null || !entries.Any())
+                return 0;
 
-            var values = entries.Select((e, i) =>
-                $"(@QBJournalEntryId{i}, @SyncToken{i}, @Domain{i}, @TxnDate{i}, @Sparse{i}, @Adjustment{i}, " +
-                $"@CreateTime{i}, @LastUpdatedTime{i}, @RawJson{i}, @QBRealmId{i})");
-
-            sql = string.Format(sql, string.Join(", ", values));
-
+            var headersTable = BuildJournalEntryHeaderTable(entries);
             var parameters = new DynamicParameters();
-            int idx = 0;
+            parameters.Add("@Headers", headersTable.AsTableValuedParameter("dbo.JournalEntryHeaderUpsertType"));
 
-            foreach (var e in entries)
-            {
-                parameters.Add($"@QBJournalEntryId{idx}", e.QBJournalEntryId);
-                parameters.Add($"@SyncToken{idx}", e.SyncToken);
-                parameters.Add($"@Domain{idx}", e.Domain);
-                parameters.Add($"@TxnDate{idx}", e.TxnDate);
-                parameters.Add($"@Sparse{idx}", e.Sparse);
-                parameters.Add($"@Adjustment{idx}", e.Adjustment);
-                parameters.Add($"@CreateTime{idx}", e.CreateTime);
-                parameters.Add($"@LastUpdatedTime{idx}", e.LastUpdatedTime);
-                parameters.Add($"@RawJson{idx}", e.RawJson);
-                parameters.Add($"@QBRealmId{idx}", e.QBRealmId);
-                idx++;
-            }
-
-            return await connection.ExecuteAsync(sql, parameters, tx);
+            return await connection.ExecuteAsync("dbo.UpsertJournalEntryHeader", parameters, tx, commandType: CommandType.StoredProcedure);
         }
 
         public async Task DeleteJournalEntryLinesAsync(long journalEntryId, IDbConnection connection, IDbTransaction tx)
         {
-            var sql = @"DELETE FROM QBOJournalEntryLine WHERE JournalEntryId = @JournalEntryId";
+            const string sql = @"DELETE FROM QBOJournalEntryLine WHERE JournalEntryId = @JournalEntryId";
             await connection.ExecuteAsync(sql, new { JournalEntryId = journalEntryId }, tx);
         }
 
         public async Task<int> InsertJournalEntryLinesAsync(IEnumerable<QBOJournalEntryLine> lines, IDbConnection connection, IDbTransaction tx)
         {
-            var sql = @"
-        INSERT INTO QBOJournalEntryLine
-        (
-            JournalEntryId, QBLineId, LineNum, DetailType, Description,
-            Amount, PostingType,
-            AccountRefId, AccountRefName,
-            EntityType, EntityRefId, EntityRefName,
-            ProjectRefId, RawLineJson
-        )
-        VALUES
-        {0};";
+            if (lines == null || !lines.Any())
+                return 0;
 
-            var values = lines.Select((l, i) =>
-                $"(@JournalEntryId{i}, @QBLineId{i}, @LineNum{i}, @DetailType{i}, @Description{i}, " +
-                $"@Amount{i}, @PostingType{i}, @AccountRefId{i}, @AccountRefName{i}, " +
-                $"@EntityType{i}, @EntityRefId{i}, @EntityRefName{i}, @ProjectRefId{i}, @RawLineJson{i})");
-
-            sql = string.Format(sql, string.Join(", ", values));
-
+            var linesTable = BuildJournalEntryLineTable(lines);
             var parameters = new DynamicParameters();
-            int idx = 0;
+            parameters.Add("@Lines", linesTable.AsTableValuedParameter("dbo.JournalEntryLineInsertType"));
 
-            foreach (var l in lines)
-            {
-                parameters.Add($"@JournalEntryId{idx}", l.JournalEntryId);
-                parameters.Add($"@QBLineId{idx}", l.QBLineId);
-                parameters.Add($"@LineNum{idx}", l.LineNum);
-                parameters.Add($"@DetailType{idx}", l.DetailType);
-                parameters.Add($"@Description{idx}", l.Description);
-                parameters.Add($"@Amount{idx}", l.Amount);
-                parameters.Add($"@PostingType{idx}", l.PostingType);
-                parameters.Add($"@AccountRefId{idx}", l.AccountRefId);
-                parameters.Add($"@AccountRefName{idx}", l.AccountRefName);
-                parameters.Add($"@EntityType{idx}", l.EntityType);
-                parameters.Add($"@EntityRefId{idx}", l.EntityRefId);
-                parameters.Add($"@EntityRefName{idx}", l.EntityRefName);
-                parameters.Add($"@ProjectRefId{idx}", l.ProjectRefId);
-                parameters.Add($"@RawLineJson{idx}", l.RawLineJson);
-                idx++;
-            }
-
-            return await connection.ExecuteAsync(sql, parameters, tx);
+            return await connection.ExecuteAsync("dbo.InsertJournalEntryLines", parameters, tx, commandType: CommandType.StoredProcedure);
         }
 
         public async Task<long> GetJournalEntryIdAsync(string qbJournalEntryId, string realmId, IDbConnection conn, IDbTransaction tx)
         {
-            var sql = @"
-        SELECT JournalEntryId
-        FROM QBOJournalEntryHeader
-        WHERE QBJournalEntryId = @QBJournalEntryId
-          AND QBRealmId = @QBRealmId";
+            const string sql = @"
+                SELECT JournalEntryId
+                FROM QBOJournalEntryHeader
+                WHERE QBJournalEntryId = @QBJournalEntryId
+                  AND QBRealmId = @QBRealmId";
 
             return await conn.ExecuteScalarAsync<long>(
                 sql,
@@ -150,12 +69,82 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
         public async Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId)
         {
             using var connection = CreateOpenConnection();
-            string sql = @"
+            const string sql = @"
                 SELECT MAX(LastUpdatedTime)
                 FROM QBOJournalEntryHeader
                 WHERE QBRealmId = @RealmId";
 
             return await connection.QuerySingleOrDefaultAsync<DateTime?>(sql, new { RealmId = realmId });
+        }
+
+        private static DataTable BuildJournalEntryHeaderTable(IEnumerable<QBOJournalEntryHeader> entries)
+        {
+            var table = new DataTable();
+            table.Columns.Add("QBJournalEntryId", typeof(string));
+            table.Columns.Add("SyncToken", typeof(string));
+            table.Columns.Add("Domain", typeof(string));
+            table.Columns.Add("TxnDate", typeof(DateTime));
+            table.Columns.Add("Sparse", typeof(bool));
+            table.Columns.Add("Adjustment", typeof(bool));
+            table.Columns.Add("CreateTime", typeof(DateTimeOffset));
+            table.Columns.Add("LastUpdatedTime", typeof(DateTimeOffset));
+            table.Columns.Add("RawJson", typeof(string));
+            table.Columns.Add("QBRealmId", typeof(string));
+
+            foreach (var e in entries)
+            {
+                table.Rows.Add(
+                    e.QBJournalEntryId,
+                    string.IsNullOrEmpty(e.SyncToken) ? DBNull.Value : e.SyncToken,
+                    string.IsNullOrEmpty(e.Domain) ? DBNull.Value : e.Domain,
+                    e.TxnDate ?? (object)DBNull.Value,
+                    e.Sparse ?? (object)DBNull.Value,
+                    e.Adjustment ?? (object)DBNull.Value,
+                    e.CreateTime ?? (object)DBNull.Value,
+                    e.LastUpdatedTime ?? (object)DBNull.Value,
+                    string.IsNullOrEmpty(e.RawJson) ? DBNull.Value : e.RawJson,
+                    e.QBRealmId);
+            }
+            return table;
+        }
+
+        private static DataTable BuildJournalEntryLineTable(IEnumerable<QBOJournalEntryLine> lines)
+        {
+            var table = new DataTable();
+            table.Columns.Add("JournalEntryId", typeof(long));
+            table.Columns.Add("QBLineId", typeof(string));
+            table.Columns.Add("LineNum", typeof(int));
+            table.Columns.Add("DetailType", typeof(string));
+            table.Columns.Add("Description", typeof(string));
+            table.Columns.Add("Amount", typeof(decimal));
+            table.Columns.Add("PostingType", typeof(string));
+            table.Columns.Add("AccountRefId", typeof(string));
+            table.Columns.Add("AccountRefName", typeof(string));
+            table.Columns.Add("EntityType", typeof(string));
+            table.Columns.Add("EntityRefId", typeof(string));
+            table.Columns.Add("EntityRefName", typeof(string));
+            table.Columns.Add("ProjectRefId", typeof(string));
+            table.Columns.Add("RawLineJson", typeof(string));
+
+            foreach (var l in lines)
+            {
+                table.Rows.Add(
+                    l.JournalEntryId,
+                    string.IsNullOrEmpty(l.QBLineId) ? DBNull.Value : l.QBLineId,
+                    l.LineNum ?? (object)DBNull.Value,
+                    string.IsNullOrEmpty(l.DetailType) ? DBNull.Value : l.DetailType,
+                    string.IsNullOrEmpty(l.Description) ? DBNull.Value : l.Description,
+                    l.Amount,
+                    string.IsNullOrEmpty(l.PostingType) ? DBNull.Value : l.PostingType,
+                    string.IsNullOrEmpty(l.AccountRefId) ? DBNull.Value : l.AccountRefId,
+                    string.IsNullOrEmpty(l.AccountRefName) ? DBNull.Value : l.AccountRefName,
+                    string.IsNullOrEmpty(l.EntityType) ? DBNull.Value : l.EntityType,
+                    string.IsNullOrEmpty(l.EntityRefId) ? DBNull.Value : l.EntityRefId,
+                    string.IsNullOrEmpty(l.EntityRefName) ? DBNull.Value : l.EntityRefName,
+                    string.IsNullOrEmpty(l.ProjectRefId) ? DBNull.Value : l.ProjectRefId,
+                    string.IsNullOrEmpty(l.RawLineJson) ? DBNull.Value : l.RawLineJson);
+            }
+            return table;
         }
     }
 }
