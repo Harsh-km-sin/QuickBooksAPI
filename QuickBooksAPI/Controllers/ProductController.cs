@@ -17,9 +17,16 @@ namespace QuickBooksAPI.Controllers
         }
 
         [HttpGet("sync")]
-        public async Task<IActionResult> GetProducts()
+        public async Task<IActionResult> SyncProducts()
         {
             var result = await _productServices.GetProductsAsync();
+            return Ok(result);
+        }
+
+        [HttpGet("list")]
+        public async Task<IActionResult> ListProducts()
+        {
+            var result = await _productServices.ListProductsAsync();
             return Ok(result);
         }
 

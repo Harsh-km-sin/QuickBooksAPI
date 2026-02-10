@@ -1,0 +1,41 @@
+@model IEnumerable<QuickBooksWeb.Models.Customer>
+@{
+    ViewData["Title"] = "Customers";
+}
+
+<h2>Customers</h2>
+<div class="mb-3">
+    <form asp-action="Sync" method="post" class="d-inline">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-primary">Sync from QuickBooks</button>
+    </form>
+</div>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Display Name</th>
+            <th>Company</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Balance</th>
+            <th>Active</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var c in Model ?? Enumerable.Empty<QuickBooksWeb.Models.Customer>())
+        {
+            <tr>
+                <td>@c.DisplayName</td>
+                <td>@(c.CompanyName ?? "-")</td>
+                <td>@(c.PrimaryEmailAddr ?? "-")</td>
+                <td>@(c.PrimaryPhone ?? "-")</td>
+                <td>@c.Balance.ToString("C")</td>
+                <td>@(c.Active ? "Yes" : "No")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+@if (!(Model?.Any() ?? false))
+{
+    <p class="text-muted">No customers yet. Click Sync from QuickBooks to import.</p>
+}

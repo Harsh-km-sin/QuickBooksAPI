@@ -1,12 +1,11 @@
-﻿using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Models;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public interface ICustomerRepository
     {
-        //public Task<int> UpsertCustomersAsync(IEnumerable<Customer> customers);
-        public Task<int> UpsertCustomersAsync(IEnumerable<Customer> customers, int userId, string realmId);
-
-        public Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId);
+        Task<int> UpsertCustomersAsync(IEnumerable<Customer> customers, int userId, string realmId);
+        Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId);
+        Task<IEnumerable<Customer>> GetAllByUserAndRealmAsync(int userId, string realmId);
     }
 }

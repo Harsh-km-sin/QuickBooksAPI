@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
@@ -88,6 +88,17 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 WHERE UserId = @UserId AND RealmId = @RealmId";
 
             return await connection.QuerySingleOrDefaultAsync<DateTime?>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
+        public async Task<IEnumerable<Customer>> GetAllByUserAndRealmAsync(int userId, string realmId)
+        {
+            using var connection = CreateConnection();
+            const string sql = @"
+                SELECT Id, QboId, SyncToken, GivenName, FamilyName, DisplayName, CompanyName,
+                    Active, Balance, PrimaryEmailAddr, PrimaryPhone, BillAddrLine1, BillAddrCity, BillAddrPostalCode,
+                    BillAddrCountrySubDivisionCode, CreateTime, LastUpdatedTime, UserId, RealmId
+                FROM Customer WHERE UserId = @UserId AND RealmId = @RealmId ORDER BY DisplayName";
+            return await connection.QueryAsync<Customer>(sql, new { UserId = userId, RealmId = realmId });
         }
     }
 }

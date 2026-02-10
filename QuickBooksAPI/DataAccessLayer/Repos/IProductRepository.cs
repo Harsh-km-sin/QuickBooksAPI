@@ -1,4 +1,4 @@
-﻿using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Models;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
@@ -6,5 +6,6 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
     {
         Task<int> UpsertProductsAsync(IEnumerable<Products> products);
         Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId);
+        Task<IEnumerable<Products>> GetAllByUserAndRealmAsync(int userId, string realmId);
     }
 }

@@ -1,0 +1,62 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="mb-4">Dashboard</h1>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-1">Products</h6>
+                        <h3 class="mb-0">24</h3>
+                    </div>
+                    <span class="fs-2">&#128230;</span>
+                </div>
+                <a asp-controller="Products" asp-action="Index" class="btn btn-sm btn-outline-primary mt-3">View</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-1">Customers</h6>
+                        <h3 class="mb-0">18</h3>
+                    </div>
+                    <span class="fs-2">&#128101;</span>
+                </div>
+                <a asp-controller="Customers" asp-action="Index" class="btn btn-sm btn-outline-primary mt-3">View</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-1">QuickBooks</h6>
+                        <h3 class="mb-0">Connected</h3>
+                    </div>
+                    <span class="fs-2">&#128274;</span>
+                </div>
+                <a asp-controller="QuickBooks" asp-action="Connect" class="btn btn-sm btn-outline-primary mt-3">Manage</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Quick Actions</h5>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-controller="Products" asp-action="Index" class="btn btn-primary">Sync Products</a>
+            <a asp-controller="Customers" asp-action="Index" class="btn btn-primary">Sync Customers</a>
+            <a asp-controller="QuickBooks" asp-action="Connect" class="btn btn-outline-secondary">Connect QuickBooks</a>
+        </div>
+        <p class="text-muted small mt-3 mb-0">Use the sidebar to navigate to Products or Customers, then click "Sync from QuickBooks" to import your data.</p>
+    </div>
+</div>

@@ -34,6 +34,17 @@ namespace QuickBooksAPI.Services
             _qboSyncStateRepository = qboSyncStateRepository;
             _authService = authService;
         }
+        public async Task<ApiResponse<IEnumerable<Products>>> ListProductsAsync()
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<IEnumerable<Products>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var userId = int.Parse(_currentUser.UserId);
+            var realmId = _currentUser.RealmId;
+            var products = await _productRepository.GetAllByUserAndRealmAsync(userId, realmId);
+            return ApiResponse<IEnumerable<Products>>.Ok(products);
+        }
+
         public async Task<ApiResponse<int>> GetProductsAsync()
         {
             try

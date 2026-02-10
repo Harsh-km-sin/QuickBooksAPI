@@ -71,7 +71,6 @@ namespace QuickBooksService.Services
             
             return content;
         }
-
         public async Task<string> CreateCustomerAsync(string accessToken, string realmId, string customerPayload)
         {
             if (string.IsNullOrWhiteSpace(accessToken))
@@ -109,7 +108,6 @@ namespace QuickBooksService.Services
             
             return content;
         }
-
         public async Task<string> UpdateCustomerAsync(string accessToken, string realmId, string customerPayload)
         {
             if (string.IsNullOrWhiteSpace(accessToken))
@@ -147,7 +145,6 @@ namespace QuickBooksService.Services
             
             return content;
         }
-
         public async Task<string> DeleteCustomerAsync(string accessToken, string realmId, string customerPayload)
         {
             if (string.IsNullOrWhiteSpace(accessToken))

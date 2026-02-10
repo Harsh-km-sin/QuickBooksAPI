@@ -46,6 +46,17 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return await connection.QuerySingleOrDefaultAsync<DateTime?>(sql, new { UserId = userId, RealmId = realmId });
         }
 
+        public async Task<IEnumerable<Products>> GetAllByUserAndRealmAsync(int userId, string realmId)
+        {
+            using var connection = CreateOpenConnection();
+            const string sql = @"
+                SELECT Id, QBOId, Name, Description, Active, FullyQualifiedName, Taxable, UnitPrice, Type,
+                    IncomeAccountRefValue, IncomeAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
+                    Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
+                FROM Products WHERE UserId = @UserId AND RealmId = @RealmId ORDER BY Name";
+            return await connection.QueryAsync<Products>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
         private static DataTable BuildProductTable(IEnumerable<Products> products)
         {
             var table = new DataTable();

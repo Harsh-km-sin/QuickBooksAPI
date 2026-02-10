@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.Application.Interfaces;

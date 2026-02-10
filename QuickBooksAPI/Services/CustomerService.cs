@@ -39,6 +39,17 @@ namespace QuickBooksAPI.Services
             _logger = logger;
         }
 
+        public async Task<ApiResponse<IEnumerable<Customer>>> ListCustomersAsync()
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<IEnumerable<Customer>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var userId = int.Parse(_currentUser.UserId);
+            var realmId = _currentUser.RealmId;
+            var customers = await _customerRepository.GetAllByUserAndRealmAsync(userId, realmId);
+            return ApiResponse<IEnumerable<Customer>>.Ok(customers);
+        }
+
         public async Task<ApiResponse<int>> GetCustomersAsync()
         {
             try

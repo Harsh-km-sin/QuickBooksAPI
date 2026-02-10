@@ -1,4 +1,4 @@
-﻿using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Infrastructure.Identity;
 using System.Security.Claims;

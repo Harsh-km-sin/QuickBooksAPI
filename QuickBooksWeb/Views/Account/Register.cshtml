@@ -1,0 +1,76 @@
+@{
+    ViewData["Title"] = "Register";
+    Layout = "_AuthLayout";
+}
+
+<div class="auth-brand">
+    <h1>QuickBooks</h1>
+    <p>Create your account</p>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger auth-alert" role="alert">
+        @TempData["Error"]
+    </div>
+}
+
+<form asp-action="Register" method="post" class="auth-form">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger auth-alert"></div>
+
+    <div class="row g-2 mb-2">
+        <div class="col-6">
+            <label for="firstName" class="form-label">First Name</label>
+            <input type="text" name="firstName" id="firstName" class="form-control" placeholder="John" required />
+        </div>
+        <div class="col-6">
+            <label for="lastName" class="form-label">Last Name</label>
+            <input type="text" name="lastName" id="lastName" class="form-control" placeholder="Doe" required />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" name="username" id="username" class="form-control" placeholder="johndoe" required />
+    </div>
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" name="email" id="email" class="form-control" placeholder="you@example.com" required />
+    </div>
+
+    <div class="mb-4">
+        <label for="password" class="form-label">Password</label>
+        <div class="input-group">
+            <input type="password" name="password" id="password" class="form-control" placeholder="Min. 8 characters with uppercase, lowercase, number & symbol" required />
+            <button type="button" class="btn btn-outline-secondary" id="togglePassword" title="Show password" aria-label="Show password">
+                <span id="eyeIcon">&#128065;</span>
+            </button>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary auth-btn-primary">Create Account</button>
+
+    <div class="auth-divider">or</div>
+
+    <a asp-action="Login" class="auth-link">Already have an account? Sign in</a>
+</form>
+
+@section Scripts {
+<script>
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        var input = document.getElementById('password');
+        var icon = document.getElementById('eyeIcon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.textContent = '\uD83D\uDD13';
+            this.setAttribute('title', 'Hide password');
+        } else {
+            input.type = 'password';
+            icon.textContent = '\uD83D\uDC41';
+            this.setAttribute('title', 'Show password');
+        }
+    });
+</script>
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - QuickBooks</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/sidebar.css" asp-append-version="true" />
+</head>
+<body class="app-layout">
+    <div class="app-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <a asp-controller="Home" asp-action="Index">QuickBooks</a>
+            </div>
+            <nav class="sidebar-nav">
+                <a asp-controller="Home" asp-action="Index" class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                    <span class="sidebar-icon">&#127968;</span>
+                    <span>Dashboard</span>
+                </a>
+                <a asp-controller="Products" asp-action="Index" class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")">
+                    <span class="sidebar-icon">&#128230;</span>
+                    <span>Products</span>
+                </a>
+                <a asp-controller="Customers" asp-action="Index" class="sidebar-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")">
+                    <span class="sidebar-icon">&#128101;</span>
+                    <span>Customers</span>
+                </a>
+                <hr class="sidebar-divider" />
+                <a asp-controller="QuickBooks" asp-action="Connect" class="sidebar-link">
+                    <span class="sidebar-icon">&#128274;</span>
+                    <span>Connect QuickBooks</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="sidebar-link sidebar-logout">Logout</button>
+                </form>
+            </div>
+        </aside>
+        <main class="main-content">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @RenderBody()
+        </main>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
