@@ -32,6 +32,18 @@ namespace QuickBooksAPI.Services
             _qboSyncStateRepository = qboSyncStateRepository;
             _authService = authService;
         }
+
+        public async Task<ApiResponse<IEnumerable<ChartOfAccounts>>> ListChartOfAccountsAsync()
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<IEnumerable<ChartOfAccounts>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var userId = int.Parse(_currentUser.UserId);
+            var realmId = _currentUser.RealmId;
+            var accounts = await _chartOfAccountsRepository.GetAllByUserAndRealmAsync(userId, realmId);
+            return ApiResponse<IEnumerable<ChartOfAccounts>>.Ok(accounts);
+        }
+
         public async Task<ApiResponse<int>> syncChartOfAccounts()
         {
             try

@@ -359,17 +359,5 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
-# Bootstrap - ignore source maps and unused builds (app uses bootstrap.min.css + bootstrap.bundle.min.js only)
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/**/*.map
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/css/bootstrap.css
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/css/bootstrap.rtl*
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/css/bootstrap-grid*
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot*
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities*
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/js/bootstrap.js
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.js
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/js/bootstrap.min.js
-QuickBooksWeb/wwwroot/lib/bootstrap/dist/js/bootstrap.esm*
-
 # Fody - auto-generated XML schema
 FodyWeavers.xsd

@@ -31,6 +31,18 @@ namespace QuickBooksAPI.Services
             _qboSyncStateRepository = qboSyncStateRepository;
             _vendorRepository = vendorRepository;
         }
+
+        public async Task<ApiResponse<IEnumerable<Vendor>>> ListVendorsAsync()
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<IEnumerable<Vendor>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var userId = int.Parse(_currentUser.UserId);
+            var realmId = _currentUser.RealmId;
+            var vendors = await _vendorRepository.GetAllByUserAndRealmAsync(userId, realmId);
+            return ApiResponse<IEnumerable<Vendor>>.Ok(vendors);
+        }
+
         public async Task<ApiResponse<int>> GetVendorsAsync()
         {
             var userId = int.Parse(_currentUser.UserId);

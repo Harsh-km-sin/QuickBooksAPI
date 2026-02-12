@@ -79,6 +79,20 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             );
         }
 
+        public async Task<IEnumerable<Vendor>> GetAllByUserAndRealmAsync(int userId, string realmId)
+        {
+            using var connection = CreateConnection();
+            const string sql = @"
+                SELECT Id, QboId, UserId, RealmId, SyncToken, Title, GivenName, MiddleName, FamilyName,
+                    DisplayName, CompanyName, Active, Balance, PrimaryEmailAddr, PrimaryPhone,
+                    BillAddrLine1, BillAddrCity, BillAddrPostalCode, BillAddrCountrySubDivisionCode,
+                    CreateTime, LastUpdatedTime, Domain, Sparse, DeletedAt, DeletedBy
+                FROM dbo.Vendor
+                WHERE UserId = @UserId AND RealmId = @RealmId AND (DeletedAt IS NULL)
+                ORDER BY DisplayName";
+            return await connection.QueryAsync<Vendor>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
         public async Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId)
         {
             using var connection = CreateConnection();

@@ -16,6 +16,13 @@ namespace QuickBooksAPI.Controllers
             _journalEntryService = journalEntryService;
         }
 
+        [HttpGet("list")]
+        public async Task<IActionResult> ListJournalEntries()
+        {
+            var result = await _journalEntryService.ListJournalEntriesAsync();
+            return Ok(result);
+        }
+
         [HttpGet("sync")]
         public async Task<IActionResult> SyncJournalEntries()
         {

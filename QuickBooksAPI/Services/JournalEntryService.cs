@@ -35,6 +35,16 @@ namespace QuickBooksAPI.Services
             _authService = authService;
         }
 
+        public async Task<ApiResponse<IEnumerable<QBOJournalEntryHeader>>> ListJournalEntriesAsync()
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<IEnumerable<QBOJournalEntryHeader>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var realmId = _currentUser.RealmId;
+            var entries = await _journalEntryRepository.GetAllByRealmAsync(realmId);
+            return ApiResponse<IEnumerable<QBOJournalEntryHeader>>.Ok(entries);
+        }
+
         public async Task<ApiResponse<int>> SyncJournalEntriesAsync()
         {
             try

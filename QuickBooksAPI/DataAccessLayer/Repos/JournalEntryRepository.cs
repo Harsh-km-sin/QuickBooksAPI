@@ -22,6 +22,18 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return conn;
         }
 
+        public async Task<IEnumerable<QBOJournalEntryHeader>> GetAllByRealmAsync(string realmId)
+        {
+            using var connection = CreateOpenConnection();
+            const string sql = @"
+                SELECT JournalEntryId, QBJournalEntryId, QBRealmId, SyncToken, Domain,
+                    TxnDate, Sparse, Adjustment, CreateTime, LastUpdatedTime, RawJson
+                FROM dbo.QBOJournalEntryHeader
+                WHERE QBRealmId = @RealmId
+                ORDER BY TxnDate DESC, LastUpdatedTime DESC";
+            return await connection.QueryAsync<QBOJournalEntryHeader>(sql, new { RealmId = realmId });
+        }
+
         public async Task<int> UpsertJournalEntryHeadersAsync(IEnumerable<QBOJournalEntryHeader> entries, IDbConnection connection, IDbTransaction tx)
         {
             if (entries == null || !entries.Any())

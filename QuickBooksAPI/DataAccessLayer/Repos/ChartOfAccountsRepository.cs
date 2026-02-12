@@ -22,6 +22,20 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return conn;
         }
 
+        public async Task<IEnumerable<ChartOfAccounts>> GetAllByUserAndRealmAsync(int userId, string realmId)
+        {
+            using var connection = CreateOpenConnection();
+            const string sql = @"
+                SELECT Id, QBOId, Name, SubAccount, FullyQualifiedName, Active, Classification,
+                    AccountType, AccountSubType, CurrentBalance, CurrentBalanceWithSubAccounts,
+                    CurrencyRefValue, CurrencyRefName, Domain, Sparse, SyncToken,
+                    CreateTime, LastUpdatedTime, UserId, RealmId
+                FROM dbo.ChartOfAccounts
+                WHERE UserId = @UserId AND RealmId = @RealmId
+                ORDER BY FullyQualifiedName";
+            return await connection.QueryAsync<ChartOfAccounts>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
         public async Task<int> UpsertChartOfAccountsAsync(IEnumerable<ChartOfAccounts> accounts)
         {
             if (accounts == null || !accounts.Any())

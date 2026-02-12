@@ -16,6 +16,13 @@ namespace QuickBooksAPI.Controllers
             _chartOfAccountsServices = chartOfAccountsServices;
         }
 
+        [HttpGet("list")]
+        public async Task<IActionResult> ListChartOfAccounts()
+        {
+            var result = await _chartOfAccountsServices.ListChartOfAccountsAsync();
+            return Ok(result);
+        }
+
         [HttpGet("sync")]
         public async Task<IActionResult> SyncChartOfAccounts()
         {

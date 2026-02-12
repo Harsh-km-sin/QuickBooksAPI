@@ -22,6 +22,20 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return conn;
         }
 
+        public async Task<IEnumerable<QBOInvoiceHeader>> GetAllByRealmAsync(string realmId)
+        {
+            using var connection = CreateOpenConnection();
+            const string sql = @"
+                SELECT InvoiceId, QBOInvoiceId, RealmId, SyncToken, Domain, Sparse,
+                    TxnDate, DueDate, CustomerRefId, CustomerRefName,
+                    CurrencyCode, ExchangeRate, TotalAmt, Balance,
+                    CreateTime, LastUpdatedTime, RawJson
+                FROM dbo.QBOInvoiceHeader
+                WHERE RealmId = @RealmId
+                ORDER BY TxnDate DESC, LastUpdatedTime DESC";
+            return await connection.QueryAsync<QBOInvoiceHeader>(sql, new { RealmId = realmId });
+        }
+
         public async Task UpsertInvoicesAsync(IEnumerable<QBOInvoiceHeader> headers, IEnumerable<InvoiceLineUpsertRow> lines, IDbConnection connection, IDbTransaction tx)
         {
             var headersTable = BuildInvoiceHeaderTable(headers);

@@ -6,6 +6,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
     public interface IInvoiceRepository
     {
         IDbConnection CreateOpenConnection();
+        Task<IEnumerable<QBOInvoiceHeader>> GetAllByRealmAsync(string realmId);
         Task UpsertInvoicesAsync(IEnumerable<QBOInvoiceHeader> headers, IEnumerable<InvoiceLineUpsertRow> lines, IDbConnection connection, IDbTransaction tx);
         [Obsolete("Use UpsertInvoicesAsync with SP instead.")]
         Task<int> UpsertInvoiceHeadersAsync(IEnumerable<QBOInvoiceHeader> invoices, IDbConnection connection, IDbTransaction tx);

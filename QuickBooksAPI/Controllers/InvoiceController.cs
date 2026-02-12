@@ -17,6 +17,13 @@ namespace QuickBooksAPI.Controllers
             _invoiceService = invoiceService;
         }
 
+        [HttpGet("list")]
+        public async Task<IActionResult> ListInvoices()
+        {
+            var result = await _invoiceService.ListInvoicesAsync();
+            return Ok(result);
+        }
+
         [HttpGet("sync")]
         public async Task<IActionResult> SyncInvoices()
         {

@@ -17,6 +17,13 @@ namespace QuickBooksAPI.Controllers
             _vendorService = vendorService;
         }
 
+        [HttpGet("list")]
+        public async Task<IActionResult> ListVendors()
+        {
+            var result = await _vendorService.ListVendorsAsync();
+            return Ok(result);
+        }
+
         [HttpGet("sync")]
         public async Task<IActionResult> GetVendors()
         {

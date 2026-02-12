@@ -4,6 +4,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public interface IChartOfAccountsRepository
     {
-        public Task<int> UpsertChartOfAccountsAsync(IEnumerable<ChartOfAccounts> accounts);
+        Task<int> UpsertChartOfAccountsAsync(IEnumerable<ChartOfAccounts> accounts);
+        Task<IEnumerable<ChartOfAccounts>> GetAllByUserAndRealmAsync(int userId, string realmId);
     }
 }
