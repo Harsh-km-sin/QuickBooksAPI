@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.Application.Interfaces;
 using System.Threading.Tasks;
 
@@ -17,9 +18,10 @@ namespace QuickBooksAPI.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> ListChartOfAccounts()
+        public async Task<IActionResult> ListChartOfAccounts([FromQuery] ListQueryParams? query = null)
         {
-            var result = await _chartOfAccountsServices.ListChartOfAccountsAsync();
+            query ??= new ListQueryParams();
+            var result = await _chartOfAccountsServices.ListChartOfAccountsAsync(query);
             return Ok(result);
         }
 

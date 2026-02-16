@@ -7,6 +7,7 @@ namespace QuickBooksAPI.Application.Interfaces
     public interface IInvoiceService
     {
         Task<ApiResponse<IEnumerable<QBOInvoiceHeader>>> ListInvoicesAsync();
+        Task<ApiResponse<PagedResult<QBOInvoiceHeader>>> ListInvoicesAsync(ListQueryParams query);
         Task<ApiResponse<int>> SyncInvoicesAsync();
         Task<ApiResponse<string>> CreateInvoiceAsync(CreateInvoiceRequest request);
         Task<ApiResponse<string>> UpdateInvoiceAsync(UpdateInvoiceRequest request);

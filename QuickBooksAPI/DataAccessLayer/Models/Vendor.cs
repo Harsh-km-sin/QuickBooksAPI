@@ -21,8 +21,8 @@ namespace QuickBooksAPI.DataAccessLayer.Models
         public string BillAddrCity { get; set; }
         public string BillAddrPostalCode { get; set; }
         public string BillAddrCountrySubDivisionCode { get; set; }
-        public DateTime CreateTime { get; set; }
-        public DateTime LastUpdatedTime { get; set; }
+        public DateTimeOffset CreateTime { get; set; }
+        public DateTimeOffset LastUpdatedTime { get; set; }
         public string Domain { get; set; }
         public bool Sparse { get; set; }
         /// <summary>Set when vendor is soft-deleted; null means active.</summary>

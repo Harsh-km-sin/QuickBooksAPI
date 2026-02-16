@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 using System.Linq;
@@ -34,6 +35,33 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 WHERE RealmId = @RealmId
                 ORDER BY TxnDate DESC, LastUpdatedTime DESC";
             return await connection.QueryAsync<QBOInvoiceHeader>(sql, new { RealmId = realmId });
+        }
+
+        public async Task<PagedResult<QBOInvoiceHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search)
+        {
+            using var connection = CreateOpenConnection();
+            var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
+            var skip = (page - 1) * pageSize;
+
+            var countSql = @"
+                SELECT COUNT(*) FROM dbo.QBOInvoiceHeader 
+                WHERE RealmId = @RealmId
+                AND (@Search IS NULL OR CustomerRefName LIKE @Search OR QBOInvoiceId LIKE @Search)";
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { RealmId = realmId, Search = searchPattern });
+
+            var itemsSql = @"
+                SELECT InvoiceId, QBOInvoiceId, RealmId, SyncToken, Domain, Sparse,
+                    TxnDate, DueDate, CustomerRefId, CustomerRefName,
+                    CurrencyCode, ExchangeRate, TotalAmt, Balance,
+                    CreateTime, LastUpdatedTime, RawJson
+                FROM dbo.QBOInvoiceHeader
+                WHERE RealmId = @RealmId
+                AND (@Search IS NULL OR CustomerRefName LIKE @Search OR QBOInvoiceId LIKE @Search)
+                ORDER BY TxnDate DESC, LastUpdatedTime DESC
+                OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
+            var items = await connection.QueryAsync<QBOInvoiceHeader>(itemsSql, new { RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+
+            return new PagedResult<QBOInvoiceHeader> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
 
         public async Task UpsertInvoicesAsync(IEnumerable<QBOInvoiceHeader> headers, IEnumerable<InvoiceLineUpsertRow> lines, IDbConnection connection, IDbTransaction tx)

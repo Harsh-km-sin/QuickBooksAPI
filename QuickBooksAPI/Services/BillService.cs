@@ -43,6 +43,19 @@ namespace QuickBooksAPI.Services
             return ApiResponse<IEnumerable<QBOBillHeader>>.Ok(bills);
         }
 
+        public async Task<ApiResponse<PagedResult<QBOBillHeader>>> ListBillsAsync(ListQueryParams query)
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<PagedResult<QBOBillHeader>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var realmId = _currentUser.RealmId;
+            var page = query.GetPage();
+            var pageSize = query.GetPageSize();
+            var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
+            var result = await _billRepository.GetPagedByRealmAsync(realmId, page, pageSize, search);
+            return ApiResponse<PagedResult<QBOBillHeader>>.Ok(result);
+        }
+
         public async Task<ApiResponse<int>> SyncBillsAsync()
         {
             var userId = int.Parse(_currentUser.UserId);

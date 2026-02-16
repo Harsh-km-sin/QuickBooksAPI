@@ -1,3 +1,4 @@
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 
@@ -7,6 +8,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
     {
         IDbConnection CreateOpenConnection();
         Task<IEnumerable<QBOInvoiceHeader>> GetAllByRealmAsync(string realmId);
+        Task<PagedResult<QBOInvoiceHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search);
         Task UpsertInvoicesAsync(IEnumerable<QBOInvoiceHeader> headers, IEnumerable<InvoiceLineUpsertRow> lines, IDbConnection connection, IDbTransaction tx);
         [Obsolete("Use UpsertInvoicesAsync with SP instead.")]
         Task<int> UpsertInvoiceHeadersAsync(IEnumerable<QBOInvoiceHeader> invoices, IDbConnection connection, IDbTransaction tx);

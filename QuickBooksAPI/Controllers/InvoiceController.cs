@@ -18,9 +18,10 @@ namespace QuickBooksAPI.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> ListInvoices()
+        public async Task<IActionResult> ListInvoices([FromQuery] ListQueryParams? query = null)
         {
-            var result = await _invoiceService.ListInvoicesAsync();
+            query ??= new ListQueryParams();
+            var result = await _invoiceService.ListInvoicesAsync(query);
             return Ok(result);
         }
 

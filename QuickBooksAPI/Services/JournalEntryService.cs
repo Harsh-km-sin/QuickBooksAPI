@@ -1,3 +1,4 @@
+using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
@@ -35,14 +36,27 @@ namespace QuickBooksAPI.Services
             _authService = authService;
         }
 
-        public async Task<ApiResponse<IEnumerable<QBOJournalEntryHeader>>> ListJournalEntriesAsync()
+        //public async Task<ApiResponse<IEnumerable<QBOJournalEntryHeader>>> ListJournalEntriesAsync()
+        //{
+        //    if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+        //        return ApiResponse<IEnumerable<QBOJournalEntryHeader>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+        //    var realmId = _currentUser.RealmId;
+        //    var entries = await _journalEntryRepository.GetAllByRealmAsync(realmId);
+        //    return ApiResponse<IEnumerable<QBOJournalEntryHeader>>.Ok(entries);
+        //}
+
+        public async Task<ApiResponse<PagedResult<QBOJournalEntryHeader>>> ListJournalEntriesAsync(ListQueryParams query)
         {
             if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
-                return ApiResponse<IEnumerable<QBOJournalEntryHeader>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+                return ApiResponse<PagedResult<QBOJournalEntryHeader>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
 
             var realmId = _currentUser.RealmId;
-            var entries = await _journalEntryRepository.GetAllByRealmAsync(realmId);
-            return ApiResponse<IEnumerable<QBOJournalEntryHeader>>.Ok(entries);
+            var page = query.GetPage();
+            var pageSize = query.GetPageSize();
+            var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
+            var result = await _journalEntryRepository.GetPagedByRealmAsync(realmId, page, pageSize, search);
+            return ApiResponse<PagedResult<QBOJournalEntryHeader>>.Ok(result);
         }
 
         public async Task<ApiResponse<int>> SyncJournalEntriesAsync()
@@ -83,7 +97,8 @@ namespace QuickBooksAPI.Services
                 {
                     var journalEntriesJson = await _quickBooksJournalEntryService.GetJournalEntryAsync(token.AccessToken, realmId, startPosition, PageSize, lastUpdatedAfter);
                     var journalEntryResponse = JsonSerializer.Deserialize<QuickBooksJournalEntryResponse>(journalEntriesJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
+                    Console.WriteLine("Raw Response: journalEntriesJson" + journalEntriesJson);
+                    Console.WriteLine("Raw response: journalEntryResponse" + journalEntryResponse);
                     var journalEntries = journalEntryResponse?.QueryResponse?.JournalEntry;
                     if (journalEntries == null || journalEntries.Count == 0)
                     {
@@ -102,14 +117,9 @@ namespace QuickBooksAPI.Services
                             // The JSON deserializer parses them, but we need to ensure proper UTC conversion
                             if (je.MetaData?.LastUpdatedTime != null)
                             {
-                                var dtoLastUpdated = je.MetaData.LastUpdatedTime;
-                                
-                                // Convert to UTC properly
-                                // If Kind is UTC, use as-is; otherwise convert (handles Unspecified/Local)
-                                DateTime dtoLastUpdatedUtc = dtoLastUpdated.Kind == DateTimeKind.Utc
-                                    ? dtoLastUpdated
-                                    : dtoLastUpdated.ToUniversalTime();
-                                
+                                var dtoLastUpdated = je.MetaData.LastUpdatedTime.Value;
+                                var dtoLastUpdatedUtc = dtoLastUpdated.UtcDateTime;
+
                                 if (!maxUpdatedTime.HasValue || dtoLastUpdatedUtc > maxUpdatedTime.Value)
                                     maxUpdatedTime = dtoLastUpdatedUtc;
                             }

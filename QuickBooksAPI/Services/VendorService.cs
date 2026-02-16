@@ -43,6 +43,20 @@ namespace QuickBooksAPI.Services
             return ApiResponse<IEnumerable<Vendor>>.Ok(vendors);
         }
 
+        public async Task<ApiResponse<PagedResult<Vendor>>> ListVendorsAsync(ListQueryParams query)
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<PagedResult<Vendor>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var userId = int.Parse(_currentUser.UserId);
+            var realmId = _currentUser.RealmId;
+            var page = query.GetPage();
+            var pageSize = query.GetPageSize();
+            var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
+            var result = await _vendorRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search);
+            return ApiResponse<PagedResult<Vendor>>.Ok(result);
+        }
+
         public async Task<ApiResponse<int>> GetVendorsAsync()
         {
             var userId = int.Parse(_currentUser.UserId);
@@ -290,8 +304,8 @@ namespace QuickBooksAPI.Services
                 BillAddrCity = dto.BillAddr?.City,
                 BillAddrPostalCode = dto.BillAddr?.PostalCode,
                 BillAddrCountrySubDivisionCode = dto.BillAddr?.CountrySubDivisionCode,
-                CreateTime = dto.MetaData?.CreateTime ?? DateTime.Now,
-                LastUpdatedTime = dto.MetaData?.LastUpdatedTime ?? DateTime.Now
+                CreateTime = dto.MetaData?.CreateTime != null ? new DateTimeOffset(dto.MetaData.CreateTime.ToUniversalTime(), TimeSpan.Zero) : DateTimeOffset.UtcNow,
+                LastUpdatedTime = dto.MetaData?.LastUpdatedTime != null ? new DateTimeOffset(dto.MetaData.LastUpdatedTime.ToUniversalTime(), TimeSpan.Zero) : DateTimeOffset.UtcNow
             };
         }
     }

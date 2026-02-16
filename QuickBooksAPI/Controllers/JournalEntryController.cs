@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.Application.Interfaces;
 
 namespace QuickBooksAPI.Controllers
@@ -17,9 +18,10 @@ namespace QuickBooksAPI.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> ListJournalEntries()
+        public async Task<IActionResult> ListJournalEntries([FromQuery] ListQueryParams? query = null)
         {
-            var result = await _journalEntryService.ListJournalEntriesAsync();
+            query ??= new ListQueryParams();
+            var result = await _journalEntryService.ListJournalEntriesAsync(query);
             return Ok(result);
         }
 

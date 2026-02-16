@@ -8,6 +8,7 @@ namespace QuickBooksAPI.Application.Interfaces
     {
         Task<ApiResponse<int>> GetProductsAsync();
         Task<ApiResponse<IEnumerable<Products>>> ListProductsAsync();
+        Task<ApiResponse<PagedResult<Products>>> ListProductsAsync(ListQueryParams query);
         Task<ApiResponse<string>> CreateProductAsync(CreateProductRequest request);
         Task<ApiResponse<string>> UpdateProductAsync(UpdateProductRequest request);
         Task<ApiResponse<string>> DeleteProductAsync(DeleteProductRequest request);

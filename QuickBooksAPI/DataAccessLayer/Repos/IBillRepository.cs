@@ -1,3 +1,4 @@
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 
@@ -10,5 +11,6 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
         /// <summary>Soft-deletes a bill in the DB by setting IsDeleted = 1. Returns true if a row was updated.</summary>
         Task<bool> SoftDeleteBillAsync(string realmId, string qboBillId);
         Task<IEnumerable<QBOBillHeader>> GetAllByRealmAsync(string realmId);
+        Task<PagedResult<QBOBillHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search);
     }
 }

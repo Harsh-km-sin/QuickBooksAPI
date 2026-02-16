@@ -45,6 +45,20 @@ namespace QuickBooksAPI.Services
             return ApiResponse<IEnumerable<Products>>.Ok(products);
         }
 
+        public async Task<ApiResponse<PagedResult<Products>>> ListProductsAsync(ListQueryParams query)
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<PagedResult<Products>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var userId = int.Parse(_currentUser.UserId);
+            var realmId = _currentUser.RealmId;
+            var page = query.GetPage();
+            var pageSize = query.GetPageSize();
+            var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
+            var result = await _productRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search);
+            return ApiResponse<PagedResult<Products>>.Ok(result);
+        }
+
         public async Task<ApiResponse<int>> GetProductsAsync()
         {
             try

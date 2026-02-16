@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 using System.Linq;
@@ -27,11 +28,40 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             using var connection = CreateOpenConnection();
             const string sql = @"
                 SELECT JournalEntryId, QBJournalEntryId, QBRealmId, SyncToken, Domain,
-                    TxnDate, Sparse, Adjustment, CreateTime, LastUpdatedTime, RawJson
+                    TxnDate, Sparse, Adjustment, DocNumber, PrivateNote, CurrencyCode,
+                    ExchangeRate, TotalAmount, HomeTotalAmount,
+                    CreateTime, LastUpdatedTime, RawJson
                 FROM dbo.QBOJournalEntryHeader
                 WHERE QBRealmId = @RealmId
                 ORDER BY TxnDate DESC, LastUpdatedTime DESC";
             return await connection.QueryAsync<QBOJournalEntryHeader>(sql, new { RealmId = realmId });
+        }
+
+        public async Task<PagedResult<QBOJournalEntryHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search)
+        {
+            using var connection = CreateOpenConnection();
+            var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
+            var skip = (page - 1) * pageSize;
+
+            var countSql = @"
+                SELECT COUNT(*) FROM dbo.QBOJournalEntryHeader 
+                WHERE QBRealmId = @RealmId
+                AND (@Search IS NULL OR QBJournalEntryId LIKE @Search)";
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { RealmId = realmId, Search = searchPattern });
+
+            var itemsSql = @"
+                SELECT JournalEntryId, QBJournalEntryId, QBRealmId, SyncToken, Domain,
+                    TxnDate, Sparse, Adjustment, DocNumber, PrivateNote, CurrencyCode,
+                    ExchangeRate, TotalAmount, HomeTotalAmount,
+                    CreateTime, LastUpdatedTime, RawJson
+                FROM dbo.QBOJournalEntryHeader
+                WHERE QBRealmId = @RealmId
+                AND (@Search IS NULL OR QBJournalEntryId LIKE @Search)
+                ORDER BY TxnDate DESC, LastUpdatedTime DESC
+                OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
+            var items = await connection.QueryAsync<QBOJournalEntryHeader>(itemsSql, new { RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+
+            return new PagedResult<QBOJournalEntryHeader> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
 
         public async Task<int> UpsertJournalEntryHeadersAsync(IEnumerable<QBOJournalEntryHeader> entries, IDbConnection connection, IDbTransaction tx)
@@ -39,11 +69,61 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             if (entries == null || !entries.Any())
                 return 0;
 
-            var headersTable = BuildJournalEntryHeaderTable(entries);
-            var parameters = new DynamicParameters();
-            parameters.Add("@Headers", headersTable.AsTableValuedParameter("dbo.JournalEntryHeaderUpsertType"));
+            // Use direct MERGE with parameters so all columns (DocNumber, CurrencyCode, etc.) are written
+            // regardless of TVP definition in the database.
+            const string sql = @"
+                MERGE dbo.QBOJournalEntryHeader AS target
+                USING (SELECT @QBJournalEntryId AS QBJournalEntryId, @QBRealmId AS QBRealmId) AS source
+                ON target.QBJournalEntryId = source.QBJournalEntryId AND target.QBRealmId = source.QBRealmId
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        SyncToken = @SyncToken,
+                        Domain = @Domain,
+                        TxnDate = @TxnDate,
+                        Sparse = @Sparse,
+                        Adjustment = @Adjustment,
+                        DocNumber = @DocNumber,
+                        PrivateNote = @PrivateNote,
+                        CurrencyCode = @CurrencyCode,
+                        ExchangeRate = @ExchangeRate,
+                        TotalAmount = @TotalAmount,
+                        HomeTotalAmount = @HomeTotalAmount,
+                        CreateTime = @CreateTime,
+                        LastUpdatedTime = @LastUpdatedTime,
+                        RawJson = @RawJson
+                WHEN NOT MATCHED THEN
+                    INSERT (QBJournalEntryId, QBRealmId, SyncToken, Domain, TxnDate, Sparse, Adjustment,
+                            DocNumber, PrivateNote, CurrencyCode, ExchangeRate, TotalAmount, HomeTotalAmount,
+                            CreateTime, LastUpdatedTime, RawJson)
+                    VALUES (@QBJournalEntryId, @QBRealmId, @SyncToken, @Domain, @TxnDate, @Sparse, @Adjustment,
+                            @DocNumber, @PrivateNote, @CurrencyCode, @ExchangeRate, @TotalAmount, @HomeTotalAmount,
+                            @CreateTime, @LastUpdatedTime, @RawJson);";
 
-            return await connection.ExecuteAsync("dbo.UpsertJournalEntryHeader", parameters, tx, commandType: CommandType.StoredProcedure);
+            var count = 0;
+            foreach (var e in entries)
+            {
+                var parameters = new DynamicParameters();
+                parameters.Add("@QBJournalEntryId", e.QBJournalEntryId);
+                parameters.Add("@QBRealmId", e.QBRealmId);
+                parameters.Add("@SyncToken", e.SyncToken);
+                parameters.Add("@Domain", e.Domain);
+                parameters.Add("@TxnDate", e.TxnDate);
+                parameters.Add("@Sparse", e.Sparse);
+                parameters.Add("@Adjustment", e.Adjustment);
+                parameters.Add("@DocNumber", e.DocNumber);
+                parameters.Add("@PrivateNote", e.PrivateNote);
+                parameters.Add("@CurrencyCode", e.CurrencyCode);
+                parameters.Add("@ExchangeRate", e.ExchangeRate);
+                parameters.Add("@TotalAmount", e.TotalAmount);
+                parameters.Add("@HomeTotalAmount", e.HomeTotalAmount);
+                parameters.Add("@CreateTime", e.CreateTime);
+                parameters.Add("@LastUpdatedTime", e.LastUpdatedTime);
+                parameters.Add("@RawJson", e.RawJson);
+
+                count += await connection.ExecuteAsync(sql, parameters, tx);
+            }
+
+            return count;
         }
 
         public async Task DeleteJournalEntryLinesAsync(long journalEntryId, IDbConnection connection, IDbTransaction tx)
@@ -87,37 +167,6 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 WHERE QBRealmId = @RealmId";
 
             return await connection.QuerySingleOrDefaultAsync<DateTime?>(sql, new { RealmId = realmId });
-        }
-
-        private static DataTable BuildJournalEntryHeaderTable(IEnumerable<QBOJournalEntryHeader> entries)
-        {
-            var table = new DataTable();
-            table.Columns.Add("QBJournalEntryId", typeof(string));
-            table.Columns.Add("SyncToken", typeof(string));
-            table.Columns.Add("Domain", typeof(string));
-            table.Columns.Add("TxnDate", typeof(DateTime));
-            table.Columns.Add("Sparse", typeof(bool));
-            table.Columns.Add("Adjustment", typeof(bool));
-            table.Columns.Add("CreateTime", typeof(DateTimeOffset));
-            table.Columns.Add("LastUpdatedTime", typeof(DateTimeOffset));
-            table.Columns.Add("RawJson", typeof(string));
-            table.Columns.Add("QBRealmId", typeof(string));
-
-            foreach (var e in entries)
-            {
-                table.Rows.Add(
-                    e.QBJournalEntryId,
-                    string.IsNullOrEmpty(e.SyncToken) ? DBNull.Value : e.SyncToken,
-                    string.IsNullOrEmpty(e.Domain) ? DBNull.Value : e.Domain,
-                    e.TxnDate ?? (object)DBNull.Value,
-                    e.Sparse ?? (object)DBNull.Value,
-                    e.Adjustment ?? (object)DBNull.Value,
-                    e.CreateTime ?? (object)DBNull.Value,
-                    e.LastUpdatedTime ?? (object)DBNull.Value,
-                    string.IsNullOrEmpty(e.RawJson) ? DBNull.Value : e.RawJson,
-                    e.QBRealmId);
-            }
-            return table;
         }
 
         private static DataTable BuildJournalEntryLineTable(IEnumerable<QBOJournalEntryLine> lines)

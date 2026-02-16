@@ -1,3 +1,4 @@
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 
@@ -7,6 +8,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
     {
         IDbConnection CreateOpenConnection();
         Task<IEnumerable<QBOJournalEntryHeader>> GetAllByRealmAsync(string realmId);
+        Task<PagedResult<QBOJournalEntryHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search);
         Task<int> UpsertJournalEntryHeadersAsync(IEnumerable<QBOJournalEntryHeader> entries, IDbConnection connection, IDbTransaction tx);
         public Task DeleteJournalEntryLinesAsync(long journalEntryId, IDbConnection connection, IDbTransaction tx);
         public Task<int> InsertJournalEntryLinesAsync(IEnumerable<QBOJournalEntryLine> lines, IDbConnection connection, IDbTransaction tx);

@@ -1,21 +1,32 @@
--- Deploy order: 1) TVPs first, 2) Stored procedures second
+-- Deploy order: 1) Drop proc then type, 2) TVP, 3) Stored procedure
+
+-- 0. Drop procedure and type so type can be recreated with new columns
+IF OBJECT_ID('dbo.UpsertJournalEntryHeader', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.UpsertJournalEntryHeader;
+GO
+IF TYPE_ID('dbo.JournalEntryHeaderUpsertType') IS NOT NULL
+    DROP TYPE dbo.JournalEntryHeaderUpsertType;
+GO
 
 -- 1. Table-Valued Type for Journal Entry Header upsert
-IF TYPE_ID('dbo.JournalEntryHeaderUpsertType') IS NULL
-BEGIN
-    CREATE TYPE dbo.JournalEntryHeaderUpsertType AS TABLE (
-        QBJournalEntryId    NVARCHAR(50)     NOT NULL,
-        SyncToken          NVARCHAR(50)     NULL,
-        Domain             NVARCHAR(50)     NULL,
-        TxnDate            DATETIME2        NULL,
-        Sparse             BIT              NULL,
-        Adjustment         BIT              NULL,
-        CreateTime         DATETIMEOFFSET   NULL,
-        LastUpdatedTime    DATETIMEOFFSET   NULL,
-        RawJson            NVARCHAR(MAX)    NULL,
-        QBRealmId          NVARCHAR(50)     NOT NULL
-    );
-END
+CREATE TYPE dbo.JournalEntryHeaderUpsertType AS TABLE (
+    QBJournalEntryId    NVARCHAR(50)     NOT NULL,
+    SyncToken          NVARCHAR(50)     NULL,
+    Domain             NVARCHAR(50)     NULL,
+    TxnDate            DATETIME2        NULL,
+    Sparse             BIT              NULL,
+    Adjustment         BIT              NULL,
+    DocNumber          NVARCHAR(50)     NULL,
+    PrivateNote        NVARCHAR(MAX)    NULL,
+    CurrencyCode       NVARCHAR(10)     NULL,
+    ExchangeRate       DECIMAL(18,6)    NULL,
+    TotalAmount        DECIMAL(18,2)    NULL,
+    HomeTotalAmount    DECIMAL(18,2)    NULL,
+    CreateTime         DATETIMEOFFSET   NULL,
+    LastUpdatedTime    DATETIMEOFFSET   NULL,
+    RawJson            NVARCHAR(MAX)    NULL,
+    QBRealmId          NVARCHAR(50)     NOT NULL
+);
 GO
 
 -- 2. Table-Valued Type for Journal Entry Line insert
@@ -41,7 +52,7 @@ END
 GO
 
 -- 3. Stored procedure for Journal Entry Header upsert
-CREATE OR ALTER PROCEDURE dbo.UpsertJournalEntryHeader
+CREATE PROCEDURE dbo.UpsertJournalEntryHeader
     @Headers dbo.JournalEntryHeaderUpsertType READONLY
 AS
 BEGIN
@@ -58,18 +69,27 @@ BEGIN
             TxnDate = source.TxnDate,
             Sparse = source.Sparse,
             Adjustment = source.Adjustment,
+            DocNumber = source.DocNumber,
+            PrivateNote = source.PrivateNote,
+            CurrencyCode = source.CurrencyCode,
+            ExchangeRate = source.ExchangeRate,
+            TotalAmount = source.TotalAmount,
+            HomeTotalAmount = source.HomeTotalAmount,
             CreateTime = source.CreateTime,
             LastUpdatedTime = source.LastUpdatedTime,
             RawJson = source.RawJson
     WHEN NOT MATCHED THEN
         INSERT (
             QBJournalEntryId, SyncToken, Domain, TxnDate, Sparse, Adjustment,
+            DocNumber, PrivateNote, CurrencyCode, ExchangeRate, TotalAmount, HomeTotalAmount,
             CreateTime, LastUpdatedTime, RawJson, QBRealmId
         )
         VALUES (
             source.QBJournalEntryId, source.SyncToken, source.Domain, source.TxnDate,
-            source.Sparse, source.Adjustment, source.CreateTime,
-            source.LastUpdatedTime, source.RawJson, source.QBRealmId
+            source.Sparse, source.Adjustment,
+            source.DocNumber, source.PrivateNote, source.CurrencyCode, source.ExchangeRate,
+            source.TotalAmount, source.HomeTotalAmount,
+            source.CreateTime, source.LastUpdatedTime, source.RawJson, source.QBRealmId
         );
 END;
 GO

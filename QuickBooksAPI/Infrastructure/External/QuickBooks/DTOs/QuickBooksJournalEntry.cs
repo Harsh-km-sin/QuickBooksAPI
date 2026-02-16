@@ -138,9 +138,9 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
     public class MetaData
     {
         [JsonPropertyName("CreateTime")]
-        public DateTime CreateTime { get; set; }
+        public DateTimeOffset? CreateTime { get; set; }
 
         [JsonPropertyName("LastUpdatedTime")]
-        public DateTime LastUpdatedTime { get; set; }
+        public DateTimeOffset? LastUpdatedTime { get; set; }
     }
 }

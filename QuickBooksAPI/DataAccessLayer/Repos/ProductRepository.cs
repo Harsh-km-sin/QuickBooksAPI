@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 
@@ -55,6 +56,32 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                     Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
                 FROM Products WHERE UserId = @UserId AND RealmId = @RealmId ORDER BY Name";
             return await connection.QueryAsync<Products>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
+        public async Task<PagedResult<Products>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
+        {
+            using var connection = CreateOpenConnection();
+            var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
+            var skip = (page - 1) * pageSize;
+
+            var countSql = @"
+                SELECT COUNT(*) FROM Products 
+                WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@Search IS NULL OR Name LIKE @Search OR Description LIKE @Search OR FullyQualifiedName LIKE @Search)";
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern });
+
+            var itemsSql = @"
+                SELECT Id, QBOId, Name, Description, Active, FullyQualifiedName, Taxable, UnitPrice, Type,
+                    IncomeAccountRefValue, IncomeAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
+                    Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
+                FROM Products 
+                WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@Search IS NULL OR Name LIKE @Search OR Description LIKE @Search OR FullyQualifiedName LIKE @Search)
+                ORDER BY Name
+                OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
+            var items = await connection.QueryAsync<Products>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+
+            return new PagedResult<Products> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
 
         private static DataTable BuildProductTable(IEnumerable<Products> products)

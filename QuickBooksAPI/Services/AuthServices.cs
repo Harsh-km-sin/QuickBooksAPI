@@ -178,6 +178,8 @@ namespace QuickBooksAPI.Services
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim("UserId", user.Id.ToString()),
+                new Claim("UserName", user.Username ?? string.Empty),
+                new Claim("Name", user.FirstName ?? string.Empty),
                 new Claim("RealmIds", realmIdsJson),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };

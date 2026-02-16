@@ -1,3 +1,4 @@
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
@@ -6,6 +7,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
     {
         Task<int> UpsertVendorsAsync(IEnumerable<Vendor> vendors, int userId, string realmId);
         Task<IEnumerable<Vendor>> GetAllByUserAndRealmAsync(int userId, string realmId);
+        Task<PagedResult<Vendor>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search);
         Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId);
 
         /// <summary>Soft-deletes a vendor by setting DeletedAt and DeletedBy. Returns true if a row was updated.</summary>

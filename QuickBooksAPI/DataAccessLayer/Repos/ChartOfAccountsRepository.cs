@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 using System.Linq;
@@ -34,6 +35,33 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 WHERE UserId = @UserId AND RealmId = @RealmId
                 ORDER BY FullyQualifiedName";
             return await connection.QueryAsync<ChartOfAccounts>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
+        public async Task<PagedResult<ChartOfAccounts>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
+        {
+            using var connection = CreateOpenConnection();
+            var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
+            var skip = (page - 1) * pageSize;
+
+            var countSql = @"
+                SELECT COUNT(*) FROM dbo.ChartOfAccounts 
+                WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@Search IS NULL OR Name LIKE @Search OR FullyQualifiedName LIKE @Search OR AccountType LIKE @Search)";
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern });
+
+            var itemsSql = @"
+                SELECT Id, QBOId, Name, SubAccount, FullyQualifiedName, Active, Classification,
+                    AccountType, AccountSubType, CurrentBalance, CurrentBalanceWithSubAccounts,
+                    CurrencyRefValue, CurrencyRefName, Domain, Sparse, SyncToken,
+                    CreateTime, LastUpdatedTime, UserId, RealmId
+                FROM dbo.ChartOfAccounts
+                WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@Search IS NULL OR Name LIKE @Search OR FullyQualifiedName LIKE @Search OR AccountType LIKE @Search)
+                ORDER BY FullyQualifiedName
+                OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
+            var items = await connection.QueryAsync<ChartOfAccounts>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+
+            return new PagedResult<ChartOfAccounts> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
 
         public async Task<int> UpsertChartOfAccountsAsync(IEnumerable<ChartOfAccounts> accounts)

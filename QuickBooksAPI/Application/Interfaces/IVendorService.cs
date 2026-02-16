@@ -7,6 +7,7 @@ namespace QuickBooksAPI.Application.Interfaces
     public interface IVendorService
     {
         Task<ApiResponse<IEnumerable<Vendor>>> ListVendorsAsync();
+        Task<ApiResponse<PagedResult<Vendor>>> ListVendorsAsync(ListQueryParams query);
         Task<ApiResponse<int>> GetVendorsAsync();
         Task<ApiResponse<string>> CreateVendorAsync(CreateVendorRequest request);
         Task<ApiResponse<string>> UpdatevendorAsync(UpdateVendorRequest request);

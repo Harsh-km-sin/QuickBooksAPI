@@ -1,3 +1,4 @@
+using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
@@ -42,6 +43,20 @@ namespace QuickBooksAPI.Services
             var realmId = _currentUser.RealmId;
             var accounts = await _chartOfAccountsRepository.GetAllByUserAndRealmAsync(userId, realmId);
             return ApiResponse<IEnumerable<ChartOfAccounts>>.Ok(accounts);
+        }
+
+        public async Task<ApiResponse<PagedResult<ChartOfAccounts>>> ListChartOfAccountsAsync(ListQueryParams query)
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<PagedResult<ChartOfAccounts>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            var userId = int.Parse(_currentUser.UserId);
+            var realmId = _currentUser.RealmId;
+            var page = query.GetPage();
+            var pageSize = query.GetPageSize();
+            var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
+            var result = await _chartOfAccountsRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search);
+            return ApiResponse<PagedResult<ChartOfAccounts>>.Ok(result);
         }
 
         public async Task<ApiResponse<int>> syncChartOfAccounts()

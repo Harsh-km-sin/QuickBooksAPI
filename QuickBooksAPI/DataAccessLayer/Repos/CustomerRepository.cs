@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 
@@ -99,6 +100,48 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                     BillAddrCountrySubDivisionCode, CreateTime, LastUpdatedTime, UserId, RealmId
                 FROM Customer WHERE UserId = @UserId AND RealmId = @RealmId ORDER BY DisplayName";
             return await connection.QueryAsync<Customer>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
+        public async Task<PagedResult<Customer>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
+        {
+            using var connection = CreateConnection();
+            var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
+            var skip = (page - 1) * pageSize;
+
+            var countSql = @"
+                SELECT COUNT(*) FROM Customer 
+                WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@Search IS NULL OR
+                    DisplayName LIKE @Search OR
+                    GivenName LIKE @Search OR
+                    FamilyName LIKE @Search OR
+                    CompanyName LIKE @Search OR
+                    PrimaryEmailAddr LIKE @Search)";
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern });
+
+            var itemsSql = @"
+                SELECT Id, QboId, SyncToken, GivenName, FamilyName, DisplayName, CompanyName,
+                    Active, Balance, PrimaryEmailAddr, PrimaryPhone, BillAddrLine1, BillAddrCity, BillAddrPostalCode,
+                    BillAddrCountrySubDivisionCode, CreateTime, LastUpdatedTime, UserId, RealmId
+                FROM Customer 
+                WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@Search IS NULL OR
+                    DisplayName LIKE @Search OR
+                    GivenName LIKE @Search OR
+                    FamilyName LIKE @Search OR
+                    CompanyName LIKE @Search OR
+                    PrimaryEmailAddr LIKE @Search)
+                ORDER BY DisplayName
+                OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
+            var items = await connection.QueryAsync<Customer>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+
+            return new PagedResult<Customer>
+            {
+                Items = items.ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
     }
 }

@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 
@@ -37,8 +38,8 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             table.Columns.Add("BillAddrCity", typeof(string));
             table.Columns.Add("BillAddrPostalCode", typeof(string));
             table.Columns.Add("BillAddrCountrySubDivisionCode", typeof(string));
-            table.Columns.Add("CreateTime", typeof(DateTime));
-            table.Columns.Add("LastUpdatedTime", typeof(DateTime));
+            table.Columns.Add("CreateTime", typeof(DateTimeOffset));
+            table.Columns.Add("LastUpdatedTime", typeof(DateTimeOffset));
             table.Columns.Add("UserId", typeof(int));
             table.Columns.Add("RealmId", typeof(string));
 
@@ -83,14 +84,41 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
         {
             using var connection = CreateConnection();
             const string sql = @"
-                SELECT Id, QboId, UserId, RealmId, SyncToken, Title, GivenName, MiddleName, FamilyName,
+                SELECT QboId, UserId, RealmId, SyncToken, GivenName, FamilyName,
                     DisplayName, CompanyName, Active, Balance, PrimaryEmailAddr, PrimaryPhone,
                     BillAddrLine1, BillAddrCity, BillAddrPostalCode, BillAddrCountrySubDivisionCode,
-                    CreateTime, LastUpdatedTime, Domain, Sparse, DeletedAt, DeletedBy
+                    CreateTime, LastUpdatedTime
                 FROM dbo.Vendor
                 WHERE UserId = @UserId AND RealmId = @RealmId AND (DeletedAt IS NULL)
                 ORDER BY DisplayName";
             return await connection.QueryAsync<Vendor>(sql, new { UserId = userId, RealmId = realmId });
+        }
+
+        public async Task<PagedResult<Vendor>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
+        {
+            using var connection = CreateConnection();
+            var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
+            var skip = (page - 1) * pageSize;
+
+            var countSql = @"
+                SELECT COUNT(*) FROM dbo.Vendor 
+                WHERE UserId = @UserId AND RealmId = @RealmId AND (DeletedAt IS NULL)
+                AND (@Search IS NULL OR DisplayName LIKE @Search OR GivenName LIKE @Search OR FamilyName LIKE @Search OR CompanyName LIKE @Search OR PrimaryEmailAddr LIKE @Search)";
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern });
+
+            var itemsSql = @"
+                SELECT QboId, UserId, RealmId, SyncToken, GivenName, FamilyName,
+                    DisplayName, CompanyName, Active, Balance, PrimaryEmailAddr, PrimaryPhone,
+                    BillAddrLine1, BillAddrCity, BillAddrPostalCode, BillAddrCountrySubDivisionCode,
+                    CreateTime, LastUpdatedTime
+                FROM dbo.Vendor
+                WHERE UserId = @UserId AND RealmId = @RealmId AND (DeletedAt IS NULL)
+                AND (@Search IS NULL OR DisplayName LIKE @Search OR GivenName LIKE @Search OR FamilyName LIKE @Search OR CompanyName LIKE @Search OR PrimaryEmailAddr LIKE @Search)
+                ORDER BY DisplayName
+                OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
+            var items = await connection.QueryAsync<Vendor>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+
+            return new PagedResult<Vendor> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
 
         public async Task<DateTime?> GetLastUpdatedTimeAsync(int userId, string realmId)
@@ -101,7 +129,8 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 FROM Vendor 
                 WHERE UserId = @UserId AND RealmId = @RealmId AND (DeletedAt IS NULL)";
 
-            return await connection.QuerySingleOrDefaultAsync<DateTime?>(sql, new { UserId = userId, RealmId = realmId });
+            var offset = await connection.QuerySingleOrDefaultAsync<DateTimeOffset?>(sql, new { UserId = userId, RealmId = realmId });
+            return offset?.UtcDateTime;
         }
 
         public async Task<bool> SoftDeleteAsync(int userId, string realmId, string qboId)
