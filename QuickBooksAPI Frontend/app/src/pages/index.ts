@@ -1,6 +1,7 @@
 export { Login } from './Login';
 export { Register } from './Register';
 export { Dashboard } from './Dashboard';
+export { ConnectedCompanies } from './ConnectedCompanies';
 export { Customers } from './Customers';
 export { ProductsPage } from './Products';
 export { Vendors } from './Vendors';

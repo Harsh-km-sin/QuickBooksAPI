@@ -97,8 +97,7 @@ namespace QuickBooksAPI.Services
                 {
                     var journalEntriesJson = await _quickBooksJournalEntryService.GetJournalEntryAsync(token.AccessToken, realmId, startPosition, PageSize, lastUpdatedAfter);
                     var journalEntryResponse = JsonSerializer.Deserialize<QuickBooksJournalEntryResponse>(journalEntriesJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    Console.WriteLine("Raw Response: journalEntriesJson" + journalEntriesJson);
-                    Console.WriteLine("Raw response: journalEntryResponse" + journalEntryResponse);
+          
                     var journalEntries = journalEntryResponse?.QueryResponse?.JournalEntry;
                     if (journalEntries == null || journalEntries.Count == 0)
                     {

@@ -77,6 +77,20 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
 
             return new PagedResult<QBOBillHeader> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
+
+        public async Task<QBOBillHeader?> GetByQboBillIdAsync(string realmId, string qboBillId)
+        {
+            using var connection = CreateOpenConnection();
+            const string sql = @"SELECT BillId, QBOBillId, RealmId, SyncToken, Domain, Sparse,
+                APAccountRefValue, APAccountRefName, VendorRefValue, VendorRefName,
+                TxnDate, DueDate, TotalAmt, Balance, IsDeleted,
+                CurrencyRefValue, CurrencyRefName, SalesTermRefValue,
+                CreateTime, LastUpdatedTime, RawJson
+                FROM dbo.QBOBillHeader
+                WHERE RealmId = @RealmId AND QBOBillId = @QBOBillId AND (IsDeleted = 0 OR IsDeleted IS NULL)";
+            return await connection.QuerySingleOrDefaultAsync<QBOBillHeader>(sql, new { RealmId = realmId, QBOBillId = qboBillId });
+        }
+
         private static DataTable BuildBillHeaderTable(IEnumerable<QBOBillHeader> headers)
         {
             var table = new DataTable();

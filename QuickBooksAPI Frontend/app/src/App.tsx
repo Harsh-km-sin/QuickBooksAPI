@@ -8,6 +8,7 @@ import {
   Login,
   Register,
   Dashboard,
+  ConnectedCompanies,
   Customers,
   ProductsPage,
   Vendors,
@@ -55,7 +56,9 @@ function App() {
           </ThemeProvider>
         }
       />
-      <Route path="/" element={renderProtectedPage(<Dashboard />)} />
+      <Route path="/" element={renderProtectedPage(<ConnectedCompanies />)} />
+      <Route path="/dashboard" element={renderProtectedPage(<Dashboard />)} />
+      <Route path="/connected-companies" element={<Navigate to="/" replace />} />
       <Route path="/customers" element={renderProtectedPage(<Customers />)} />
       <Route path="/products" element={renderProtectedPage(<ProductsPage />)} />
       <Route path="/vendors" element={renderProtectedPage(<Vendors />)} />

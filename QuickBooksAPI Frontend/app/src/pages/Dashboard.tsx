@@ -1,16 +1,12 @@
 import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { useQuickBooks } from '@/hooks/useQuickBooks';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Users,
   Package,
   Truck,
-  Loader2,
-  Link2,
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -59,7 +55,6 @@ function StatCard({ title, value, description, icon: Icon, trend, trendUp }: Sta
 
 export function Dashboard() {
   const { stats, isLoading } = useDashboardStats();
-  const { connect, isConnecting } = useQuickBooks();
   const { user } = useAuth();
 
   const isConnected = user?.realmIds && user.realmIds.length > 0;
@@ -101,36 +96,16 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your accounting data</p>
-        </div>
-        {!isConnected && (
-          <Button onClick={connect} disabled={isConnecting}>
-            {isConnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
-            Connect QuickBooks
-          </Button>
-        )}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">Overview of your accounting data</p>
       </div>
 
-      {isConnected ? (
+      {isConnected && (
         <div className="flex items-center gap-2">
           <Badge variant="default" className="bg-green-600">Connected to QuickBooks</Badge>
           <span className="text-sm text-muted-foreground">{user?.realmIds.length} compan{user?.realmIds.length !== 1 ? 'ies' : 'y'} linked</span>
         </div>
-      ) : (
-        <Card className="bg-muted/50 border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <Link2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Connect QuickBooks</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-md mb-4">Link your QuickBooks Online account to sync and manage your accounting data</p>
-            <Button onClick={connect} disabled={isConnecting}>
-              {isConnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
-              Connect Now
-            </Button>
-          </CardContent>
-        </Card>
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

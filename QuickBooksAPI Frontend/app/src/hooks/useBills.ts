@@ -40,6 +40,7 @@ interface UseBillsReturn {
   error: string | null;
   refetch: () => Promise<void>;
   sync: () => Promise<void>;
+  getBillById: (id: string) => Promise<QBOBillHeader | null>;
   createBill: (data: CreateBillRequest) => Promise<boolean>;
   updateBill: (data: UpdateBillRequest) => Promise<boolean>;
   deleteBill: (data: DeleteBillRequest) => Promise<boolean>;
@@ -129,6 +130,15 @@ export function useBills(options?: UseBillsOptions): UseBillsReturn {
     await queryRefetch();
   };
 
+  const getBillById = async (id: string): Promise<QBOBillHeader | null> => {
+    try {
+      const response = await billApi.getById(id);
+      return response.success && response.data ? response.data : null;
+    } catch {
+      return null;
+    }
+  };
+
   const sync = async () => {
     await syncMutation.mutateAsync();
   };
@@ -181,6 +191,7 @@ export function useBills(options?: UseBillsOptions): UseBillsReturn {
     error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
     refetch,
     sync,
+    getBillById,
     createBill,
     updateBill,
     deleteBill,

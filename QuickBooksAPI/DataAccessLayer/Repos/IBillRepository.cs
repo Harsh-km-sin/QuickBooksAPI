@@ -12,5 +12,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
         Task<bool> SoftDeleteBillAsync(string realmId, string qboBillId);
         Task<IEnumerable<QBOBillHeader>> GetAllByRealmAsync(string realmId);
         Task<PagedResult<QBOBillHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search);
+        /// <summary>Gets a single bill by QuickBooks bill id and realm. Returns null if not found or deleted.</summary>
+        Task<QBOBillHeader?> GetByQboBillIdAsync(string realmId, string qboBillId);
     }
 }

@@ -230,6 +230,15 @@ export const authApi = {
         state
       )}&realmId=${encodeURIComponent(realmId)}`
     ),
+
+  getConnectedCompanies: () =>
+    apiClient.get<ConnectedCompany[]>('/api/auth/connected-companies'),
+
+  disconnect: (realmId: string) =>
+    apiClient.post<string>('/api/auth/disconnect', { realmId }),
+
+  logout: () =>
+    apiClient.post<string>('/api/auth/logout', {}),
 };
 
 function buildListQuery(params?: ListQueryParams): string {
@@ -246,6 +255,8 @@ function buildListQuery(params?: ListQueryParams): string {
 export const customerApi = {
   list: (params?: ListQueryParams) =>
     apiClient.get<PagedResult<Customer>>(`/api/customer/list${buildListQuery(params)}`),
+  getById: (id: string) =>
+    apiClient.get<Customer>(`/api/customer/getById/${encodeURIComponent(id)}`),
   sync: () => apiClient.get<number>('/api/customer/sync'),
   create: (data: CreateCustomerRequest) =>
     apiClient.post<string>('/api/customer/create', data),
@@ -285,6 +296,8 @@ export const vendorApi = {
 export const billApi = {
   list: (params?: ListQueryParams) =>
     apiClient.get<PagedResult<QBOBillHeader>>(`/api/bill/list${buildListQuery(params)}`),
+  getById: (id: string) =>
+    apiClient.get<QBOBillHeader>(`/api/bill/getById?id=${encodeURIComponent(id)}`),
   sync: () => apiClient.get<number>('/api/bill/sync'),
   create: (data: CreateBillRequest) =>
     apiClient.post<string>('/api/bill/create', data),
@@ -328,6 +341,7 @@ import type {
   ListQueryParams,
   PagedResult,
   Customer,
+  ConnectedCompany,
   CreateCustomerRequest,
   UpdateCustomerRequest,
   DeleteCustomerRequest,

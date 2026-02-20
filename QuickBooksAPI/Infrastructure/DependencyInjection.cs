@@ -18,6 +18,9 @@ namespace QuickBooksAPI.Infrastructure
             services.AddScoped<ITokenRepository>(
                 _ => new TokenRepository(connectionString));
 
+            services.AddScoped<ICompanyRepository>(
+                _ => new CompanyRepository(connectionString));
+
             services.AddScoped<IAppUserRepository>(
                 _ => new AppUserRepository(connectionString));
 

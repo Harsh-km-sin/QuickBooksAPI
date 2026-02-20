@@ -40,6 +40,7 @@ interface UseCustomersReturn {
   error: string | null;
   refetch: () => Promise<void>;
   sync: () => Promise<void>;
+  getCustomerById: (id: string) => Promise<Customer | null>;
   createCustomer: (data: CreateCustomerRequest) => Promise<boolean>;
   updateCustomer: (data: UpdateCustomerRequest) => Promise<boolean>;
   deleteCustomer: (data: DeleteCustomerRequest) => Promise<boolean>;
@@ -135,6 +136,15 @@ export function useCustomers(options?: UseCustomersOptions): UseCustomersReturn 
     await queryRefetch();
   };
 
+  const getCustomerById = async (id: string): Promise<Customer | null> => {
+    try {
+      const response = await customerApi.getById(id);
+      return response.success && response.data ? response.data : null;
+    } catch {
+      return null;
+    }
+  };
+
   const sync = async () => {
     await syncMutation.mutateAsync();
   };
@@ -187,6 +197,7 @@ export function useCustomers(options?: UseCustomersOptions): UseCustomersReturn 
     error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
     refetch,
     sync,
+    getCustomerById,
     createCustomer,
     updateCustomer,
     deleteCustomer,

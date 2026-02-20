@@ -31,6 +31,13 @@ namespace QuickBooksAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("getById/{id}")]
+        public async Task<IActionResult> GetById([FromRoute] string id)
+        {
+            var response = await _customerService.GetCustomerByIdAsync(id);
+            return Ok(response);
+        }
+
         [HttpPost("create")]
         public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequest request)
         {

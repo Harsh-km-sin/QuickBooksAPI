@@ -143,5 +143,17 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 PageSize = pageSize
             };
         }
+
+        public async Task<Customer?> GetByQboIdAsync(int userId, string realmId, string qboId)
+        {
+            using var connection = CreateConnection();
+            const string sql = @"
+                SELECT Id, QboId, SyncToken, GivenName, FamilyName, DisplayName, CompanyName,
+                    Active, Balance, PrimaryEmailAddr, PrimaryPhone, BillAddrLine1, BillAddrCity, BillAddrPostalCode,
+                    BillAddrCountrySubDivisionCode, CreateTime, LastUpdatedTime, UserId, RealmId
+                FROM Customer
+                WHERE UserId = @UserId AND RealmId = @RealmId AND QboId = @QboId";
+            return await connection.QuerySingleOrDefaultAsync<Customer>(sql, new { UserId = userId, RealmId = realmId, QboId = qboId });
+        }
     }
 }

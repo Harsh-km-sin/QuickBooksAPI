@@ -7,6 +7,7 @@ using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.DataAccessLayer.Repos;
 using QuickBooksService.Services;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -20,15 +21,29 @@ namespace QuickBooksAPI.Services
         private readonly IQuickBooksAuthService _quickBooksAuthService;
         private readonly ITokenRepository _tokenRepo;
         private readonly IAppUserRepository _userRepo;
+        private readonly ICompanyRepository _companyRepository;
         private readonly IConfiguration _config;
         private readonly ILogger<AuthServices> _logger;
 
-        public AuthServices(IQuickBooksAuthService quickBooksAuthService, ITokenRepository tokenRepo, IConfiguration config, IAppUserRepository userRepo, ILogger<AuthServices> logger)
+
+        private static readonly Regex NameRegex = new(@"^[A-Za-z]+$", RegexOptions.Compiled);
+        private static readonly Regex UsernameRegex = new(@"^[a-zA-Z0-9._]+$", RegexOptions.Compiled);
+        private static readonly Regex PasswordRegex = new(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,100}$", RegexOptions.Compiled);
+
+
+        public AuthServices(
+            IQuickBooksAuthService quickBooksAuthService,
+            ITokenRepository tokenRepo,
+            IConfiguration config,
+            IAppUserRepository userRepo,
+            ICompanyRepository companyRepository,
+            ILogger<AuthServices> logger)
         {
             _quickBooksAuthService = quickBooksAuthService;
             _tokenRepo = tokenRepo;
             _config = config;
             _userRepo = userRepo;
+            _companyRepository = companyRepository;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -70,11 +85,17 @@ namespace QuickBooksAPI.Services
                 if (request.FirstName.Length > 50)
                     return ApiResponse<int>.Fail("First Name cannot exceed 50 characters.");
 
+                if(!NameRegex.IsMatch(request.FirstName))
+                    return ApiResponse<int>.Fail("First Name can only contain letters.");
+
                 if (string.IsNullOrWhiteSpace(request.LastName))
                     return ApiResponse<int>.Fail("Last Name is required.");
 
                 if (request.LastName.Length > 50)
                     return ApiResponse<int>.Fail("Last Name cannot exceed 50 characters.");
+
+                if (!NameRegex.IsMatch(request.LastName))
+                    return ApiResponse<int>.Fail("Last Name can only contain letters.");
 
                 if (string.IsNullOrWhiteSpace(request.Username))
                     return ApiResponse<int>.Fail("Username is required.");
@@ -82,7 +103,7 @@ namespace QuickBooksAPI.Services
                 if (request.Username.Length < 3 || request.Username.Length > 30)
                     return ApiResponse<int>.Fail("Username must be between 3 and 30 characters.");
 
-                if (!Regex.IsMatch(request.Username, @"^[a-zA-Z0-9._]+$"))
+                if (!UsernameRegex.IsMatch(request.Username))
                     return ApiResponse<int>.Fail("Username can only contain letters, numbers, dots, and underscores.");
 
                 if (string.IsNullOrWhiteSpace(request.Email))
@@ -235,6 +256,34 @@ namespace QuickBooksAPI.Services
 
                 await _tokenRepo.SaveTokenAsync(token);
 
+                // Persist into Companies table as well
+                string? companyName = null;
+                try
+                {
+                    var companyInfoJson = await _quickBooksAuthService.GetCompanyInfoAsync(token.AccessToken, realmId);
+                    var companyInfo = JsonSerializer.Deserialize<QuickBooksCompanyInfoResponse>(companyInfoJson);
+                    companyName = companyInfo?.CompanyInfo?.CompanyName ?? companyInfo?.CompanyInfo?.LegalName;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch QuickBooks CompanyInfo for UserId={UserId}, RealmId={RealmId}", userId, realmId);
+                }
+
+                var company = new Company
+                {
+                    UserId = userId,
+                    QboRealmId = realmId,
+                    CompanyName = companyName,
+                    QboAccessToken = token.AccessToken,
+                    QboRefreshToken = token.RefreshToken,
+                    TokenExpiryUtc = token.CreatedAt.AddSeconds(token.ExpiresIn),
+                    IsQboConnected = true,
+                    ConnectedAtUtc = token.CreatedAt,
+                    DisconnectedAtUtc = null
+                };
+
+                await _companyRepository.UpsertCompanyAsync(company);
+
                 return ApiResponse<QuickBooksToken>.Ok(token, "QuickBooks token saved successfully.");
             }
             catch (Exception ex)
@@ -300,12 +349,84 @@ namespace QuickBooksAPI.Services
                 // Update token in database
                 await _tokenRepo.UpdateTokenAsync(token);
 
+                // Mirror into Companies table
+                var company = new Company
+                {
+                    UserId = userId,
+                    QboRealmId = realmId,
+                    CompanyName = null, // keep existing name
+                    QboAccessToken = token.AccessToken,
+                    QboRefreshToken = token.RefreshToken,
+                    TokenExpiryUtc = token.CreatedAt.AddSeconds(token.ExpiresIn),
+                    IsQboConnected = true,
+                    ConnectedAtUtc = token.CreatedAt,
+                    DisconnectedAtUtc = null
+                };
+
+                await _companyRepository.UpsertCompanyAsync(company);
+
                 return token;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Token refresh failed. UserId={UserId}, RealmId={RealmId}", userId, realmId);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Revokes the QuickBooks refresh token at Intuit and removes the token from the database for the given user and realm.
+        /// </summary>
+        public async Task<ApiResponse<string>> DisconnectQboAsync(int userId, string realmId)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(realmId))
+                    return ApiResponse<string>.Fail("Realm ID is required to disconnect.");
+
+                var token = await _tokenRepo.GetTokenByUserAndRealmAsync(userId, realmId);
+                if (token == null)
+                    return ApiResponse<string>.Fail("No QuickBooks connection found for this company.");
+
+                var revoked = await _quickBooksAuthService.DisconnectQboAsync(token.RefreshToken);
+                if (!revoked)
+                {
+                    _logger.LogWarning("Intuit revoke failed for UserId={UserId}, RealmId={RealmId}. Clearing local token anyway.", userId, realmId);
+                    // Still clear local token so user can reconnect
+                }
+
+                await _tokenRepo.DeleteTokenAsync(token.Id);
+                await _companyRepository.ClearCompanyTokenAsync(userId, realmId);
+
+                return ApiResponse<string>.Ok("QuickBooks company disconnected successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Disconnect QBO failed. UserId={UserId}, RealmId={RealmId}", userId, realmId);
+                return ApiResponse<string>.Fail("Failed to disconnect QuickBooks.", new[] { ex.Message });
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<ConnectedCompanyDto>>> GetConnectedCompaniesAsync(int userId)
+        {
+            try
+            {
+                var companies = await _companyRepository.GetConnectedCompaniesByUserIdAsync(userId);
+                var result = companies.Select(c => new ConnectedCompanyDto
+                {
+                    Id = c.Id,
+                    QboRealmId = c.QboRealmId,
+                    CompanyName = c.CompanyName,
+                    ConnectedAtUtc = c.ConnectedAtUtc,
+                    IsQboConnected = c.IsQboConnected
+                });
+
+                return ApiResponse<IEnumerable<ConnectedCompanyDto>>.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to fetch connected companies for UserId={UserId}", userId);
+                return ApiResponse<IEnumerable<ConnectedCompanyDto>>.Fail("Failed to fetch connected companies.", new[] { ex.Message });
             }
         }
 

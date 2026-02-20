@@ -12,5 +12,6 @@ namespace QuickBooksAPI.Application.Interfaces
         Task<ApiResponse<string>> CreateCustomerAsync(CreateCustomerRequest request);
         Task<ApiResponse<string>> UpdateCustomerAsync(UpdateCustomerRequest request);
         Task<ApiResponse<string>> DeleteCustomerAsync(DeleteCustomerRequest request);
+        Task<ApiResponse<Customer>> GetCustomerByIdAsync(string id);
     }
 }

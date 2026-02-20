@@ -12,5 +12,7 @@ namespace QuickBooksAPI.Application.Interfaces
         Task<ApiResponse<QuickBooksToken>> HandleCallbackAsync(string code, string state, string realmId);
         Task<bool> IsTokenExpiredAsync(QuickBooksToken? token);
         Task<QuickBooksToken?> RefreshTokenIfExpiredAsync(int userId, string realmId);
+        Task<ApiResponse<string>> DisconnectQboAsync(int userId, string realmId);
+        Task<ApiResponse<IEnumerable<ConnectedCompanyDto>>> GetConnectedCompaniesAsync(int userId);
     }
 }

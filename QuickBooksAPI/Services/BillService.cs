@@ -56,6 +56,22 @@ namespace QuickBooksAPI.Services
             return ApiResponse<PagedResult<QBOBillHeader>>.Ok(result);
         }
 
+        public async Task<ApiResponse<QBOBillHeader>> GetBillByIdAsync(string id)
+        {
+            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+                return ApiResponse<QBOBillHeader>.Fail("User context is missing. Please sign in and connect QuickBooks.");
+
+            if (string.IsNullOrWhiteSpace(id))
+                return ApiResponse<QBOBillHeader>.Fail("Bill id is required.");
+
+            var realmId = _currentUser.RealmId;
+            var bill = await _billRepository.GetByQboBillIdAsync(realmId, id.Trim());
+            if (bill == null)
+                return ApiResponse<QBOBillHeader>.Fail("Bill not found.");
+
+            return ApiResponse<QBOBillHeader>.Ok(bill);
+        }
+
         public async Task<ApiResponse<int>> SyncBillsAsync()
         {
             var userId = int.Parse(_currentUser.UserId);

@@ -85,11 +85,13 @@ export function Customers() {
     hasPreviousPage,
     isLoading,
     isSyncing,
+    getCustomerById,
     createCustomer,
     updateCustomer,
     deleteCustomer,
     sync,
   } = useCustomers({ listParams });
+  const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
 
   // Reset to first page when debounced search or page size changes
   useEffect(() => {
@@ -134,8 +136,11 @@ export function Customers() {
     if (success) dispatch(closeDeleteDialog());
   };
 
-  const handleOpenEditDialog = (customer: Customer) => {
-    dispatch(openEditDialog(customer));
+  const handleOpenEditDialog = async (customer: Customer) => {
+    setIsLoadingCustomer(true);
+    const fullCustomer = await getCustomerById(customer.qboId);
+    setIsLoadingCustomer(false);
+    if (fullCustomer) dispatch(openEditDialog(fullCustomer));
   };
 
   const handleOpenDeleteDialog = (customer: Customer) => {
@@ -288,7 +293,7 @@ export function Customers() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenEditDialog(customer)}>
+                            <DropdownMenuItem onClick={() => handleOpenEditDialog(customer)} disabled={isLoadingCustomer}>
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>

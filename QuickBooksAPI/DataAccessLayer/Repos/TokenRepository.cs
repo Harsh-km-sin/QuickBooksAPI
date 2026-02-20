@@ -23,14 +23,30 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
         public async Task SaveTokenAsync(QuickBooksToken token)
         {
             using var connection = CreateConnection();
+            
+            // Use MERGE to support multiple companies per user (upsert on UserId + RealmId)
             var sql = @"
-                INSERT INTO QuickBooksToken
-                (UserId, RealmId, IdToken, AccessToken, RefreshToken, TokenType, ExpiresIn, XRefreshTokenExpiresIn, CreatedAt, UpdatedAt)
-                VALUES
-                (@UserId, @RealmId, @IdToken, @AccessToken, @RefreshToken, @TokenType, @ExpiresIn, @XRefreshTokenExpiresIn, @CreatedAt, @UpdatedAt)";
+MERGE INTO QuickBooksToken AS target
+USING (SELECT @UserId AS UserId, @RealmId AS RealmId) AS source
+    ON target.UserId = source.UserId AND target.RealmId = source.RealmId
+WHEN MATCHED THEN
+    UPDATE SET
+        IdToken = @IdToken,
+        AccessToken = @AccessToken,
+        RefreshToken = @RefreshToken,
+        TokenType = @TokenType,
+        ExpiresIn = @ExpiresIn,
+        XRefreshTokenExpiresIn = @XRefreshTokenExpiresIn,
+        CreatedAt = @CreatedAt,
+        UpdatedAt = @UpdatedAt
+WHEN NOT MATCHED THEN
+    INSERT (UserId, RealmId, IdToken, AccessToken, RefreshToken, TokenType, ExpiresIn, XRefreshTokenExpiresIn, CreatedAt, UpdatedAt)
+    VALUES (@UserId, @RealmId, @IdToken, @AccessToken, @RefreshToken, @TokenType, @ExpiresIn, @XRefreshTokenExpiresIn, @CreatedAt, @UpdatedAt);";
 
             if (token.CreatedAt == default)
                 token.CreatedAt = DateTime.UtcNow;
+            
+            token.UpdatedAt = DateTime.UtcNow;
 
             await connection.ExecuteAsync(sql, token);
         }

@@ -25,6 +25,15 @@ namespace QuickBooksAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("getById")]
+        public async Task<IActionResult> GetById([FromQuery] string id)
+        {
+            var response = await _billService.GetBillByIdAsync(id);
+            if (!response.Success)
+                return response.Message == "Bill not found." ? NotFound(response) : BadRequest(response);
+            return Ok(response);
+        }
+
         [HttpGet("sync")]
         public async Task<IActionResult> SyncBills()
         {

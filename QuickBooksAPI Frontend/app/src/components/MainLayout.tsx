@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useQuickBooks } from '@/hooks/useQuickBooks';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -29,11 +28,10 @@ import {
   LogOut,
   ChevronDown,
   Building2,
-  Link2,
-  Loader2,
   Sun,
   Moon,
 } from 'lucide-react';
+import { authApi } from '@/api/client';
 import { useTheme } from '@/components/theme-provider';
 
 interface NavItem {
@@ -43,7 +41,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { title: 'Dashboard', href: '/', icon: Home },
+  { title: 'Connected Companies', href: '/', icon: Building2 },
+  { title: 'Dashboard', href: '/dashboard', icon: Home },
   { title: 'Customers', href: '/customers', icon: Users },
   { title: 'Products', href: '/products', icon: Package },
   { title: 'Vendors', href: '/vendors', icon: Truck },
@@ -56,11 +55,34 @@ const navItems: NavItem[] = [
 function Sidebar({ className }: { className?: string }) {
   const { pathname: currentPath } = useLocation();
   const { user, currentRealmId, setCurrentRealm, logout } = useAuth();
-  const { connect, isConnecting } = useQuickBooks();
   const { theme, setTheme } = useTheme();
+  const [companies, setCompanies] = useState<Array<{ qboRealmId: string; companyName: string | null; isQboConnected: boolean }>>([]);
 
-  const hasMultipleRealms = user?.realmIds && user.realmIds.length > 1;
-  const isConnected = user?.realmIds && user.realmIds.length > 0;
+  // Fetch connected companies from backend
+  useEffect(() => {
+    let mounted = true;
+    authApi.getConnectedCompanies()
+      .then((res) => {
+        if (mounted) {
+          const data = res?.data ?? res ?? [];
+          if (Array.isArray(data)) {
+            setCompanies(data);
+          }
+        }
+      })
+      .catch(() => {
+        if (mounted) setCompanies([]);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  const connectedCompanies = companies.filter((c) => c.isQboConnected);
+  const connectedCount = connectedCompanies.length;
+  const currentCompany = companies.find((c) => c.qboRealmId === currentRealmId);
+  const currentCompanyName = currentCompany?.companyName || (currentRealmId ? `${currentRealmId.slice(0, 8)}...` : null);
+  
+  const hasMultipleRealms = connectedCount > 1;
+  const isConnected = connectedCount > 0;
 
   return (
     <div className={`flex flex-col h-full bg-card border-r ${className}`}>
@@ -95,15 +117,16 @@ function Sidebar({ className }: { className?: string }) {
       </ScrollArea>
 
       <div className="p-4 border-t">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between">
           <span className="text-sm font-medium">QuickBooks</span>
-          <Badge variant={isConnected ? 'default' : 'secondary'}>{isConnected ? 'Connected' : 'Not Connected'}</Badge>
+          <Badge variant={isConnected ? 'default' : 'secondary'} className={isConnected ? 'bg-green-600 hover:bg-green-700' : ''}>
+            {isConnected ? 'Connected' : 'Not Connected'}
+          </Badge>
         </div>
-        {!isConnected && (
-          <Button variant="outline" className="w-full" onClick={connect} disabled={isConnecting}>
-            {isConnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
-            Connect QuickBooks
-          </Button>
+        {connectedCount !== null && connectedCount > 0 && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {connectedCount} {connectedCount === 1 ? 'company' : 'companies'} linked
+          </p>
         )}
       </div>
 
@@ -123,7 +146,7 @@ function Sidebar({ className }: { className?: string }) {
               </Avatar>
               <div className="flex-1 text-left">
                 <p className="text-sm font-medium truncate">{user?.name}</p>
-                {currentRealmId && <p className="text-xs text-muted-foreground truncate">Company: {currentRealmId.slice(0, 8)}...</p>}
+                {currentCompanyName && <p className="text-xs text-muted-foreground truncate">{currentCompanyName}</p>}
               </div>
               <ChevronDown className="h-4 w-4 ml-2" />
             </Button>
@@ -134,11 +157,15 @@ function Sidebar({ className }: { className?: string }) {
             {hasMultipleRealms && (
               <>
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Company</DropdownMenuLabel>
-                {(Array.isArray(user?.realmIds) ? user.realmIds : []).map((realmId) => (
-                  <DropdownMenuItem key={realmId} onClick={() => setCurrentRealm(realmId)} className={currentRealmId === realmId ? 'bg-muted' : ''}>
+                {connectedCompanies.map((company) => (
+                  <DropdownMenuItem 
+                    key={company.qboRealmId} 
+                    onClick={() => setCurrentRealm(company.qboRealmId)} 
+                    className={currentRealmId === company.qboRealmId ? 'bg-muted' : ''}
+                  >
                     <Building2 className="h-4 w-4 mr-2" />
-                    {realmId.slice(0, 16)}...
-                    {currentRealmId === realmId && <Badge variant="secondary" className="ml-auto">Active</Badge>}
+                    <span className="truncate">{company.companyName || company.qboRealmId.slice(0, 12) + '...'}</span>
+                    {currentRealmId === company.qboRealmId && <Badge variant="secondary" className="ml-auto">Active</Badge>}
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />

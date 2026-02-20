@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace QuickBooksService.Services
@@ -115,6 +116,87 @@ namespace QuickBooksService.Services
             }
 
             _logger.LogDebug("QBO token refresh completed.");
+            return content;
+        }
+
+        public async Task<bool> DisconnectQboAsync(string refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                _logger.LogWarning("DisconnectQboAsync called with null or empty refresh token.");
+                return false;
+            }
+
+            var clientId = _config["QuickBooks:ClientId"];
+            if (string.IsNullOrWhiteSpace(clientId))
+            {
+                _logger.LogError("QuickBooks:ClientId configuration is missing.");
+                return false;
+            }
+
+            var clientSecret = _config["QuickBooks:ClientSecret"];
+            if (string.IsNullOrWhiteSpace(clientSecret))
+            {
+                _logger.LogError("QuickBooks:ClientSecret configuration is missing.");
+                return false;
+            }
+
+            var revokeUrl = _config["QuickBooks:RevokeUrl"];
+            if (string.IsNullOrWhiteSpace(revokeUrl))
+                throw new InvalidOperationException("QuickBooks:RevokeUrl configuration is missing or empty.");
+
+            var client = _httpClientFactory.CreateClient();
+
+            var basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
+
+            var body = JsonSerializer.Serialize(new { token = refreshToken });
+            var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(revokeUrl, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("QBO token revoked successfully.");
+                return true;
+            }
+
+            _logger.LogWarning("QBO token revoke failed. StatusCode={StatusCode}", response.StatusCode);
+            return false;
+        }
+
+        public async Task<string> GetCompanyInfoAsync(string accessToken, string realmId)
+        {
+            if (string.IsNullOrWhiteSpace(accessToken))
+                throw new ArgumentException("Access token cannot be null or empty.", nameof(accessToken));
+
+            if (string.IsNullOrWhiteSpace(realmId))
+                throw new ArgumentException("Realm ID cannot be null or empty.", nameof(realmId));
+
+            var baseUrl = _config["QuickBooks:RequestURL"];
+            if (string.IsNullOrWhiteSpace(baseUrl))
+                throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
+
+            // RequestURL is https://sandbox-quickbooks.api.intuit.com/v3/company
+            // CompanyInfo endpoint: /v3/company/{realmId}/companyinfo/{realmId}
+            var requestUrl = $"{baseUrl.TrimEnd('/')}/{realmId}/companyinfo/{realmId}";
+
+            var client = _httpClientFactory.CreateClient();
+            var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var response = await client.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("QBO CompanyInfo request failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
+                throw new HttpRequestException(
+                    $"QBO CompanyInfo request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+            }
+
+            _logger.LogDebug("QBO CompanyInfo request succeeded. RealmId={RealmId}", realmId);
             return content;
         }
     }

@@ -66,8 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true);
           
           // Restore realm ID from storage or use first available
+          // Trust stored realm ID even if not in JWT (JWT may be stale after OAuth connect)
           const storedRealmId = getRealmId();
-          if (storedRealmId && realmIdsArr.includes(storedRealmId)) {
+          if (storedRealmId) {
             setCurrentRealmId(storedRealmId);
           } else if (realmIdsArr.length > 0) {
             setCurrentRealmId(realmIdsArr[0]);
@@ -161,11 +162,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // 1. Call backend logout endpoint (fire-and-forget for audit/logging)
+    //    Don't block logout if this fails
+    try {
+      await authApi.logout();
+    } catch {
+      // Silently ignore - logout should always succeed client-side
+    }
+
+    // 2. Clear authentication token (mandatory)
+    // 3. Clear realm_id (recommended for security)
+    // Note: Theme preference is intentionally preserved
+    // Note: QBO OAuth tokens are NOT touched (logout ≠ disconnect)
     clearAuth();
+
+    // 4. Clear component state
     setUser(null);
     setIsAuthenticated(false);
     setCurrentRealmId(null);
+
     toast.info('Logged out successfully');
     window.location.href = '/login';
   }, []);

@@ -14,13 +14,13 @@ export function useQuickBooks(): UseQuickBooksReturn {
     try {
       setIsConnecting(true);
       const response = await authApi.getOAuthUrl();
-      
-      if (response.success && response.data) {
-        // Redirect to QuickBooks OAuth URL
-        window.location.href = response.data;
+      // Backend may return ApiResponse<string> (response.data) or raw URL string
+      const url = typeof response === 'string' ? response : response?.data ?? null;
+      if (url) {
+        window.location.href = url;
       } else {
         toast.error('Failed to get QuickBooks connection URL', {
-          description: response.message || 'Please try again',
+          description: (typeof response === 'object' && response?.message) ? response.message : 'Please try again',
         });
       }
     } catch (err) {

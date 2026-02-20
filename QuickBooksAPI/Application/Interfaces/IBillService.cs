@@ -12,5 +12,6 @@ namespace QuickBooksAPI.Application.Interfaces
         Task<ApiResponse<string>> CreateBillAsync(CreateBillRequest request);
         Task<ApiResponse<string>> UpdateBillAsync(UpdateBillRequest request);
         Task<ApiResponse<string>> DeleteBillAsync(DeleteBillRequest request);
+        Task<ApiResponse<QBOBillHeader>> GetBillByIdAsync(string id);
     }
 }
