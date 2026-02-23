@@ -3,6 +3,7 @@ export interface ListQueryParams {
   page?: number;
   pageSize?: number;
   search?: string;
+  activeFilter?: 'active' | 'inactive' | 'all';
 }
 
 // Paged result from list endpoints
@@ -145,8 +146,13 @@ export interface Products {
   qtyOnHand: number | null;
   incomeAccountRefValue: string | null;
   incomeAccountRefName: string | null;
+  expenseAccountRefValue: string | null;
+  expenseAccountRefName: string | null;
+  assetAccountRefValue: string | null;
+  assetAccountRefName: string | null;
   purchaseCost: number;
   trackQtyOnHand: boolean;
+  invStartDate: string | null;
   domain: string;
   sparse: boolean;
   syncToken: string;
@@ -177,7 +183,10 @@ export interface UpdateProductRequest {
   sparse?: boolean;
   name?: string;
   type?: string;
+  unitPrice?: number;
+  purchaseCost?: number;
   qtyOnHand?: number;
+  invStartDate?: string;
   incomeAccountRef?: { name: string; value: string };
   expenseAccountRef?: { name: string; value: string };
   assetAccountRef?: { name: string; value: string };
@@ -186,9 +195,8 @@ export interface UpdateProductRequest {
 export interface DeleteProductRequest {
   id: string;
   syncToken: string;
+  sparse: boolean;
   active: boolean;
-  type: string;
-  incomeAccountRef: { value: string; name: string };
 }
 
 // Vendor Entity
@@ -202,20 +210,29 @@ export interface Vendor {
   givenName: string;
   middleName: string;
   familyName: string;
+  suffix: string;
   displayName: string;
   companyName: string;
+  printOnCheckName: string;
   active: boolean;
   balance: number;
   primaryEmailAddr: string;
   primaryPhone: string;
+  mobile: string;
+  webAddr: string;
+  taxIdentifier: string;
+  acctNum: string;
   billAddrLine1: string;
+  billAddrLine2: string;
+  billAddrLine3: string;
   billAddrCity: string;
   billAddrPostalCode: string;
   billAddrCountrySubDivisionCode: string;
-  createTime: string;
-  lastUpdatedTime: string;
+  billAddrCountry: string;
   domain: string;
   sparse: boolean;
+  createTime: string;
+  lastUpdatedTime: string;
   deletedAt: string | null;
   deletedBy: string | null;
 }
@@ -223,6 +240,7 @@ export interface Vendor {
 export interface CreateVendorRequest {
   displayName: string;
   givenName?: string;
+  middleName?: string;
   familyName?: string;
   companyName?: string;
   title?: string;
@@ -251,17 +269,27 @@ export interface UpdateVendorRequest {
   sparse?: boolean;
   displayName?: string;
   givenName?: string;
+  middleName?: string;
   familyName?: string;
   companyName?: string;
+  title?: string;
+  suffix?: string;
   primaryEmailAddr?: { address: string };
   primaryPhone?: { freeFormNumber: string };
+  mobile?: { freeFormNumber: string };
+  webAddr?: { uri: string };
   billAddr?: {
     line1: string;
+    line2?: string;
+    line3?: string;
     city: string;
-    countrySubDivisionCode: string;
     postalCode: string;
+    countrySubDivisionCode: string;
     country?: string;
   };
+  printOnCheckName?: string;
+  acctNum?: string;
+  taxIdentifier?: string;
   active?: boolean;
   balance?: number;
 }

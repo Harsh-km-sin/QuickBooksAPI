@@ -57,9 +57,9 @@ namespace QuickBooksService.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO JournalEntry request failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
+                _logger.LogError("QBO JournalEntry request failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
                 throw new HttpRequestException(
-                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}."
+                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}"
                 );
             }
 

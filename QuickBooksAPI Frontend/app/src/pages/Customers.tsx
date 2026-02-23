@@ -70,11 +70,12 @@ export function Customers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [activeFilter, setActiveFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const debouncedSearch = useDebouncedValue(searchTerm.trim(), SEARCH_DEBOUNCE_MS);
 
   const listParams = useMemo(
-    () => ({ page, pageSize, search: debouncedSearch || undefined }),
-    [page, pageSize, debouncedSearch]
+    () => ({ page, pageSize, search: debouncedSearch || undefined, activeFilter }),
+    [page, pageSize, debouncedSearch, activeFilter]
   );
   const {
     customers,
@@ -93,10 +94,9 @@ export function Customers() {
   } = useCustomers({ listParams });
   const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
 
-  // Reset to first page when debounced search or page size changes
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, pageSize]);
+  }, [debouncedSearch, pageSize, activeFilter]);
 
   const goToPage = (nextPage: number) => setPage(() => Math.max(1, Math.min(nextPage, totalPages || 1)));
 
@@ -129,7 +129,7 @@ export function Customers() {
     const success = await deleteCustomer({
       id: selectedCustomer.qboId,
       syncToken: selectedCustomer.syncToken,
-      sparse: false,
+      sparse: true,
       active: false,
     });
     dispatch(setSubmitting(false));
@@ -208,6 +208,16 @@ export function Customers() {
                 className="pl-9"
               />
             </div>
+            <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as 'active' | 'inactive' | 'all')}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+              </SelectContent>
+            </Select>
             <Badge variant="secondary">
               {totalCount} customer{totalCount !== 1 ? 's' : ''}
             </Badge>
@@ -367,7 +377,7 @@ export function Customers() {
       </Card>
 
       <Dialog open={isCreateDialogOpen} onOpenChange={(open) => !open && dispatch(closeCreateDialog())}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}>
           <DialogHeader>
             <DialogTitle>Add Customer</DialogTitle>
             <DialogDescription>
@@ -383,7 +393,7 @@ export function Customers() {
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => !open && dispatch(closeEditDialog())}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '900px' }}>
           <DialogHeader>
             <DialogTitle>Edit Customer</DialogTitle>
             <DialogDescription>

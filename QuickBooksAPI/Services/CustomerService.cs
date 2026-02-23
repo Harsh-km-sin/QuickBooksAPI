@@ -60,7 +60,8 @@ namespace QuickBooksAPI.Services
             var page = query.GetPage();
             var pageSize = query.GetPageSize();
             var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
-            var result = await _customerRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search);
+            var activeFilter = query.GetActiveFilter();
+            var result = await _customerRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search, activeFilter);
             return ApiResponse<PagedResult<Customer>>.Ok(result);
         }
 
@@ -255,6 +256,13 @@ namespace QuickBooksAPI.Services
                 var userId = int.Parse(_currentUser.UserId);
                 var realmId = _currentUser.RealmId;
                 
+                // Clean and validate the request data
+                var validationErrors = CleanAndValidateCustomerRequest(request);
+                if (validationErrors.Count > 0)
+                {
+                    return ApiResponse<string>.Fail("Validation failed.", validationErrors);
+                }
+
                 // Check and refresh token if expired
                 var token = await _authService.RefreshTokenIfExpiredAsync(userId, realmId);
                 if (token == null)
@@ -287,12 +295,266 @@ namespace QuickBooksAPI.Services
                 return ApiResponse<string>.Fail("Failed to create customer in QuickBooks.", new[] { ex.Message });
             }
         }
+
+        #region Customer Data Cleanup and Validation
+
+        /// <summary>
+        /// Internal record for normalized customer data used by validation.
+        /// </summary>
+        private record CustomerDataForValidation(
+            string? DisplayName,
+            string? GivenName,
+            string? MiddleName,
+            string? FamilyName,
+            string? Title,
+            string? Suffix,
+            string? Email,
+            string? Phone,
+            string? AddressLine1,
+            string? City,
+            string? State,
+            string? PostalCode,
+            string? Country,
+            bool IsDisplayNameRequired
+        );
+
+        /// <summary>
+        /// Cleans and validates the CreateCustomerRequest.
+        /// </summary>
+        private List<string> CleanAndValidateCustomerRequest(CreateCustomerRequest request)
+        {
+            // Normalize all string fields
+            request.GivenName = NormalizeString(request.GivenName);
+            request.MiddleName = NormalizeString(request.MiddleName);
+            request.FamilyName = NormalizeString(request.FamilyName);
+            request.Title = NormalizeString(request.Title);
+            request.Suffix = NormalizeString(request.Suffix);
+            request.DisplayName = request.DisplayName?.Trim() ?? string.Empty;
+            request.FullyQualifiedName = NormalizeString(request.FullyQualifiedName);
+            request.CompanyName = NormalizeString(request.CompanyName);
+            request.Notes = NormalizeString(request.Notes);
+
+            // Clean email
+            var cleanedEmail = CleanEmail(request.PrimaryEmailAddr?.Address);
+            if (cleanedEmail == null)
+                request.PrimaryEmailAddr = null;
+            else if (request.PrimaryEmailAddr != null)
+                request.PrimaryEmailAddr.Address = cleanedEmail;
+
+            // Clean phone
+            var cleanedPhone = NormalizeString(request.PrimaryPhone?.FreeFormNumber);
+            if (cleanedPhone == null)
+                request.PrimaryPhone = null;
+            else if (request.PrimaryPhone != null)
+                request.PrimaryPhone.FreeFormNumber = cleanedPhone;
+
+            // Clean address
+            if (request.BillAddr != null)
+            {
+                request.BillAddr.Line1 = NormalizeString(request.BillAddr.Line1);
+                request.BillAddr.City = NormalizeString(request.BillAddr.City);
+                request.BillAddr.CountrySubDivisionCode = NormalizeString(request.BillAddr.CountrySubDivisionCode);
+                request.BillAddr.PostalCode = NormalizeString(request.BillAddr.PostalCode);
+                request.BillAddr.Country = NormalizeString(request.BillAddr.Country);
+
+                if (IsAddressEmpty(request.BillAddr.Line1, request.BillAddr.City, 
+                    request.BillAddr.CountrySubDivisionCode, request.BillAddr.PostalCode, request.BillAddr.Country))
+                {
+                    request.BillAddr = null;
+                }
+            }
+
+            // Build validation data and validate
+            var data = new CustomerDataForValidation(
+                request.DisplayName, request.GivenName, request.MiddleName, request.FamilyName,
+                request.Title, request.Suffix, cleanedEmail, cleanedPhone,
+                request.BillAddr?.Line1, request.BillAddr?.City, request.BillAddr?.CountrySubDivisionCode,
+                request.BillAddr?.PostalCode, request.BillAddr?.Country,
+                IsDisplayNameRequired: true
+            );
+
+            return ValidateCustomerData(data);
+        }
+
+        /// <summary>
+        /// Cleans and validates the UpdateCustomerRequest.
+        /// </summary>
+        private List<string> CleanAndValidateUpdateCustomerRequest(UpdateCustomerRequest request)
+        {
+            var errors = new List<string>();
+
+            // Validate update-specific required fields
+            if (string.IsNullOrWhiteSpace(request.Id))
+                errors.Add("Customer ID is required.");
+            if (string.IsNullOrWhiteSpace(request.SyncToken))
+                errors.Add("SyncToken is required.");
+
+            // Normalize all string fields
+            request.GivenName = NormalizeString(request.GivenName);
+            request.MiddleName = NormalizeString(request.MiddleName);
+            request.FamilyName = NormalizeString(request.FamilyName);
+            request.DisplayName = NormalizeString(request.DisplayName);
+            request.FullyQualifiedName = NormalizeString(request.FullyQualifiedName);
+            request.CompanyName = NormalizeString(request.CompanyName);
+            request.PrintOnCheckName = NormalizeString(request.PrintOnCheckName);
+            request.PreferredDeliveryMethod = NormalizeString(request.PreferredDeliveryMethod);
+
+            // Clean email
+            var cleanedEmail = CleanEmail(request.PrimaryEmailAddr?.Address);
+            if (cleanedEmail == null)
+                request.PrimaryEmailAddr = null;
+            else if (request.PrimaryEmailAddr != null)
+                request.PrimaryEmailAddr.Address = cleanedEmail;
+
+            // Clean phone
+            var cleanedPhone = NormalizeString(request.PrimaryPhone?.FreeFormNumber);
+            if (cleanedPhone == null)
+                request.PrimaryPhone = null;
+            else if (request.PrimaryPhone != null)
+                request.PrimaryPhone.FreeFormNumber = cleanedPhone;
+
+            // Clean address
+            if (request.BillAddr != null)
+            {
+                request.BillAddr.Line1 = NormalizeString(request.BillAddr.Line1);
+                request.BillAddr.City = NormalizeString(request.BillAddr.City);
+                request.BillAddr.CountrySubDivisionCode = NormalizeString(request.BillAddr.CountrySubDivisionCode);
+                request.BillAddr.PostalCode = NormalizeString(request.BillAddr.PostalCode);
+
+                if (IsAddressEmpty(request.BillAddr.Line1, request.BillAddr.City,
+                    request.BillAddr.CountrySubDivisionCode, request.BillAddr.PostalCode, null))
+                {
+                    request.BillAddr = null;
+                }
+            }
+
+            // Build validation data and validate (DisplayName not required for updates)
+            var data = new CustomerDataForValidation(
+                request.DisplayName, request.GivenName, request.MiddleName, request.FamilyName,
+                null, null, cleanedEmail, cleanedPhone,
+                request.BillAddr?.Line1, request.BillAddr?.City, request.BillAddr?.CountrySubDivisionCode,
+                request.BillAddr?.PostalCode, null,
+                IsDisplayNameRequired: false
+            );
+
+            errors.AddRange(ValidateCustomerData(data));
+            return errors;
+        }
+
+        /// <summary>
+        /// Shared validation logic for customer data.
+        /// </summary>
+        private static List<string> ValidateCustomerData(CustomerDataForValidation data)
+        {
+            var errors = new List<string>();
+
+            // DisplayName validation
+            if (data.IsDisplayNameRequired && string.IsNullOrWhiteSpace(data.DisplayName))
+                errors.Add("Display name is required.");
+            else if (data.DisplayName?.Length > 500)
+                errors.Add("Display name must be 500 characters or less.");
+
+            // Name fields validation
+            if (data.GivenName?.Length > 100)
+                errors.Add("First name must be 100 characters or less.");
+            if (data.FamilyName?.Length > 100)
+                errors.Add("Last name must be 100 characters or less.");
+            if (data.MiddleName?.Length > 100)
+                errors.Add("Middle name must be 100 characters or less.");
+            if (data.Title?.Length > 16)
+                errors.Add("Title must be 16 characters or less.");
+            if (data.Suffix?.Length > 16)
+                errors.Add("Suffix must be 16 characters or less.");
+
+            // Email validation
+            if (data.Email != null)
+            {
+                if (!IsValidEmail(data.Email))
+                    errors.Add("Please enter a valid email address.");
+                else if (data.Email.Length > 100)
+                    errors.Add("Email address must be 100 characters or less.");
+            }
+
+            // Phone validation
+            if (data.Phone?.Length > 30)
+                errors.Add("Phone number must be 30 characters or less.");
+
+            // Address validation
+            if (data.AddressLine1?.Length > 500)
+                errors.Add("Street address must be 500 characters or less.");
+            if (data.City?.Length > 255)
+                errors.Add("City must be 255 characters or less.");
+            if (data.State?.Length > 255)
+                errors.Add("State/Province must be 255 characters or less.");
+            if (data.PostalCode?.Length > 30)
+                errors.Add("Postal code must be 30 characters or less.");
+            if (data.Country?.Length > 255)
+                errors.Add("Country must be 255 characters or less.");
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Trims whitespace and converts empty/whitespace strings to null.
+        /// </summary>
+        private static string? NormalizeString(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+            return value.Trim();
+        }
+
+        /// <summary>
+        /// Cleans email: trims, lowercases, returns null if empty.
+        /// </summary>
+        private static string? CleanEmail(string? email)
+        {
+            var normalized = email?.Trim()?.ToLowerInvariant();
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        }
+
+        /// <summary>
+        /// Checks if all address fields are empty.
+        /// </summary>
+        private static bool IsAddressEmpty(string? line1, string? city, string? state, string? postalCode, string? country)
+        {
+            return line1 == null && city == null && state == null && postalCode == null && country == null;
+        }
+
+        /// <summary>
+        /// Validates email format.
+        /// </summary>
+        private static bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
+
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        #endregion
+
         public async Task<ApiResponse<string>> UpdateCustomerAsync(UpdateCustomerRequest request)
         {
             try
             {
                 var userId = int.Parse(_currentUser.UserId);
                 var realmId = _currentUser.RealmId;
+
+                // Clean and validate the request data
+                var validationErrors = CleanAndValidateUpdateCustomerRequest(request);
+                if (validationErrors.Count > 0)
+                {
+                    return ApiResponse<string>.Fail("Validation failed.", validationErrors);
+                }
                 
                 // Check and refresh token if expired
                 var token = await _authService.RefreshTokenIfExpiredAsync(userId, realmId);

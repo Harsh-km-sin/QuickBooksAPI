@@ -55,7 +55,7 @@ export function useProducts(options?: UseProductsOptions): UseProductsReturn {
     error: queryError,
     refetch: queryRefetch,
   } = useQuery({
-    queryKey: [...PRODUCTS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? ''],
+    queryKey: [...PRODUCTS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? '', listParams.activeFilter ?? 'active'],
     queryFn: () => fetchProducts(listParams),
   });
 

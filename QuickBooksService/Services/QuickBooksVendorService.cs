@@ -50,8 +50,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO Vendors request failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
-                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO Vendors request failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
+                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO Vendors query completed. RealmId={RealmId}, StartPosition={StartPosition}", realmId, startPosition);
             return content;
@@ -76,8 +76,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO CreateVendor failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
-                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO CreateVendor failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
+                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO CreateVendor completed. RealmId={RealmId}", realmId);
             return content;
@@ -102,8 +102,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO UpdateVendor failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
-                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO UpdateVendor failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
+                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO UpdateVendor completed. RealmId={RealmId}", realmId);
             return content;
@@ -138,8 +138,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO SoftDeleteVendor failed. StatusCode={StatusCode}, RealmId={RealmId}, VendorId={VendorId}", response.StatusCode, realmId, id);
-                throw new HttpRequestException($"QBO soft-delete vendor failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO SoftDeleteVendor failed. StatusCode={StatusCode}, RealmId={RealmId}, VendorId={VendorId}, Response={ResponseBody}", response.StatusCode, realmId, id, content);
+                throw new HttpRequestException($"QBO soft-delete vendor failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO SoftDeleteVendor completed. RealmId={RealmId}, VendorId={VendorId}", realmId, id);
             return content;

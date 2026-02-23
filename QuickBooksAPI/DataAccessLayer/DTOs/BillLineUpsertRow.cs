@@ -1,4 +1,4 @@
-namespace QuickBooksAPI.DataAccessLayer.Models
+namespace QuickBooksAPI.DataAccessLayer.DTOs
 {
     /// <summary>
     /// Row for Bill line upsert. Includes QBOBillId + RealmId to link to header.

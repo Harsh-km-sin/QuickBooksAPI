@@ -70,11 +70,12 @@ export function Vendors() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [activeFilter, setActiveFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const debouncedSearch = useDebouncedValue(searchTerm.trim(), SEARCH_DEBOUNCE_MS);
 
   const listParams = useMemo(
-    () => ({ page, pageSize, search: debouncedSearch || undefined }),
-    [page, pageSize, debouncedSearch]
+    () => ({ page, pageSize, search: debouncedSearch || undefined, activeFilter }),
+    [page, pageSize, debouncedSearch, activeFilter]
   );
   const {
     vendors,
@@ -94,7 +95,7 @@ export function Vendors() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, pageSize]);
+  }, [debouncedSearch, pageSize, activeFilter]);
 
   const goToPage = (nextPage: number) => setPage(() => Math.max(1, Math.min(nextPage, totalPages || 1)));
 
@@ -165,6 +166,16 @@ export function Vendors() {
         <CardHeader>
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search vendors..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" /></div>
+            <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as 'active' | 'inactive' | 'all')}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+              </SelectContent>
+            </Select>
             <Badge variant="secondary">{totalCount} vendor{totalCount !== 1 ? 's' : ''}</Badge>
           </div>
         </CardHeader>
@@ -243,11 +254,11 @@ export function Vendors() {
       </Card>
 
       <Dialog open={isCreateDialogOpen} onOpenChange={(open) => !open && dispatch(closeCreateDialog())}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Add Vendor</DialogTitle><DialogDescription>Create a new vendor in your QuickBooks account</DialogDescription></DialogHeader><VendorForm onSubmit={handleCreate} onCancel={() => dispatch(closeCreateDialog())} isSubmitting={isSubmitting} /></DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}><DialogHeader><DialogTitle>Add Vendor</DialogTitle><DialogDescription>Create a new vendor in your QuickBooks account</DialogDescription></DialogHeader><VendorForm onSubmit={handleCreate} onCancel={() => dispatch(closeCreateDialog())} isSubmitting={isSubmitting} /></DialogContent>
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => !open && dispatch(closeEditDialog())}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Edit Vendor</DialogTitle><DialogDescription>Update vendor information</DialogDescription></DialogHeader>{selectedVendor && <VendorForm vendor={selectedVendor} onSubmit={handleUpdate} onCancel={() => dispatch(closeEditDialog())} isSubmitting={isSubmitting} />}</DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '800px' }}><DialogHeader><DialogTitle>Edit Vendor</DialogTitle><DialogDescription>Update vendor information</DialogDescription></DialogHeader>{selectedVendor && <VendorForm vendor={selectedVendor} onSubmit={handleUpdate} onCancel={() => dispatch(closeEditDialog())} isSubmitting={isSubmitting} />}</DialogContent>
       </Dialog>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => !open && dispatch(closeDeleteDialog())}>

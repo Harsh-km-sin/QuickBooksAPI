@@ -1,4 +1,4 @@
-namespace QuickBooksAPI.DataAccessLayer.Models
+namespace QuickBooksAPI.DataAccessLayer.DTOs
 {
     /// <summary>
     /// Row for invoice line TVP (dbo.InvoiceLineUpsertType). Includes QBOInvoiceId + RealmId to link to header.

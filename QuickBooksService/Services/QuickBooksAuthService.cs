@@ -65,9 +65,9 @@ namespace QuickBooksService.Services
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO token exchange failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
+                _logger.LogError("QBO token exchange failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
                 throw new HttpRequestException(
-                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}."
+                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}"
                 );
             }
 
@@ -109,9 +109,9 @@ namespace QuickBooksService.Services
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO token refresh failed. StatusCode={StatusCode}", response.StatusCode);
+                _logger.LogError("QBO token refresh failed. StatusCode={StatusCode}, Response={ResponseBody}", response.StatusCode, content);
                 throw new HttpRequestException(
-                    $"QBO token refresh failed. Status={(int)response.StatusCode} {response.ReasonPhrase}."
+                    $"QBO token refresh failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}"
                 );
             }
 
@@ -191,9 +191,9 @@ namespace QuickBooksService.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO CompanyInfo request failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
+                _logger.LogError("QBO CompanyInfo request failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
                 throw new HttpRequestException(
-                    $"QBO CompanyInfo request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                    $"QBO CompanyInfo request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
 
             _logger.LogDebug("QBO CompanyInfo request succeeded. RealmId={RealmId}", realmId);

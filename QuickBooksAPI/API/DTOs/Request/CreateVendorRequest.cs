@@ -34,6 +34,10 @@ namespace QuickBooksAPI.API.DTOs.Request
         [JsonPropertyName("Mobile")]
         public VendorPhone? Mobile { get; set; }
 
+        [JsonPropertyName("MiddleName")]
+        [MaxLength(100)]
+        public string? MiddleName { get; set; }
+
         [JsonPropertyName("FamilyName")]
         [MaxLength(100)]
         public string? FamilyName { get; set; }

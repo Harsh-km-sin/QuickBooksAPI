@@ -61,9 +61,9 @@ namespace QuickBooksService.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO Bill request failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
+                _logger.LogError("QBO Bill request failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
                 throw new HttpRequestException(
-                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
 
             _logger.LogDebug("QBO Bill query completed. RealmId={RealmId}, StartPosition={StartPosition}", realmId, startPosition);
@@ -97,9 +97,9 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO Bill create failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
+                _logger.LogError("QBO Bill create failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
                 throw new HttpRequestException(
-                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             return content;
         }
@@ -131,9 +131,9 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO Bill update failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
+                _logger.LogError("QBO Bill update failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
                 throw new HttpRequestException(
-                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             return content;
         }
@@ -165,9 +165,9 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO Bill delete failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
+                _logger.LogError("QBO Bill delete failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
                 throw new HttpRequestException(
-                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                    $"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             return content;
         }

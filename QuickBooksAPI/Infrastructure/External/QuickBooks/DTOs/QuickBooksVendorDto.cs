@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
 {
@@ -61,11 +61,20 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
         [JsonPropertyName("V4IDPseudonym")]
         public string? V4IDPseudonym { get; set; }
 
+        [JsonPropertyName("Title")]
+        public string? Title { get; set; }
+
         [JsonPropertyName("GivenName")]
         public string? GivenName { get; set; }
 
+        [JsonPropertyName("MiddleName")]
+        public string? MiddleName { get; set; }
+
         [JsonPropertyName("FamilyName")]
         public string? FamilyName { get; set; }
+
+        [JsonPropertyName("Suffix")]
+        public string? Suffix { get; set; }
 
         [JsonPropertyName("CompanyName")]
         public string? CompanyName { get; set; }
@@ -73,11 +82,17 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
         [JsonPropertyName("AcctNum")]
         public string? AcctNum { get; set; }
 
+        [JsonPropertyName("TaxIdentifier")]
+        public string? TaxIdentifier { get; set; }
+
         [JsonPropertyName("BillAddr")]
         public VendorBillAddrQueryDto? BillAddr { get; set; }
 
         [JsonPropertyName("PrimaryPhone")]
         public VendorPhoneDto? PrimaryPhone { get; set; }
+
+        [JsonPropertyName("Mobile")]
+        public VendorPhoneDto? Mobile { get; set; }
 
         [JsonPropertyName("PrimaryEmailAddr")]
         public VendorEmailDto? PrimaryEmailAddr { get; set; }
@@ -94,6 +109,12 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
         [JsonPropertyName("Line1")]
         public string? Line1 { get; set; }
 
+        [JsonPropertyName("Line2")]
+        public string? Line2 { get; set; }
+
+        [JsonPropertyName("Line3")]
+        public string? Line3 { get; set; }
+
         [JsonPropertyName("City")]
         public string? City { get; set; }
 
@@ -102,6 +123,9 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
 
         [JsonPropertyName("PostalCode")]
         public string? PostalCode { get; set; }
+
+        [JsonPropertyName("Country")]
+        public string? Country { get; set; }
 
         [JsonPropertyName("Lat")]
         public string? Lat { get; set; }

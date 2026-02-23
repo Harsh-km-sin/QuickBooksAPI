@@ -55,7 +55,7 @@ export function useVendors(options?: UseVendorsOptions): UseVendorsReturn {
     error: queryError,
     refetch: queryRefetch,
   } = useQuery({
-    queryKey: [...VENDORS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? ''],
+    queryKey: [...VENDORS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? '', listParams.activeFilter ?? 'active'],
     queryFn: () => fetchVendors(listParams),
   });
 

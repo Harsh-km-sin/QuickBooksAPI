@@ -98,11 +98,11 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 SELECT Id, QboId, SyncToken, GivenName, FamilyName, DisplayName, CompanyName,
                     Active, Balance, PrimaryEmailAddr, PrimaryPhone, BillAddrLine1, BillAddrCity, BillAddrPostalCode,
                     BillAddrCountrySubDivisionCode, CreateTime, LastUpdatedTime, UserId, RealmId
-                FROM Customer WHERE UserId = @UserId AND RealmId = @RealmId ORDER BY DisplayName";
+                FROM Customer WHERE UserId = @UserId AND RealmId = @RealmId AND Active = 1 ORDER BY DisplayName";
             return await connection.QueryAsync<Customer>(sql, new { UserId = userId, RealmId = realmId });
         }
 
-        public async Task<PagedResult<Customer>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
+        public async Task<PagedResult<Customer>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, bool? activeFilter = true)
         {
             using var connection = CreateConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
@@ -111,20 +111,22 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             var countSql = @"
                 SELECT COUNT(*) FROM Customer 
                 WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@ActiveFilter IS NULL OR Active = @ActiveFilter)
                 AND (@Search IS NULL OR
                     DisplayName LIKE @Search OR
                     GivenName LIKE @Search OR
                     FamilyName LIKE @Search OR
                     CompanyName LIKE @Search OR
                     PrimaryEmailAddr LIKE @Search)";
-            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, ActiveFilter = activeFilter });
 
             var itemsSql = @"
                 SELECT Id, QboId, SyncToken, GivenName, FamilyName, DisplayName, CompanyName,
                     Active, Balance, PrimaryEmailAddr, PrimaryPhone, BillAddrLine1, BillAddrCity, BillAddrPostalCode,
                     BillAddrCountrySubDivisionCode, CreateTime, LastUpdatedTime, UserId, RealmId
-                FROM Customer 
+                From Customer 
                 WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@ActiveFilter IS NULL OR Active = @ActiveFilter)
                 AND (@Search IS NULL OR
                     DisplayName LIKE @Search OR
                     GivenName LIKE @Search OR
@@ -133,7 +135,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                     PrimaryEmailAddr LIKE @Search)
                 ORDER BY DisplayName
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
-            var items = await connection.QueryAsync<Customer>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+            var items = await connection.QueryAsync<Customer>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, ActiveFilter = activeFilter, Skip = skip, PageSize = pageSize });
 
             return new PagedResult<Customer>
             {

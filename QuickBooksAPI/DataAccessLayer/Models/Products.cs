@@ -1,4 +1,4 @@
-﻿namespace QuickBooksAPI.DataAccessLayer.Models
+namespace QuickBooksAPI.DataAccessLayer.Models
 {
     public class Products
     {
@@ -16,9 +16,14 @@
 
         public string? IncomeAccountRefValue { get; set; }
         public string? IncomeAccountRefName { get; set; }
+        public string? ExpenseAccountRefValue { get; set; }
+        public string? ExpenseAccountRefName { get; set; }
+        public string? AssetAccountRefValue { get; set; }
+        public string? AssetAccountRefName { get; set; }
 
         public decimal PurchaseCost { get; set; }
         public bool TrackQtyOnHand { get; set; }
+        public string? InvStartDate { get; set; }
         public string Domain { get; set; } = null!;
         public bool Sparse { get; set; }
         public string SyncToken { get; set; } = null!;

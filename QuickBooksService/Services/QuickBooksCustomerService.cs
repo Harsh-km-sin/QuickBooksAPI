@@ -163,7 +163,7 @@ namespace QuickBooksService.Services
             var client = _httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(
                 HttpMethod.Post,
-                $"{requestUrl}/{realmId}/customer"
+                $"{requestUrl}/{realmId}/customer?operation=update"
             );
             
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

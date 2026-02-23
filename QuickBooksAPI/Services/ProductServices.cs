@@ -55,7 +55,8 @@ namespace QuickBooksAPI.Services
             var page = query.GetPage();
             var pageSize = query.GetPageSize();
             var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
-            var result = await _productRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search);
+            var activeFilter = query.GetActiveFilter();
+            var result = await _productRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search, activeFilter);
             return ApiResponse<PagedResult<Products>>.Ok(result);
         }
 
@@ -311,8 +312,13 @@ namespace QuickBooksAPI.Services
                 QtyOnHand = dto.QtyOnHand ?? 0, // default to 0 if null
                 IncomeAccountRefValue = dto.IncomeAccountRef?.Value,
                 IncomeAccountRefName = dto.IncomeAccountRef?.Name,
+                ExpenseAccountRefValue = dto.ExpenseAccountRef?.Value,
+                ExpenseAccountRefName = dto.ExpenseAccountRef?.Name,
+                AssetAccountRefValue = dto.AssetAccountRef?.Value,
+                AssetAccountRefName = dto.AssetAccountRef?.Name,
                 PurchaseCost = dto.PurchaseCost,
                 TrackQtyOnHand = dto.TrackQtyOnHand,
+                InvStartDate = dto.InvStartDate,
                 Domain = dto.Domain,
                 Sparse = dto.Sparse,
                 SyncToken = dto.SyncToken,

@@ -49,8 +49,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO ChartOfAccounts request failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
-                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO ChartOfAccounts request failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
+                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO ChartOfAccounts query completed. RealmId={RealmId}, StartPosition={StartPosition}", realmId, startPosition);
             return content;

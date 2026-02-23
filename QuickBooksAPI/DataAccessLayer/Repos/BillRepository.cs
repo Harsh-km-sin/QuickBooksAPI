@@ -1,6 +1,7 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.DataAccessLayer.DTOs;
 using QuickBooksAPI.DataAccessLayer.Models;
 using System.Data;
 

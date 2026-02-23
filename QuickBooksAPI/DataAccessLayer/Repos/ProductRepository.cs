@@ -52,13 +52,14 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             using var connection = CreateOpenConnection();
             const string sql = @"
                 SELECT Id, QBOId, Name, Description, Active, FullyQualifiedName, Taxable, UnitPrice, Type,
-                    IncomeAccountRefValue, IncomeAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
-                    Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
-                FROM Products WHERE UserId = @UserId AND RealmId = @RealmId ORDER BY Name";
+                    IncomeAccountRefValue, IncomeAccountRefName, ExpenseAccountRefValue, ExpenseAccountRefName,
+                    AssetAccountRefValue, AssetAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
+                    InvStartDate, Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
+                FROM Products WHERE UserId = @UserId AND RealmId = @RealmId AND Active = 1 ORDER BY Name";
             return await connection.QueryAsync<Products>(sql, new { UserId = userId, RealmId = realmId });
         }
 
-        public async Task<PagedResult<Products>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
+        public async Task<PagedResult<Products>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, bool? activeFilter = true)
         {
             using var connection = CreateOpenConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
@@ -67,19 +68,22 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             var countSql = @"
                 SELECT COUNT(*) FROM Products 
                 WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@ActiveFilter IS NULL OR Active = @ActiveFilter)
                 AND (@Search IS NULL OR Name LIKE @Search OR Description LIKE @Search OR FullyQualifiedName LIKE @Search)";
-            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, ActiveFilter = activeFilter });
 
             var itemsSql = @"
                 SELECT Id, QBOId, Name, Description, Active, FullyQualifiedName, Taxable, UnitPrice, Type,
-                    IncomeAccountRefValue, IncomeAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
-                    Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
+                    IncomeAccountRefValue, IncomeAccountRefName, ExpenseAccountRefValue, ExpenseAccountRefName,
+                    AssetAccountRefValue, AssetAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
+                    InvStartDate, Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
                 FROM Products 
                 WHERE UserId = @UserId AND RealmId = @RealmId
+                AND (@ActiveFilter IS NULL OR Active = @ActiveFilter)
                 AND (@Search IS NULL OR Name LIKE @Search OR Description LIKE @Search OR FullyQualifiedName LIKE @Search)
                 ORDER BY Name
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
-            var items = await connection.QueryAsync<Products>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+            var items = await connection.QueryAsync<Products>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, ActiveFilter = activeFilter, Skip = skip, PageSize = pageSize });
 
             return new PagedResult<Products> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
@@ -97,9 +101,14 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             table.Columns.Add("Type", typeof(string));
             table.Columns.Add("IncomeAccountRefValue", typeof(string));
             table.Columns.Add("IncomeAccountRefName", typeof(string));
+            table.Columns.Add("ExpenseAccountRefValue", typeof(string));
+            table.Columns.Add("ExpenseAccountRefName", typeof(string));
+            table.Columns.Add("AssetAccountRefValue", typeof(string));
+            table.Columns.Add("AssetAccountRefName", typeof(string));
             table.Columns.Add("PurchaseCost", typeof(decimal));
             table.Columns.Add("TrackQtyOnHand", typeof(bool));
             table.Columns.Add("QtyOnHand", typeof(decimal));
+            table.Columns.Add("InvStartDate", typeof(string));
             table.Columns.Add("Domain", typeof(string));
             table.Columns.Add("Sparse", typeof(bool));
             table.Columns.Add("SyncToken", typeof(string));
@@ -121,9 +130,14 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                     p.Type,
                     string.IsNullOrEmpty(p.IncomeAccountRefValue) ? DBNull.Value : p.IncomeAccountRefValue,
                     string.IsNullOrEmpty(p.IncomeAccountRefName) ? DBNull.Value : p.IncomeAccountRefName,
+                    string.IsNullOrEmpty(p.ExpenseAccountRefValue) ? DBNull.Value : p.ExpenseAccountRefValue,
+                    string.IsNullOrEmpty(p.ExpenseAccountRefName) ? DBNull.Value : p.ExpenseAccountRefName,
+                    string.IsNullOrEmpty(p.AssetAccountRefValue) ? DBNull.Value : p.AssetAccountRefValue,
+                    string.IsNullOrEmpty(p.AssetAccountRefName) ? DBNull.Value : p.AssetAccountRefName,
                     p.PurchaseCost,
                     p.TrackQtyOnHand,
                     p.QtyOnHand ?? (object)DBNull.Value,
+                    string.IsNullOrEmpty(p.InvStartDate) ? DBNull.Value : p.InvStartDate,
                     string.IsNullOrEmpty(p.Domain) ? DBNull.Value : p.Domain,
                     p.Sparse,
                     p.SyncToken,

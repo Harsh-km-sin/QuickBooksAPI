@@ -22,6 +22,12 @@ namespace QuickBooksAPI.API.DTOs.Request
         [JsonPropertyName("InvStartDate")]
         public string? InvStartDate { get; set; } 
 
+        [JsonPropertyName("UnitPrice")]
+        public decimal? UnitPrice { get; set; }
+
+        [JsonPropertyName("PurchaseCost")]
+        public decimal? PurchaseCost { get; set; }
+
         [JsonPropertyName("QtyOnHand")]
         public decimal? QtyOnHand { get; set; }   
 

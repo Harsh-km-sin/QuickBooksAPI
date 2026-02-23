@@ -19,9 +19,21 @@ namespace QuickBooksAPI.API.DTOs.Request
         [MaxLength(10)]
         public string? Domain { get; set; } = "QBO";
 
+        [JsonPropertyName("Title")]
+        [MaxLength(50)]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("Suffix")]
+        [MaxLength(50)]
+        public string? Suffix { get; set; }
+
         [JsonPropertyName("GivenName")]
         [MaxLength(100)]
         public string? GivenName { get; set; }
+
+        [JsonPropertyName("MiddleName")]
+        [MaxLength(100)]
+        public string? MiddleName { get; set; }
 
         [JsonPropertyName("DisplayName")]
         [MaxLength(500)]
@@ -45,6 +57,13 @@ namespace QuickBooksAPI.API.DTOs.Request
 
         [JsonPropertyName("PrimaryPhone")]
         public VendorPhone? PrimaryPhone { get; set; }
+
+        [JsonPropertyName("Mobile")]
+        public VendorPhone? Mobile { get; set; }
+
+        [JsonPropertyName("TaxIdentifier")]
+        [MaxLength(50)]
+        public string? TaxIdentifier { get; set; }
 
         [JsonPropertyName("AcctNum")]
         [MaxLength(100)]

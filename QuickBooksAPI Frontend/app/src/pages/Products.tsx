@@ -67,11 +67,12 @@ export function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [activeFilter, setActiveFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const debouncedSearch = useDebouncedValue(searchTerm.trim(), SEARCH_DEBOUNCE_MS);
 
   const listParams = useMemo(
-    () => ({ page, pageSize, search: debouncedSearch || undefined }),
-    [page, pageSize, debouncedSearch]
+    () => ({ page, pageSize, search: debouncedSearch || undefined, activeFilter }),
+    [page, pageSize, debouncedSearch, activeFilter]
   );
   const {
     products,
@@ -91,7 +92,7 @@ export function ProductsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, pageSize]);
+  }, [debouncedSearch, pageSize, activeFilter]);
 
   const goToPage = (nextPage: number) => setPage(() => Math.max(1, Math.min(nextPage, totalPages || 1)));
 
@@ -124,9 +125,8 @@ export function ProductsPage() {
     const success = await deleteProduct({
       id: selectedProduct.qboId,
       syncToken: selectedProduct.syncToken,
+      sparse: true,
       active: false,
-      type: selectedProduct.type,
-      incomeAccountRef: { value: selectedProduct.incomeAccountRefValue || '', name: selectedProduct.incomeAccountRefName || '' },
     });
     dispatch(setSubmitting(false));
     if (success) dispatch(closeDeleteDialog());
@@ -189,6 +189,16 @@ export function ProductsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search products..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
+            <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as 'active' | 'inactive' | 'all')}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+              </SelectContent>
+            </Select>
             <Badge variant="secondary">{totalCount} product{totalCount !== 1 ? 's' : ''}</Badge>
           </div>
         </CardHeader>
@@ -276,14 +286,14 @@ export function ProductsPage() {
       </Card>
 
       <Dialog open={isCreateDialogOpen} onOpenChange={(open) => !open && dispatch(closeCreateDialog())}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '700px' }}>
           <DialogHeader><DialogTitle>Add Product</DialogTitle><DialogDescription>Create a new product or service</DialogDescription></DialogHeader>
           <ProductForm onSubmit={handleCreate} onCancel={() => dispatch(closeCreateDialog())} isSubmitting={isSubmitting} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => !open && dispatch(closeEditDialog())}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '700px' }}>
           <DialogHeader><DialogTitle>Edit Product</DialogTitle><DialogDescription>Update product information</DialogDescription></DialogHeader>
           {selectedProduct && <ProductForm product={selectedProduct} onSubmit={handleUpdate} onCancel={() => dispatch(closeEditDialog())} isSubmitting={isSubmitting} />}
         </DialogContent>

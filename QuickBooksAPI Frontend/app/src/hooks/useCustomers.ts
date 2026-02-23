@@ -56,7 +56,7 @@ export function useCustomers(options?: UseCustomersOptions): UseCustomersReturn 
     error: queryError,
     refetch: queryRefetch,
   } = useQuery({
-    queryKey: [...CUSTOMERS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? ''],
+    queryKey: [...CUSTOMERS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? '', listParams.activeFilter ?? 'active'],
     queryFn: () => fetchCustomers(listParams),
   });
 

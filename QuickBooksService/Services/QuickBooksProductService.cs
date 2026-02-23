@@ -46,8 +46,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO Products request failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
-                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO Products request failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
+                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO Products query completed. RealmId={RealmId}, StartPosition={StartPosition}", realmId, startPosition);
             return content;
@@ -72,8 +72,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO CreateProduct failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
-                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO CreateProduct failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
+                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO CreateProduct completed. RealmId={RealmId}", realmId);
             return content;
@@ -98,8 +98,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO UpdateProduct failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
-                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO UpdateProduct failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
+                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO UpdateProduct completed. RealmId={RealmId}", realmId);
             return content;
@@ -115,7 +115,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(requestUrl)) throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
             var client = _httpClientFactory.CreateClient();
-            var request = new HttpRequestMessage(HttpMethod.Post, $"{requestUrl}/{realmId}/item");
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{requestUrl}/{realmId}/item?operation=update");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Content = new StringContent(productPayload, Encoding.UTF8, "application/json");
@@ -124,8 +124,8 @@ namespace QuickBooksService.Services
             var content = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("QBO DeleteProduct failed. StatusCode={StatusCode}, RealmId={RealmId}", response.StatusCode, realmId);
-                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}.");
+                _logger.LogError("QBO DeleteProduct failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
+                throw new HttpRequestException($"QBO request failed. Status={(int)response.StatusCode} {response.ReasonPhrase}. Body={content}");
             }
             _logger.LogDebug("QBO DeleteProduct completed. RealmId={RealmId}", realmId);
             return content;

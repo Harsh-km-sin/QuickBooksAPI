@@ -50,7 +50,16 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
         public decimal? QtyOnHand { get; set; }
 
         [JsonPropertyName("IncomeAccountRef")]
-        public IncomeAccountRef? IncomeAccountRef { get; set; }
+        public AccountRef? IncomeAccountRef { get; set; }
+
+        [JsonPropertyName("ExpenseAccountRef")]
+        public AccountRef? ExpenseAccountRef { get; set; }
+
+        [JsonPropertyName("AssetAccountRef")]
+        public AccountRef? AssetAccountRef { get; set; }
+
+        [JsonPropertyName("InvStartDate")]
+        public string? InvStartDate { get; set; }
 
         [JsonPropertyName("PurchaseCost")]
         public decimal PurchaseCost { get; set; }
@@ -72,15 +81,6 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
 
         [JsonPropertyName("MetaData")]
         public ItemMetaData MetaData { get; set; } = null!;
-    }
-
-    public class IncomeAccountRef
-    {
-        [JsonPropertyName("value")]
-        public string Value { get; set; } = null!;
-
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = null!;
     }
 
     public class ItemMetaData
