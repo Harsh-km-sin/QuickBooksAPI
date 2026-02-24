@@ -1,3 +1,4 @@
+using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.Application.Interfaces;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos

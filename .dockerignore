@@ -1,0 +1,41 @@
+# Git and IDE
+.git
+.gitignore
+.cursor
+.vscode
+.idea
+*.user
+*.suo
+
+# Build outputs (we build inside Docker)
+**/bin
+**/obj
+**/out
+
+# Frontend (not part of API image)
+QuickBooksAPI Frontend
+**/node_modules
+**/dist
+**/.vite
+
+# Secrets and local config
+**/appsettings.Development.json
+**/local.settings.json
+**/secrets.json
+*.pfx
+
+# SyncWorker (separate deployment; not needed for API image)
+SyncWorker
+
+# Docs and misc
+**/*.md
+**/terminals
+**/.cursor
+**/agent-transcripts
+**/assets
+
+# Test and coverage
+**/TestResults
+**/coverage
+**/*.Tests
+**/*.Tests.csproj
