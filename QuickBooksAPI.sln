@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickBooksAPI", "QuickBooks
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickBooksService", "QuickBooksService\QuickBooksService.csproj", "{4ADC5B71-4D58-40FD-9538-38F9B367F926}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncWorker", "SyncWorker\SyncWorker.csproj", "{91367914-AA9B-4B41-B6A0-02742276D502}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{4ADC5B71-4D58-40FD-9538-38F9B367F926}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4ADC5B71-4D58-40FD-9538-38F9B367F926}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4ADC5B71-4D58-40FD-9538-38F9B367F926}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91367914-AA9B-4B41-B6A0-02742276D502}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91367914-AA9B-4B41-B6A0-02742276D502}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91367914-AA9B-4B41-B6A0-02742276D502}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91367914-AA9B-4B41-B6A0-02742276D502}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
