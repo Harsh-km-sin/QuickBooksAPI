@@ -48,6 +48,9 @@ namespace QuickBooksAPI.Infrastructure
             services.AddScoped<IQboSyncStateRepository>(
                 _ => new QboSyncStateRepository(connectionString));
 
+            services.AddScoped<ISyncStatusRepository>(
+                _ => new SyncStatusRepository(connectionString));
+
             return services;
         }
     }

@@ -2,8 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useQuickBooks } from '@/hooks/useQuickBooks';
-import { authApi, setRealmId } from '@/api/client';
-import { customerApi } from '@/api/client';
+import { authApi, companyApi, setRealmId } from '@/api/client';
 import type { ConnectedCompany } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,11 +112,10 @@ export function ConnectedCompanies() {
     setSyncingId(company.qboRealmId);
     try {
       setRealmId(company.qboRealmId);
-      await customerApi.sync();
-      toast.success('Sync started', {
-        description: `Syncing data for ${company.companyName || company.qboRealmId}. Switch to this company to see updated data.`,
+      await companyApi.fullSync();
+      toast.success('Full sync queued', {
+        description: `All entities for ${company.companyName || company.qboRealmId} are being synced in the background.`,
       });
-      setCurrentRealm(company.qboRealmId);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Sync failed');
     } finally {
@@ -233,7 +231,8 @@ export function ConnectedCompanies() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleSync(company)}
-                          disabled={isSyncing(company)}
+                          disabled={isSyncing(company) || currentRealmId !== company.qboRealmId}
+                          title={currentRealmId !== company.qboRealmId ? 'Switch to this company to sync' : undefined}
                         >
                           {isSyncing(company) ? (
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />

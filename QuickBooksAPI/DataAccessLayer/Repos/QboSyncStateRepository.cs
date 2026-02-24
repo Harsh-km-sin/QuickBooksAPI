@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using System.Data;
 
@@ -89,6 +89,8 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
 
             using (var connection = CreateOpenConnection())
             {
+                var now = DateTime.UtcNow;
+                var lastRunAt = (status == "Running" || status == "Completed" || status == "Failed") ? now : (DateTime?)null;
                 await connection.ExecuteAsync(
                     sql,
                     new
@@ -97,8 +99,8 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                         RealmId = realmId,
                         EntityType = entityType,
                         Status = status,
-                        LastRunAt = status == "Running" ? DateTime.UtcNow : (DateTime?)null,
-                        UpdatedAt = DateTime.UtcNow
+                        LastRunAt = lastRunAt,
+                        UpdatedAt = now
                     });
             }
         }

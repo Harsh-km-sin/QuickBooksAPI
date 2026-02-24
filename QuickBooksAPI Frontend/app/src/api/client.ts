@@ -330,6 +330,14 @@ export const chartOfAccountsApi = {
   sync: () => apiClient.get<number>('/api/chartofaccounts/sync'),
 };
 
+// Company API
+export const companyApi = {
+  fullSync: () =>
+    apiClient.post<string>('/api/company/sync/full', {}),
+  syncStatus: () =>
+    apiClient.get<{ companyId: string; status: string; lastRun: string | null; error: string | null }>('/api/company/sync/status'),
+};
+
 // Journal Entry API
 export const journalEntryApi = {
   list: (params?: ListQueryParams) =>

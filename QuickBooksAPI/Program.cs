@@ -1,9 +1,12 @@
+using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.DataAccessLayer.Repos;
 using QuickBooksAPI.Infrastructure;
 using QuickBooksAPI.Infrastructure.Identity;
+using QuickBooksAPI.Infrastructure.Queue;
 using QuickBooksAPI.Middleware;
 using QuickBooksAPI.Services;
 using QuickBooksService.Services;
@@ -33,6 +36,23 @@ builder.Services.AddScoped<IQuickBooksVendorService, QuickBooksVendorService>();
 builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IQuickBooksBillService, QuickBooksBillService>();
 builder.Services.AddScoped<IBillService, BillService>();
+
+// Service Bus + Sync
+var serviceBusConnectionString = builder.Configuration["ServiceBus:ConnectionString"];
+var serviceBusQueueName = builder.Configuration["ServiceBus:QueueName"] ?? "qbo-full-sync";
+
+if (!string.IsNullOrWhiteSpace(serviceBusConnectionString))
+{
+    builder.Services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));
+    builder.Services.AddSingleton<ServiceBusSender>(sp =>
+        sp.GetRequiredService<ServiceBusClient>().CreateSender(serviceBusQueueName));
+    builder.Services.AddSingleton<IQueuePublisher, ServiceBusPublisher>();
+}
+else
+{
+    builder.Services.AddSingleton<IQueuePublisher, NoOpQueuePublisher>();
+}
+builder.Services.AddScoped<ISyncService, SyncService>();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
