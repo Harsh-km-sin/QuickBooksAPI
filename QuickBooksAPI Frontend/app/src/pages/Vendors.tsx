@@ -157,7 +157,7 @@ export function Vendors() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div><h1 className="text-3xl font-bold tracking-tight">Vendors</h1><p className="text-muted-foreground">Manage your vendors and suppliers</p></div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={sync} disabled={isSyncing}>{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
+          <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
           <Button onClick={() => dispatch(openCreateDialog())}><Plus className="h-4 w-4 mr-2" />Add Vendor</Button>
         </div>
       </div>
@@ -176,7 +176,7 @@ export function Vendors() {
                 <SelectItem value="all">All</SelectItem>
               </SelectContent>
             </Select>
-            <Badge variant="secondary">{totalCount} vendor{totalCount !== 1 ? 's' : ''}</Badge>
+            <Badge variant="default">{totalCount} vendor{totalCount !== 1 ? 's' : ''}</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -200,14 +200,14 @@ export function Vendors() {
                           {vendor.billAddrLine1 && <div className="flex items-center text-sm text-muted-foreground"><MapPin className="h-3 w-3 mr-1" />{vendor.billAddrCity}, {vendor.billAddrCountrySubDivisionCode}</div>}
                         </div>
                       </TableCell>
-                      <TableCell><span className={vendor.balance > 0 ? 'text-red-600' : ''}>{formatCurrency(vendor.balance)}</span></TableCell>
+                      <TableCell><span className={vendor.balance > 0 ? 'text-destructive' : ''}>{formatCurrency(vendor.balance)}</span></TableCell>
                       <TableCell><Badge variant={vendor.active ? 'default' : 'secondary'}>{vendor.active ? 'Active' : 'Inactive'}</Badge></TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleOpenEditDialog(vendor)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenDeleteDialog(vendor)} className="text-red-600"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenDeleteDialog(vendor)} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

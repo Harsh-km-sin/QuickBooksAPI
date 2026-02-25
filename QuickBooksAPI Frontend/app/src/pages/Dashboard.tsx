@@ -24,7 +24,8 @@ import {
   Cell,
 } from 'recharts';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+/* Theme-aligned chart palette: primary (teal), secondary (mint), accent (gold), info, success */
+const CHART_COLORS = ['#0F766E', '#5EEAD4', '#FACC15', '#3B82F6', '#10B981'];
 
 interface StatCardProps {
   title: string;
@@ -47,7 +48,7 @@ function StatCard({ title, value, description, icon: Icon, trend, trendUp }: Sta
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
-        {trend && <div className={`flex items-center text-xs mt-1 ${trendUp ? 'text-green-600' : 'text-red-600'}`}>{trendUp ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}{trend}</div>}
+        {trend && <div className={`flex items-center text-xs mt-1 ${trendUp ? 'text-success' : 'text-destructive'}`}>{trendUp ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}{trend}</div>}
       </CardContent>
     </Card>
   );
@@ -103,7 +104,7 @@ export function Dashboard() {
 
       {isConnected && (
         <div className="flex items-center gap-2">
-          <Badge variant="default" className="bg-green-600">Connected to QuickBooks</Badge>
+          <Badge variant="default">Connected to QuickBooks</Badge>
           <span className="text-sm text-muted-foreground">{user?.realmIds.length} compan{user?.realmIds.length !== 1 ? 'ies' : 'y'} linked</span>
         </div>
       )}
@@ -125,7 +126,7 @@ export function Dashboard() {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="count" fill="#0088FE" />
+                <Bar dataKey="count" fill={CHART_COLORS[0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -136,8 +137,8 @@ export function Dashboard() {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
-                <Pie data={financialData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="amount">
-                  {financialData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                <Pie data={financialData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill={CHART_COLORS[0]} dataKey="amount">
+                  {financialData.map((_, index) => <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}
                 </Pie>
                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
               </PieChart>
@@ -149,8 +150,8 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Invoices</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats?.invoicesCount || 0}</div><p className="text-xs text-muted-foreground">{formatCurrency(stats?.totalInvoiceAmount || 0)} total value</p></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Bills</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats?.billsCount || 0}</div><p className="text-xs text-muted-foreground">{formatCurrency(stats?.totalBillAmount || 0)} total value</p></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Outstanding Invoices</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(stats?.outstandingInvoiceBalance || 0)}</div><p className="text-xs text-muted-foreground">Amount owed to you</p></CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Outstanding Bills</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{formatCurrency(stats?.outstandingBillBalance || 0)}</div><p className="text-xs text-muted-foreground">Amount you owe</p></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Outstanding Invoices</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-success">{formatCurrency(stats?.outstandingInvoiceBalance || 0)}</div><p className="text-xs text-muted-foreground">Amount owed to you</p></CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Outstanding Bills</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{formatCurrency(stats?.outstandingBillBalance || 0)}</div><p className="text-xs text-muted-foreground">Amount you owe</p></CardContent></Card>
       </div>
     </div>
   );

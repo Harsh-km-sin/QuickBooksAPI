@@ -43,7 +43,7 @@ export function setRealmId(realmId: string): void {
   localStorage.setItem('realm_id', realmId);
 }
 
-// Clear stored auth data
+// Clear stored auth data (theme preference 'qb-connect-theme' is intentionally preserved)
 export function clearAuth(): void {
   sessionStorage.removeItem('jwt_token');
   localStorage.removeItem('realm_id');

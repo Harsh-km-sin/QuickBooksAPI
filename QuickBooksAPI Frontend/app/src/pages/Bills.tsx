@@ -150,7 +150,7 @@ export function Bills() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div><h1 className="text-3xl font-bold tracking-tight">Bills</h1><p className="text-muted-foreground">Manage your vendor bills</p></div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={sync} disabled={isSyncing}>{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
+          <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
         </div>
       </div>
 
@@ -158,7 +158,7 @@ export function Bills() {
         <CardHeader>
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search bills..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" /></div>
-            <Badge variant="secondary">{totalCount} bill{totalCount !== 1 ? 's' : ''}</Badge>
+            <Badge variant="default">{totalCount} bill{totalCount !== 1 ? 's' : ''}</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -177,7 +177,7 @@ export function Bills() {
                       <TableCell><div className="flex items-center"><Calendar className="h-4 w-4 mr-1 text-muted-foreground" />{formatDate(bill.txnDate)}</div></TableCell>
                       <TableCell>{formatDate(bill.dueDate)}</TableCell>
                       <TableCell><div className="flex items-center font-medium"><DollarSign className="h-4 w-4 text-muted-foreground" />{formatCurrency(bill.totalAmt)}</div></TableCell>
-                      <TableCell><span className={bill.balance > 0 ? 'text-red-600' : ''}>{formatCurrency(bill.balance)}</span></TableCell>
+                      <TableCell><span className={bill.balance > 0 ? 'text-destructive' : ''}>{formatCurrency(bill.balance)}</span></TableCell>
                       <TableCell><Badge variant={bill.balance === 0 ? 'default' : bill.balance < bill.totalAmt ? 'secondary' : 'destructive'}>{bill.balance === 0 ? 'Paid' : bill.balance < bill.totalAmt ? 'Partial' : 'Open'}</Badge></TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -187,7 +187,7 @@ export function Bills() {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenDeleteDialog(bill)} className="text-red-600"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenDeleteDialog(bill)} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

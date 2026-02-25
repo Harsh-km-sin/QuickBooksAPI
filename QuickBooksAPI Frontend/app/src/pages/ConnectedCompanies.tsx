@@ -153,14 +153,14 @@ export function ConnectedCompanies() {
             </CardDescription>
           </div>
           {connectImageError ? (
-            <Button variant="outline" onClick={connect} disabled={isConnecting} className="shrink-0">
+            <Button variant="outline" onClick={connect} disabled={isConnecting} className="shrink-0 bg-background hover:bg-muted hover:text-foreground border-input">
               {isConnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Connect to QuickBooks
             </Button>
           ) : (
             <button
               type="button"
-              className="shrink-0 cursor-pointer border-0 bg-transparent p-0 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="shrink-0 cursor-pointer border-0 bg-transparent p-0 disabled:opacity-60 disabled:cursor-not-allowed hover:bg-transparent active:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               onClick={connect}
               disabled={isConnecting}
               aria-label="Connect to QuickBooks"
@@ -221,6 +221,7 @@ export function ConnectedCompanies() {
                         <Button
                           variant="outline"
                           size="sm"
+                          className="hover:bg-muted hover:text-foreground"
                           onClick={() => handleUseCompany(company)}
                           disabled={currentRealmId === company.qboRealmId}
                         >
@@ -230,6 +231,7 @@ export function ConnectedCompanies() {
                         <Button
                           variant="outline"
                           size="sm"
+                          className="hover:bg-muted hover:text-foreground"
                           onClick={() => handleSync(company)}
                           disabled={isSyncing(company) || currentRealmId !== company.qboRealmId}
                           title={currentRealmId !== company.qboRealmId ? 'Switch to this company to sync' : undefined}
@@ -244,7 +246,7 @@ export function ConnectedCompanies() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:bg-muted hover:text-destructive"
                           onClick={() => handleDisconnect(company)}
                           disabled={isDisconnecting(company)}
                         >

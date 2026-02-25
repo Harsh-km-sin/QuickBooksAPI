@@ -145,7 +145,7 @@ export function Invoices() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div><h1 className="text-3xl font-bold tracking-tight">Invoices</h1><p className="text-muted-foreground">Manage your customer invoices</p></div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={sync} disabled={isSyncing}>{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
+          <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ export function Invoices() {
         <CardHeader>
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search invoices..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" /></div>
-            <Badge variant="secondary">{totalCount} invoice{totalCount !== 1 ? 's' : ''}</Badge>
+            <Badge variant="default">{totalCount} invoice{totalCount !== 1 ? 's' : ''}</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -172,14 +172,14 @@ export function Invoices() {
                       <TableCell><div className="flex items-center"><Calendar className="h-4 w-4 mr-1 text-muted-foreground" />{formatDate(invoice.txnDate)}</div></TableCell>
                       <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                       <TableCell><div className="flex items-center font-medium"><DollarSign className="h-4 w-4 text-muted-foreground" />{formatCurrency(invoice.totalAmt)}</div></TableCell>
-                      <TableCell><span className={invoice.balance > 0 ? 'text-green-600' : ''}>{formatCurrency(invoice.balance)}</span></TableCell>
+                      <TableCell><span className={invoice.balance > 0 ? 'text-success' : ''}>{formatCurrency(invoice.balance)}</span></TableCell>
                       <TableCell><Badge variant={invoice.balance === 0 ? 'default' : invoice.balance < invoice.totalAmt ? 'secondary' : 'destructive'}>{invoice.balance === 0 ? 'Paid' : invoice.balance < invoice.totalAmt ? 'Partial' : 'Open'}</Badge></TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleOpenVoidDialog(invoice)}><Ban className="h-4 w-4 mr-2" />Void</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenDeleteDialog(invoice)} className="text-red-600"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenDeleteDialog(invoice)} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

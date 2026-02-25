@@ -181,7 +181,7 @@ export function Customers() {
           <p className="text-muted-foreground">Manage your customer accounts</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={sync} disabled={isSyncing}>
+          <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">
             {isSyncing ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
@@ -218,7 +218,7 @@ export function Customers() {
                 <SelectItem value="all">All</SelectItem>
               </SelectContent>
             </Select>
-            <Badge variant="secondary">
+            <Badge variant="default">
               {totalCount} customer{totalCount !== 1 ? 's' : ''}
             </Badge>
           </div>
@@ -286,7 +286,7 @@ export function Customers() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={customer.balance > 0 ? 'text-red-600' : ''}>
+                        <span className={customer.balance > 0 ? 'text-destructive' : ''}>
                           {formatCurrency(customer.balance)}
                         </span>
                       </TableCell>
@@ -309,7 +309,7 @@ export function Customers() {
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleOpenDeleteDialog(customer)}
-                              className="text-red-600"
+                              className="text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete

@@ -119,7 +119,7 @@ function Sidebar({ className }: { className?: string }) {
       <div className="p-4 border-t">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">QuickBooks</span>
-          <Badge variant={isConnected ? 'default' : 'secondary'} className={isConnected ? 'bg-green-600 hover:bg-green-700' : ''}>
+          <Badge variant={isConnected ? 'default' : 'secondary'}>
             {isConnected ? 'Connected' : 'Not Connected'}
           </Badge>
         </div>
@@ -132,7 +132,7 @@ function Sidebar({ className }: { className?: string }) {
 
       <div className="p-4 border-t">
         <div className="flex items-center gap-3 mb-3">
-          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+          <Button variant="ghost" size="icon" className="hover:bg-muted hover:text-foreground" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
           <span className="text-sm text-muted-foreground">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
@@ -140,7 +140,7 @@ function Sidebar({ className }: { className?: string }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start px-2">
+            <Button variant="ghost" className="w-full justify-start px-2 hover:bg-muted hover:text-foreground">
               <Avatar className="h-8 w-8 mr-2">
                 <AvatarFallback>{user?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
@@ -165,14 +165,14 @@ function Sidebar({ className }: { className?: string }) {
                   >
                     <Building2 className="h-4 w-4 mr-2" />
                     <span className="truncate">{company.companyName || company.qboRealmId.slice(0, 12) + '...'}</span>
-                    {currentRealmId === company.qboRealmId && <Badge variant="secondary" className="ml-auto">Active</Badge>}
+                    {currentRealmId === company.qboRealmId && <Badge variant="default" className="ml-auto">Active</Badge>}
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
               </>
             )}
             <DropdownMenuItem onClick={() => {}}><Settings className="h-4 w-4 mr-2" />Settings</DropdownMenuItem>
-            <DropdownMenuItem onClick={logout} className="text-red-600"><LogOut className="h-4 w-4 mr-2" />Logout</DropdownMenuItem>
+            <DropdownMenuItem onClick={logout} className="text-destructive"><LogOut className="h-4 w-4 mr-2" />Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

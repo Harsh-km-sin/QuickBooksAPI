@@ -20,15 +20,19 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
+const THEME_STORAGE_KEY = 'qb-connect-theme';
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
-  storageKey = 'vite-ui-theme',
+  storageKey = THEME_STORAGE_KEY,
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  );
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return defaultTheme;
+    const stored = localStorage.getItem(storageKey) as Theme | null;
+    return stored === 'dark' || stored === 'light' || stored === 'system' ? stored : defaultTheme;
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -50,9 +54,9 @@ export function ThemeProvider({
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: (newTheme: Theme) => {
+      localStorage.setItem(storageKey, newTheme);
+      setThemeState(newTheme);
     },
   };
 

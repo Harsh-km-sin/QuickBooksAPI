@@ -4,66 +4,98 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    /* FinTech Green – light theme (70% background/neutral, 20% primary/secondary, 10% accent) */
+    --background: 0 0% 98%;
+    --foreground: 210 24% 16%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 210 24% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
+    --popover-foreground: 210 24% 16%;
+    --primary: 175 77% 25%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --secondary: 168 78% 65%;
+    --secondary-foreground: 210 24% 16%;
+    --muted: 168 30% 94%;
+    --muted-foreground: 210 24% 40%;
+    --accent: 48 96% 53%;
+    --accent-foreground: 210 24% 16%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 98%;
+    --border: 168 25% 90%;
+    --input: 168 25% 90%;
+    --ring: 175 77% 25%;
     --radius: 0.625rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-background: 0 0% 97%;
+    --sidebar-foreground: 210 24% 26%;
+    --sidebar-primary: 175 77% 25%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 168 30% 92%;
+    --sidebar-accent-foreground: 210 24% 16%;
+    --sidebar-border: 168 20% 88%;
+    --sidebar-ring: 175 77% 25%;
   }
 
   .dark {
-    /* Dark navy blue with shine – deep base, slightly lifted surfaces */
-    --background: 222 47% 8%;
-    --foreground: 210 20% 98%;
-    --card: 222 44% 11%;
-    --card-foreground: 210 20% 98%;
-    --popover: 222 44% 11%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 8%;
-    --secondary: 222 35% 16%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 222 35% 16%;
+    /* Dark theme – green/teal to match FinTech Green light theme */
+    --background: 175 40% 8%;
+    --foreground: 220 13% 91%;
+    --card: 175 36% 11%;
+    --card-foreground: 220 13% 91%;
+    --popover: 175 36% 11%;
+    --popover-foreground: 220 13% 91%;
+    --primary: 172 66% 50%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 175 28% 17%;
+    --secondary-foreground: 220 13% 91%;
+    --muted: 175 25% 14%;
     --muted-foreground: 215 20% 65%;
-    --accent: 222 40% 18%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --accent: 172 66% 50%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 63% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 222 35% 20%;
-    --input: 222 35% 20%;
-    --ring: 217 91% 60%;
-    --sidebar-background: 222 50% 6%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 222 47% 8%;
-    --sidebar-accent: 222 40% 14%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 222 35% 18%;
-    --sidebar-ring: 217 91% 60%;
+    --success: 142 71% 50%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 98%;
+    --border: 175 30% 20%;
+    --input: 175 30% 20%;
+    --ring: 172 66% 50%;
+    --sidebar-background: 175 48% 6%;
+    --sidebar-foreground: 220 13% 91%;
+    --sidebar-primary: 172 66% 50%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 175 32% 14%;
+    --sidebar-accent-foreground: 220 13% 91%;
+    --sidebar-border: 175 28% 18%;
+    --sidebar-ring: 172 66% 50%;
   }
+}
+
+/* Sonner toast – match theme primary green (override Sonner’s theme vars on the toaster) */
+[data-sonner-toaster][data-sonner-theme="light"] {
+  --success-bg: hsl(175 40% 96%);
+  --success-border: hsl(var(--primary));
+  --success-text: hsl(var(--primary));
+  --error-bg: hsl(0 50% 97%);
+  --error-border: hsl(var(--destructive));
+  --error-text: hsl(var(--destructive));
+}
+
+[data-sonner-toaster][data-sonner-theme="dark"] {
+  --success-bg: hsl(175 35% 14%);
+  --success-border: hsl(var(--primary));
+  --success-text: hsl(var(--primary));
+  --error-bg: hsl(0 30% 14%);
+  --error-border: hsl(var(--destructive));
+  --error-text: hsl(var(--destructive));
 }
 
 @layer base {
@@ -71,14 +103,17 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans;
   }
   .dark body {
     background: linear-gradient(
       165deg,
-      hsl(222 47% 8%) 0%,
-      hsl(222 45% 10%) 50%,
-      hsl(222 50% 6%) 100%
+      hsl(175 40% 8%) 0%,
+      hsl(175 38% 10%) 50%,
+      hsl(175 48% 6%) 100%
     );
     background-attachment: fixed;
   }

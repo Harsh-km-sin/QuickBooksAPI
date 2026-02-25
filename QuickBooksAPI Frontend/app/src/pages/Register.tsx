@@ -93,9 +93,9 @@ export function Register() {
                 <div className="space-y-2"><Label htmlFor="firstName">First Name</Label><Input id="firstName" name="firstName" placeholder="John" value={formData.firstName} onChange={handleChange} disabled={isLoading} required /></div>
                 <div className="space-y-2"><Label htmlFor="lastName">Last Name</Label><Input id="lastName" name="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} disabled={isLoading} required /></div>
               </div>
-              <div className="space-y-2"><Label htmlFor="username">Username</Label><Input id="username" name="username" placeholder="johndoe" value={formData.username} onChange={handleChange} disabled={isLoading} required /></div>
-              <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" placeholder="name@company.com" value={formData.email} onChange={handleChange} disabled={isLoading} required /></div>
-              <div className="space-y-2">
+              <div className="space-y-2 mt-6"><Label htmlFor="username">Username</Label><Input id="username" name="username" placeholder="johndoe" value={formData.username} onChange={handleChange} disabled={isLoading} required /></div>
+              <div className="space-y-2 mt-6"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" placeholder="name@company.com" value={formData.email} onChange={handleChange} disabled={isLoading} required /></div>
+              <div className="space-y-2 mt-6">
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} disabled={isLoading} required />
                 {formData.password && (
@@ -103,7 +103,7 @@ export function Register() {
                     <p className="text-muted-foreground">Password requirements:</p>
                     <ul className="space-y-1">
                       {passwordReqs.map((req, i) => (
-                        <li key={i} className={`flex items-center gap-1 ${req.test ? 'text-green-600' : 'text-red-500'}`}>
+                        <li key={i} className={`flex items-center gap-1 ${req.test ? 'text-success' : 'text-destructive'}`}>
                           {req.test ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}{req.text}
                         </li>
                       ))}
@@ -111,13 +111,13 @@ export function Register() {
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 mt-6">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} disabled={isLoading} required />
-                {formData.confirmPassword && formData.password !== formData.confirmPassword && <p className="text-sm text-red-500">Passwords do not match</p>}
+                {formData.confirmPassword && formData.password !== formData.confirmPassword && <p className="text-sm text-destructive">Passwords do not match</p>}
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col gap-4">
+            <CardFooter className="flex flex-col gap-4 pt-6">
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : 'Create Account'}
               </Button>

@@ -48,7 +48,7 @@ export function Login() {
             <CardDescription>Enter your credentials to access your account</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
+            <CardContent className="flex flex-col gap-6">
               {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -59,7 +59,7 @@ export function Login() {
                 <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required />
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col gap-4">
+            <CardFooter className="flex flex-col gap-4 pt-6">
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : 'Sign In'}
               </Button>
