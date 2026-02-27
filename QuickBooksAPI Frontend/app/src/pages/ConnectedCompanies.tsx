@@ -17,6 +17,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building2, RefreshCw, Loader2, Unplug, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTheme } from '@/components/theme-provider';
 
 function formatConnectedDate(iso: string | null): string {
   if (!iso) return '—';
@@ -34,12 +35,18 @@ function formatConnectedDate(iso: string | null): string {
   }
 }
 
-const CONNECT_IMAGE_SRC = '/qbo-buttons/._C2QB_green_btn_med_default.png';
+// Official "Connect to QuickBooks" button images.
+// Place the 1x/2x assets under `public/Connect_to_QuickBooks_1x` and `public/Connect_to_QuickBooks_2x`.
+const CONNECT_IMAGE_GREEN_1X = '/Connect_to_QuickBooks_1x/C2QB_green_btn_med_default.png';
+const CONNECT_IMAGE_GREEN_2X = '/Connect_to_QuickBooks_2x/C2QB_green_btn_med_default_2x.png';
+const CONNECT_IMAGE_TRANSPARENT_1X = '/Connect_to_QuickBooks_1x/C2QB_transparent_btn_med_default.png';
+const CONNECT_IMAGE_TRANSPARENT_2X = '/Connect_to_QuickBooks_2x/C2QB_transparent_btn_med_default_2x.png';
 
 export function ConnectedCompanies() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, currentRealmId, setCurrentRealm } = useAuth();
   const { connect, isConnecting } = useQuickBooks();
+  const { theme } = useTheme();
   const [companies, setCompanies] = useState<ConnectedCompany[]>([]);
   const [connectImageError, setConnectImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,7 +179,12 @@ export function ConnectedCompanies() {
                 </span>
               ) : (
                 <img
-                  src={CONNECT_IMAGE_SRC}
+                  src={theme === 'dark' ? CONNECT_IMAGE_GREEN_1X : CONNECT_IMAGE_TRANSPARENT_1X}
+                  srcSet={
+                    theme === 'dark'
+                      ? `${CONNECT_IMAGE_GREEN_2X} 2x`
+                      : `${CONNECT_IMAGE_TRANSPARENT_2X} 2x`
+                  }
                   alt="Connect to QuickBooks"
                   className="h-10 object-contain"
                   onError={() => setConnectImageError(true)}

@@ -171,8 +171,20 @@ function Sidebar({ className }: { className?: string }) {
                 <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuItem onClick={() => {}}><Settings className="h-4 w-4 mr-2" />Settings</DropdownMenuItem>
-            <DropdownMenuItem onClick={logout} className="text-destructive"><LogOut className="h-4 w-4 mr-2" />Logout</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {}}
+              className="hover:bg-muted hover:text-foreground"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={logout}
+              className="text-destructive hover:bg-muted hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
