@@ -76,7 +76,7 @@ export function JournalEntries() {
                       <TableCell><div className="flex items-center"><FileText className="h-4 w-4 mr-2 text-muted-foreground" /><div className="font-medium">{entry.docNumber || '-'}</div></div></TableCell>
                       <TableCell><div className="flex items-center"><Calendar className="h-4 w-4 mr-1 text-muted-foreground" />{formatDate(entry.txnDate)}</div></TableCell>
                       <TableCell><div className="flex items-center font-medium"><DollarSign className="h-4 w-4 text-muted-foreground" />{formatCurrency(entry.totalAmount)}</div></TableCell>
-                      <TableCell><Badge variant={entry.adjustment ? 'default' : 'secondary'}>{entry.adjustment ? 'Yes' : 'No'}</Badge></TableCell>
+                      <TableCell><Badge variant={entry.adjustment ? 'default' : 'outline'}>{entry.adjustment ? 'Yes' : 'No'}</Badge></TableCell>
                       <TableCell><div className="max-w-xs truncate text-muted-foreground">{entry.privateNote || '-'}</div></TableCell>
                     </TableRow>
                   ))}
