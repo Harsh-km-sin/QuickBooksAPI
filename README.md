@@ -56,7 +56,7 @@ flowchart TB
         REPO[Repositories]
     end
     
-    subgraph worker [SyncWorker (Azure Functions)]
+    subgraph worker ["SyncWorker Azure Functions"]
         Q[ServiceBusTrigger qbo-full-sync]
         WSVC[Sync Services]
     end
