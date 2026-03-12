@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.DataAccessLayer.Repos;
+using QuickBooksAPI.Services;
 using System.Text.Json;
 
 namespace SyncWorker
@@ -107,6 +108,30 @@ namespace SyncWorker
                     var result = await svc.SyncJournalEntriesAsync();
                     return result.Data;
                 }, results, errors);
+
+                // After core entities are synced, rebuild the financial warehouse
+                try
+                {
+                    var warehouse = scope.ServiceProvider.GetRequiredService<IFinancialWarehouseService>();
+                    await warehouse.RebuildForCompanyAsync(realmId, data.UserId);
+                    _logger.LogInformation("Financial warehouse rebuilt for CompanyId={CompanyId}", data.CompanyId);
+
+                    // Run anomaly detection (Phase 2)
+                    try
+                    {
+                        var anomalyService = scope.ServiceProvider.GetRequiredService<IAnomalyDetectionService>();
+                        await anomalyService.DetectAsync(userId, realmId);
+                        _logger.LogInformation("Anomaly detection completed for CompanyId={CompanyId}", data.CompanyId);
+                    }
+                    catch (Exception anomalyEx)
+                    {
+                        _logger.LogError(anomalyEx, "Anomaly detection failed for CompanyId={CompanyId}", data.CompanyId);
+                    }
+                }
+                catch (Exception aggEx)
+                {
+                    _logger.LogError(aggEx, "Failed to rebuild financial warehouse for CompanyId={CompanyId}", data.CompanyId);
+                }
 
                 if (errors.Count > 0)
                 {

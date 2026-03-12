@@ -16,5 +16,6 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
         Task DeleteInvoiceLinesAsync(long invoiceId, IDbConnection connection, IDbTransaction tx);
         Task<int> InsertInvoiceLinesAsync(IEnumerable<QBOInvoiceLine> lines, IDbConnection connection, IDbTransaction tx);
         Task<long> GetInvoiceIdAsync(string qbInvoiceId, string realmId, IDbConnection connection, IDbTransaction tx);
+        Task<int> GetOverdueReceivablesCountAsync(string realmId, DateTime asOfDate);
     }
 }

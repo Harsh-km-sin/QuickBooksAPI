@@ -9,3 +9,6 @@ export { Bills } from './Bills';
 export { Invoices } from './Invoices';
 export { ChartOfAccounts } from './ChartOfAccounts';
 export { JournalEntries } from './JournalEntries';
+export { Forecast } from './Forecast';
+export { CfoAssistant } from './CfoAssistant';
+export { CloseAssistant } from './CloseAssistant';

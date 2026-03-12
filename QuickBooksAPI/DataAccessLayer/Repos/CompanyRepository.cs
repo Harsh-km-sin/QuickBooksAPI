@@ -66,6 +66,17 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 new { UserId = userId });
         }
 
+        public async Task<IEnumerable<(int UserId, string RealmId)>> GetDistinctConnectedUserRealmAsync()
+        {
+            const string sql = @"
+                                SELECT DISTINCT UserId, QboRealmId AS RealmId
+                                FROM dbo.Companies
+                                WHERE IsQboConnected = 1;";
+            using var connection = CreateConnection();
+            var rows = await connection.QueryAsync<(int UserId, string RealmId)>(sql);
+            return rows;
+        }
+
         public async Task UpsertCompanyAsync(Company company)
         {
             if (company == null) throw new ArgumentNullException(nameof(company));

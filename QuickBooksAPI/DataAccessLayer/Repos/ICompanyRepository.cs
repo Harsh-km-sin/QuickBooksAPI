@@ -6,6 +6,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
     {
         Task<Company?> GetByUserAndRealmAsync(int userId, string realmId);
         Task<IEnumerable<Company>> GetConnectedCompaniesByUserIdAsync(int userId);
+        Task<IEnumerable<(int UserId, string RealmId)>> GetDistinctConnectedUserRealmAsync();
         Task UpsertCompanyAsync(Company company);
         Task ClearCompanyTokenAsync(int userId, string realmId);
     }

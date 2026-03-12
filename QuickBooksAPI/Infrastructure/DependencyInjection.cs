@@ -51,6 +51,27 @@ namespace QuickBooksAPI.Infrastructure
             services.AddScoped<ISyncStatusRepository>(
                 _ => new SyncStatusRepository(connectionString));
 
+            services.AddScoped<IAnomalyEventRepository>(
+                _ => new AnomalyEventRepository(connectionString));
+
+            services.AddScoped<IKpiSnapshotRepository>(
+                _ => new KpiSnapshotRepository(connectionString));
+
+            services.AddScoped<IForecastScenarioRepository>(
+                _ => new ForecastScenarioRepository(connectionString));
+
+            services.AddScoped<IForecastResultRepository>(
+                _ => new ForecastResultRepository(connectionString));
+
+            services.AddScoped<ICloseIssueRepository>(
+                _ => new CloseIssueRepository(connectionString));
+
+            services.AddScoped<IDimEntityRepository>(
+                _ => new DimEntityRepository(connectionString));
+
+            services.AddScoped<IConsolidatedPnlRepository>(
+                _ => new ConsolidatedPnlRepository(connectionString));
+
             return services;
         }
     }

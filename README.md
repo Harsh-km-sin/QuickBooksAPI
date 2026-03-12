@@ -1,6 +1,6 @@
 # QuickBooks API - Backend Documentation
 
-A .NET 8 Web API for QuickBooks Online integration. Provides JWT authentication, QuickBooks OAuth 2.0 connectivity, and full CRUD/sync operations for Customers, Products, Vendors, Bills, Invoices, Chart of Accounts, and Journal Entries.
+A .NET 8 Web API for QuickBooks Online integration. Provides JWT authentication, QuickBooks OAuth 2.0 connectivity, and full CRUD/sync operations for Customers, Products, Vendors, Bills, Invoices, Chart of Accounts, and Journal Entries, plus a background Sync Worker for full-company synchronization.
 
 **Base URL (Development):** `https://localhost:7135`  
 **Swagger UI:** `https://localhost:7135/` (root)
@@ -16,13 +16,14 @@ A .NET 8 Web API for QuickBooks Online integration. Provides JWT authentication,
 5. [Error Handling](#error-handling)
 6. [Rate Limiting & CORS](#rate-limiting--cors)
 7. [Endpoints Reference](#endpoints-reference)
-8. [Auth Endpoints](#auth-endpoints)
-9. [Entity Endpoints](#entity-endpoints)
-10. [Entity Model Structures](#entity-model-structures)
-11. [Request DTO Structures](#request-dto-structures)
-12. [QuickBooks OAuth Flow](#quickbooks-oauth-flow)
-13. [Configuration](#configuration)
-14. [Docker](#docker)
+8. [Background Sync Worker](#background-sync-worker)
+9. [Auth Endpoints](#auth-endpoints)
+10. [Entity Endpoints](#entity-endpoints)
+11. [Entity Model Structures](#entity-model-structures)
+12. [Request DTO Structures](#request-dto-structures)
+13. [QuickBooks OAuth Flow](#quickbooks-oauth-flow)
+14. [Configuration](#configuration)
+15. [Docker](#docker)
 
 ---
 
@@ -55,15 +56,24 @@ flowchart TB
         REPO[Repositories]
     end
     
+    subgraph worker [SyncWorker (Azure Functions)]
+        Q[ServiceBusTrigger qbo-full-sync]
+        WSVC[Sync Services]
+    end
+    
     subgraph external [External]
         QB[QuickBooks Online API]
         DB[(SQL Server)]
+        SB[(Azure Service Bus)]
     end
     
     FE --> MW1 --> MW2 --> MW3 --> MW4 --> MW5 --> CTRL
     CTRL --> SVC --> REPO
     SVC --> QB
     REPO --> DB
+    SVC -->|enqueue FullSyncMessage| SB
+    Q --> WSVC --> QB
+    WSVC --> DB
 ```
 
 **Middleware pipeline order:**
@@ -214,6 +224,178 @@ All API responses use the `ApiResponse<T>` wrapper:
 | GET | /api/journalentry/list | Yes | List journal entries from DB |
 | GET | /api/journalentry/sync | Yes | Sync journal entries from QuickBooks |
 | GET | /health | No | Health check |
+
+---
+
+## Background Sync Worker
+
+Full-company sync runs asynchronously via a separate **SyncWorker** Azure Functions app. The API enqueues a `FullSyncMessage` to an Azure Service Bus queue, and the worker processes that message and syncs all entities in the background.
+
+**Flow:**
+- `POST /api/company/full-sync` (via `ISyncService.StartFullSyncAsync`) enqueues a message to the `qbo-full-sync` queue using `IQueuePublisher` / `ServiceBusPublisher`.
+- The `SyncWorker.FullSyncWorker` function is triggered by `[ServiceBusTrigger("qbo-full-sync", Connection = "ServiceBusConnection")]`.
+- The worker:
+  - Sets sync status via `ISyncStatusRepository` (`Queued` → `Running` → `Completed` / `PartiallyFailed` / `Failed`).
+  - Sets `ICurrentUser` context using `SyncCurrentUser` (UserId + RealmId from the message).
+  - Calls the existing services to sync **Customers, Vendors, Products, Chart of Accounts, Invoices, Bills, Journal Entries**, updating `IQboSyncStateRepository` per entity.
+  - Retries each entity up to 3 times, then records errors if they persist.
+
+**Configuration:**
+- In `QuickBooksAPI/appsettings*.json`:
+  - `ServiceBus:ConnectionString` – Azure Service Bus connection string (when empty, the API uses `NoOpQueuePublisher` and full sync is effectively disabled).
+  - `ServiceBus:QueueName` – defaults to `qbo-full-sync`.
+- In `SyncWorker` (Functions app settings):
+  - `DefaultConnection` – same SQL connection string as the API.
+  - `ServiceBusConnection` – Service Bus connection string used by `[ServiceBusTrigger]`.
+
+**Deployment notes:**
+- Deploy `QuickBooksAPI` (Web API) and `SyncWorker` (Azure Functions, isolated worker) separately.
+- Both must share:
+  - The **same database** (`DefaultConnection`).
+  - The **same Service Bus namespace/queue** (`qbo-full-sync`).
+- For local development:
+  - Set `ServiceBus:ConnectionString` in user-secrets for the API.
+  - Set `ServiceBusConnection` and `DefaultConnection` in the Functions host configuration.
+
+---
+
+## CFO Analytics & CFO Intelligence (Phases 1–3)
+
+This repo now includes a full CFO analytics stack built on top of the QuickBooks sync and warehouse.
+
+### Phase 1 – Core Analytics
+
+- Financial **warehouse** (dim/fact tables).
+- **Cash runway** service & API (`GET /api/analytics/cash-runway`).
+- **Vendor spend** APIs (top vendors and summary).
+- **Customer profitability** APIs.
+- **Revenue vs expenses** monthly series.
+- Initial **Dashboard** surfaces runway, revenue/expenses, top vendors, and customer profitability.
+
+### Phase 2 – Anomaly Detection & KPI Engine
+
+- **Anomaly events**
+  - Table: `anomaly_events`.
+  - Worker: anomaly detection runs after a successful warehouse rebuild in `FullSyncWorker`, via `IAnomalyDetectionService.DetectAsync(userId, realmId)`.
+  - Rules (first slice): vendor spend spike, large transaction, overdue receivables growth.
+  - API: `GET /api/analytics/anomalies?since=` returns recent anomalies for the current user/realm.
+  - UI: Dashboard card listing recent anomalies with type, severity, details, and date.
+
+- **KPI snapshots**
+  - Table: `kpi_snapshot`.
+  - Worker: `KpiSnapshotFunction` (TimerTrigger, daily) computes KPIs per connected company:
+    - `GrossMargin`, `RevenueGrowth`, `BurnMultiple` (and extensible).
+  - Repo + service: `IKpiSnapshotRepository`, `IKpiService`.
+  - API: `GET /api/analytics/kpis?from=&to=&names=GrossMargin,RevenueGrowth,BurnMultiple`.
+  - UI: Dashboard KPI sparkline card showing trends over time.
+
+### Phase 3 – Forecasting, CFO Assistant, Close & Data Quality, Consolidation
+
+- **Deterministic forecasting**
+  - Tables: `forecast_scenarios`, `forecast_results`.
+  - Service: `IForecastService` builds a base series from warehouse, projects forward, applies scenario multipliers, and computes cash/runway.
+  - API:
+    - `POST /api/analytics/forecast` – create & compute a scenario.
+    - `GET /api/analytics/forecast/{id}` – scenario + per-period results.
+  - UI: `Forecast` page with scenario form (revenue/expense % + horizon) and charts for revenue, expenses, and cash balance by month.
+
+- **CFO AI Assistant**
+  - Controller: `CfoAssistantController` (`POST /api/cfo-assistant/ask`).
+  - Service: `ICfoAssistantService`:
+    - Rule-based intents (runway, revenue/expenses, unprofitable customers, vendor spend, KPIs, etc.).
+    - Calls existing analytics services for structured context.
+    - Optionally calls an external LLM (e.g. Azure OpenAI) with a constrained prompt.
+    - Returns answer + metric citations.
+  - Config: `AzureOpenAI:Endpoint`, `AzureOpenAI:ApiKey`, `AzureOpenAI:DeploymentName` (or equivalent) in API settings.
+  - UI: `CFO Assistant` page with chat-style interface and metric citation badges.
+
+- **Month-end close assistant & data quality**
+  - Table: `close_issues`.
+  - Worker: `CloseIssuesFunction` (TimerTrigger) detects:
+    - Invoices without payment after N days (uses `IInvoiceRepository` overdue counts).
+    - Placeholders for unreconciled transactions, unbalanced/unposted journals, duplicate vendors/customers, orphans, misclassified accounts.
+  - Repo + service: `ICloseIssueRepository`, `ICloseIssueService`.
+  - API:
+    - `GET /api/analytics/close-issues?since=&severity=&unresolvedOnly=`.
+    - `POST /api/analytics/close-issues/{id}/resolve`.
+  - UI:
+    - Dashboard “Close & Data Quality” card with counts of High/Medium issues and top 5 items.
+    - `CloseAssistant` page with filters (date, severity, unresolved only), full list, and resolve actions.
+
+- **Multi-company consolidation (thin slice)**
+  - Tables:
+    - `dim_entity` – entities (realms / companies + parents).
+    - `fact_consolidated_pnl` – per-entity, per-month consolidated P&L.
+  - Worker: `ConsolidationFunction` (TimerTrigger, monthly):
+    - Reads parent entities and their children from `dim_entity`.
+    - Uses `IFinancialWarehouseRepository.GetRevenueExpensesMonthlyAsync` per child to build a monthly series.
+    - Applies simple FX (currently a constant 1.0 per entity, configurable later) and writes `fact_consolidated_pnl` rows per parent.
+  - API:
+    - `GET /api/analytics/entities` – entities for current user (for toggles/dropdowns).
+    - `GET /api/analytics/consolidated-pnl?entityId=&from=&to=` – consolidated P&L for a parent.
+  - UI: Dashboard **Single company / Consolidated** toggle on the Revenue vs Expenses card, with entity selector and consolidated P&L bar chart.
+
+---
+
+## Database Setup for CFO Analytics & Intelligence
+
+Run these scripts against your **application database** (in addition to the core schema) before using the analytics features in non-dev environments:
+
+1. **Phase 2 – Anomalies & KPIs**
+   - `Scripts/CreateAnomalyEvents.sql` – creates `anomaly_events`.
+   - `Scripts/CreateKpiSnapshot.sql` – creates `kpi_snapshot`.
+
+2. **Phase 3 – Forecasting, Close, Consolidation**
+   - `Scripts/CreateForecastTables.sql` – creates `forecast_scenarios`, `forecast_results`.
+   - `Scripts/CreateCloseIssues.sql` – creates `close_issues`.
+   - `Scripts/CreateConsolidationTables.sql` – creates `dim_entity`, `fact_consolidated_pnl`.
+
+3. **Seed / maintain supporting data**
+   - Insert/update rows in `dim_entity` to represent:
+     - Each QuickBooks realm (leaf entities).
+     - Any parent/consolidated entities (set `ParentEntityId` and `IsConsolidatedNode = 1`).
+
+> **Note:** The code assumes these tables exist; missing tables will cause runtime errors in worker functions and analytics APIs.
+
+---
+
+## Azure Setup for SyncWorker, Analytics, and CFO Assistant
+
+Beyond the base Service Bus + Functions setup described above:
+
+### SyncWorker Functions & Timers
+
+Ensure the **SyncWorker** Azure Functions app has:
+
+- App settings:
+  - `DefaultConnection` – SQL connection string (same DB as API).
+  - `ServiceBusConnection` – Service Bus connection string for `qbo-full-sync`.
+- Timer-triggered functions enabled with appropriate schedules:
+  - `KpiSnapshotFunction` – e.g. `0 0 2 * * *` (daily at 02:00 UTC).
+  - `CloseIssuesFunction` – e.g. `0 0 3 * * *` (daily at 03:00 UTC).
+  - `ConsolidationFunction` – e.g. `0 0 4 1 * *` (monthly on day 1 at 04:00 UTC).
+
+### Azure OpenAI (or other LLM) for CFO Assistant
+
+If you want the CFO Assistant to use an external model:
+
+- Provision an **Azure OpenAI** resource (or similar) and create a deployment.
+- Configure in **QuickBooksAPI** app settings:
+  - `AzureOpenAI:Endpoint`
+  - `AzureOpenAI:ApiKey`
+  - `AzureOpenAI:DeploymentName`
+- Optionally store secrets in **Azure Key Vault** and load via configuration.
+
+If these settings are missing, the assistant service falls back to returning a deterministic, warehouse-backed explanation without LLM summarization.
+
+### Service Bus / Full Sync
+
+- Confirm the **Service Bus** namespace and `qbo-full-sync` queue are created.
+- API:
+  - `ServiceBus:ConnectionString`
+  - `ServiceBus:QueueName` (defaults to `qbo-full-sync`).
+- SyncWorker:
+  - `ServiceBusConnection` (same as above).
 
 ---
 

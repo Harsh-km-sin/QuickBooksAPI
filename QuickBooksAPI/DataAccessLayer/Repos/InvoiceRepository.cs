@@ -65,6 +65,15 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return new PagedResult<QBOInvoiceHeader> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
 
+        public async Task<int> GetOverdueReceivablesCountAsync(string realmId, DateTime asOfDate)
+        {
+            const string sql = @"
+SELECT COUNT(1) FROM dbo.QBOInvoiceHeader
+WHERE RealmId = @RealmId AND Balance > 0 AND DueDate < @AsOfDate;";
+            using var connection = CreateOpenConnection();
+            return await connection.ExecuteScalarAsync<int>(sql, new { RealmId = realmId, AsOfDate = asOfDate.Date });
+        }
+
         public async Task UpsertInvoicesAsync(IEnumerable<QBOInvoiceHeader> headers, IEnumerable<InvoiceLineUpsertRow> lines, IDbConnection connection, IDbTransaction tx)
         {
             var headersTable = BuildInvoiceHeaderTable(headers);

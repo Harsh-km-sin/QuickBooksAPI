@@ -16,6 +16,9 @@ import {
   Invoices,
   ChartOfAccounts,
   JournalEntries,
+  Forecast,
+  CfoAssistant,
+  CloseAssistant,
 } from '@/pages';
 
 function renderProtectedPage(page: React.ReactNode) {
@@ -66,6 +69,9 @@ function App() {
       <Route path="/invoices" element={renderProtectedPage(<Invoices />)} />
       <Route path="/chart-of-accounts" element={renderProtectedPage(<ChartOfAccounts />)} />
       <Route path="/journal-entries" element={renderProtectedPage(<JournalEntries />)} />
+      <Route path="/forecast" element={renderProtectedPage(<Forecast />)} />
+      <Route path="/cfo-assistant" element={renderProtectedPage(<CfoAssistant />)} />
+      <Route path="/close-assistant" element={renderProtectedPage(<CloseAssistant />)} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

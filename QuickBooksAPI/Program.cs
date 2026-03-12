@@ -36,6 +36,26 @@ builder.Services.AddScoped<IQuickBooksVendorService, QuickBooksVendorService>();
 builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IQuickBooksBillService, QuickBooksBillService>();
 builder.Services.AddScoped<IBillService, BillService>();
+builder.Services.AddScoped<IFinancialWarehouseService, FinancialWarehouseService>();
+builder.Services.AddScoped<ICashRunwayService, CashRunwayService>();
+builder.Services.AddScoped<IVendorAnalyticsService, VendorAnalyticsService>();
+builder.Services.AddScoped<ICustomerProfitabilityService, CustomerProfitabilityService>();
+builder.Services.AddScoped<IRevenueExpensesService, RevenueExpensesService>();
+builder.Services.AddScoped<IAnomalyDetectionService, AnomalyDetectionService>();
+builder.Services.AddScoped<IKpiService, KpiService>();
+builder.Services.AddScoped<IForecastService, ForecastService>();
+builder.Services.AddScoped<ICfoAssistantService, CfoAssistantService>();
+builder.Services.AddScoped<ICloseIssueService, CloseIssueService>();
+
+// Warehouse repository (used by sync worker and by analytics read APIs)
+builder.Services.AddSingleton<IFinancialWarehouseRepository>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("DefaultConnection")
+        ?? configuration["ConnectionStrings:DefaultConnection"]
+        ?? throw new InvalidOperationException("DefaultConnection is missing.");
+    return new FinancialWarehouseRepository(connectionString);
+});
 
 // Service Bus + Sync
 var serviceBusConnectionString = builder.Configuration["ServiceBus:ConnectionString"];

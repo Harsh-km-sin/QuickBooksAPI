@@ -60,6 +60,14 @@ var host = new HostBuilder()
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IBillService, BillService>();
         services.AddScoped<IJournalEntryService, JournalEntryService>();
+        services.AddScoped<IFinancialWarehouseRepository>(_ => new FinancialWarehouseRepository(connectionString));
+        services.AddScoped<IFinancialWarehouseService, FinancialWarehouseService>();
+        services.AddScoped<IAnomalyEventRepository>(_ => new AnomalyEventRepository(connectionString));
+        services.AddScoped<IAnomalyDetectionService, AnomalyDetectionService>();
+        services.AddScoped<IKpiSnapshotRepository>(_ => new KpiSnapshotRepository(connectionString));
+        services.AddScoped<ICloseIssueRepository>(_ => new CloseIssueRepository(connectionString));
+        services.AddScoped<IDimEntityRepository>(_ => new DimEntityRepository(connectionString));
+        services.AddScoped<IConsolidatedPnlRepository>(_ => new ConsolidatedPnlRepository(connectionString));
     })
     .Build();
 
