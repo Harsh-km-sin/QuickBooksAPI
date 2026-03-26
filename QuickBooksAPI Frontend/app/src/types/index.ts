@@ -47,7 +47,7 @@ export interface UserLoginRequest {
   password: string;
 }
 
-// Connected QuickBooks company (from GET /api/auth/connected-companies)
+// Connected QuickBooks company (from GET /api/company/connected-companies)
 export interface ConnectedCompany {
   id: number;
   qboRealmId: string;

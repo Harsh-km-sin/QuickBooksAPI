@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.Application.Interfaces;
 
@@ -12,11 +13,13 @@ namespace QuickBooksAPI.Controllers
     {
         private readonly ICurrentUser _currentUser;
         private readonly ISyncService _syncService;
+        private readonly IAuthService _authServices;
 
-        public CompanyController(ICurrentUser currentUser, ISyncService syncService)
+        public CompanyController(ICurrentUser currentUser, ISyncService syncService, IAuthService authServices)
         {
             _currentUser = currentUser;
             _syncService = syncService;
+            _authServices = authServices;
         }
 
         [HttpPost("sync/full")]
@@ -55,6 +58,36 @@ namespace QuickBooksAPI.Controllers
 
             var status = await _syncService.GetSyncStatusAsync(realmId);
             return Ok(new { success = true, data = status });
+        }
+
+        [HttpPost("disconnect")]
+        public async Task<IActionResult> Disconnect([FromBody] DisconnectQboRequest request)
+        {
+            var userId = _currentUser.UserId;
+            if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var parsedUserId))
+                return Unauthorized("User ID claim is missing or invalid.");
+
+            if (request == null || string.IsNullOrWhiteSpace(request.RealmId))
+                return BadRequest(ApiResponse<string>.Fail("RealmId is required."));
+
+            var response = await _authServices.DisconnectQboAsync(parsedUserId, request.RealmId.Trim());
+            if (!response.Success)
+                return BadRequest(response);
+            return Ok(response);
+        }
+
+        [HttpGet("connected-companies")]
+        public async Task<IActionResult> GetConnectedCompanies()
+        {
+            var userId = _currentUser.UserId;
+            if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var parsedUserId))
+                return Unauthorized("User ID claim is missing or invalid.");
+
+            var response = await _authServices.GetConnectedCompaniesAsync(parsedUserId);
+            if (!response.Success)
+                return BadRequest(response);
+
+            return Ok(response);
         }
     }
 }

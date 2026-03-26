@@ -34,7 +34,7 @@ import {
   MessageCircle,
   ClipboardCheck,
 } from 'lucide-react';
-import { authApi } from '@/api/client';
+import { companyApi } from '@/api/client';
 import { useTheme } from '@/components/theme-provider';
 
 interface NavItem {
@@ -67,7 +67,7 @@ function Sidebar({ className }: { className?: string }) {
   // Fetch connected companies from backend
   useEffect(() => {
     let mounted = true;
-    authApi.getConnectedCompanies()
+    companyApi.getConnectedCompanies()
       .then((res) => {
         if (mounted) {
           const data = res?.data ?? res ?? [];

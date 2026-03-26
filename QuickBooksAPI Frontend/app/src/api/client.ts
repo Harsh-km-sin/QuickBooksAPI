@@ -231,12 +231,6 @@ export const authApi = {
       )}&realmId=${encodeURIComponent(realmId)}`
     ),
 
-  getConnectedCompanies: () =>
-    apiClient.get<ConnectedCompany[]>('/api/auth/connected-companies'),
-
-  disconnect: (realmId: string) =>
-    apiClient.post<string>('/api/auth/disconnect', { realmId }),
-
   logout: () =>
     apiClient.post<string>('/api/auth/logout', {}),
 };
@@ -336,6 +330,10 @@ export const companyApi = {
     apiClient.post<string>('/api/company/sync/full', {}),
   syncStatus: () =>
     apiClient.get<{ companyId: string; status: string; lastRun: string | null; error: string | null }>('/api/company/sync/status'),
+  getConnectedCompanies: () =>
+    apiClient.get<ConnectedCompany[]>('/api/company/connected-companies'),
+  disconnect: (realmId: string) =>
+    apiClient.post<string>('/api/company/disconnect', { realmId }),
 };
 
 // Journal Entry API

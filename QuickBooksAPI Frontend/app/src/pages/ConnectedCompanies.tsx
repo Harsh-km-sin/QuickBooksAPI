@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useQuickBooks } from '@/hooks/useQuickBooks';
-import { authApi, companyApi, setRealmId } from '@/api/client';
+import { companyApi, setRealmId } from '@/api/client';
 import type { ConnectedCompany } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +56,7 @@ export function ConnectedCompanies() {
   const fetchCompanies = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await authApi.getConnectedCompanies();
+      const response = await companyApi.getConnectedCompanies();
       if (response.success && response.data) {
         setCompanies(response.data);
       } else {
@@ -99,7 +99,7 @@ export function ConnectedCompanies() {
   const handleDisconnect = async (company: ConnectedCompany) => {
     setDisconnectingId(company.qboRealmId);
     try {
-      const response = await authApi.disconnect(company.qboRealmId);
+      const response = await companyApi.disconnect(company.qboRealmId);
       if (response.success) {
         toast.success('Company disconnected', {
           description: response.message ?? undefined,
