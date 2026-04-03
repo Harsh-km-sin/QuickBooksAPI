@@ -1,13 +1,9 @@
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.DataAccessLayer.Repos;
 
 namespace QuickBooksAPI.Services
 {
-    public interface IAnomalyDetectionService
-    {
-        Task DetectAsync(int userId, string realmId, CancellationToken cancellationToken = default);
-    }
-
     /// <summary>
     /// Runs rules-based anomaly detection after warehouse rebuild and persists results to anomaly_events.
     /// </summary>

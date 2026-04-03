@@ -3,11 +3,6 @@ using QuickBooksAPI.DataAccessLayer.Repos;
 
 namespace QuickBooksAPI.Services
 {
-    public interface IFinancialWarehouseService
-    {
-        Task RebuildForCompanyAsync(string realmId, string userId, CancellationToken cancellationToken = default);
-    }
-
     /// <summary>
     /// Application service that coordinates rebuilding the financial warehouse
     /// for a given company and user. Intended to be invoked from background

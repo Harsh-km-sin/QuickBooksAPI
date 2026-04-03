@@ -1,4 +1,4 @@
-﻿namespace QuickBooksAPI.Infrastructure.Queue
+namespace QuickBooksAPI.Infrastructure.Queue
 {
     public interface IQueuePublisher
     {

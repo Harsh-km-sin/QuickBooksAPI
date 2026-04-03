@@ -1,4 +1,5 @@
 using QuickBooksAPI.DataAccessLayer.Repos;
+using QuickBooksAPI.DataAccessLayer.Sql;
 
 namespace QuickBooksAPI.Infrastructure
 {
@@ -14,63 +15,68 @@ namespace QuickBooksAPI.Infrastructure
                 throw new InvalidOperationException(
                     "DefaultConnection connection string is missing or empty.");
 
-            // Repositories
-            services.AddScoped<ITokenRepository>(
-                _ => new TokenRepository(connectionString));
+            services.AddSqlDataAccess();
 
-            services.AddScoped<ICompanyRepository>(
-                _ => new CompanyRepository(connectionString));
+            services.AddSingleton<IFinancialWarehouseRepository>(sp =>
+                new FinancialWarehouseRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IAppUserRepository>(
-                _ => new AppUserRepository(connectionString));
+            // Repositories — SQL access via ISqlConnectionFactory (Phase 2)
+            services.AddScoped<ITokenRepository>(sp =>
+                new TokenRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IChartOfAccountsRepository>(
-                _ => new ChartOfAccountsRepository(connectionString));
+            services.AddScoped<ICompanyRepository>(sp =>
+                new CompanyRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IProductRepository>(
-                _ => new ProductRepository(connectionString));
+            services.AddScoped<IAppUserRepository>(sp =>
+                new AppUserRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<ICustomerRepository>(
-                _ => new CustomerRepository(connectionString));
+            services.AddScoped<IChartOfAccountsRepository>(sp =>
+                new ChartOfAccountsRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IVendorRepository>(
-                _ => new VendorRepository(connectionString));
+            services.AddScoped<IProductRepository>(sp =>
+                new ProductRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IJournalEntryRepository>(
-                _ => new JournalEntryRepository(connectionString));
+            services.AddScoped<ICustomerRepository>(sp =>
+                new CustomerRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IInvoiceRepository>(
-                _ => new InvoiceRepository(connectionString));
+            services.AddScoped<IVendorRepository>(sp =>
+                new VendorRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IBillRepository>(
-                _ => new BillRepository(connectionString));
+            services.AddScoped<IJournalEntryRepository>(sp =>
+                new JournalEntryRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IQboSyncStateRepository>(
-                _ => new QboSyncStateRepository(connectionString));
+            services.AddScoped<IInvoiceRepository>(sp =>
+                new InvoiceRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<ISyncStatusRepository>(
-                _ => new SyncStatusRepository(connectionString));
+            services.AddScoped<IBillRepository>(sp =>
+                new BillRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IAnomalyEventRepository>(
-                _ => new AnomalyEventRepository(connectionString));
+            services.AddScoped<IQboSyncStateRepository>(sp =>
+                new QboSyncStateRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IKpiSnapshotRepository>(
-                _ => new KpiSnapshotRepository(connectionString));
+            services.AddScoped<ISyncStatusRepository>(sp =>
+                new SyncStatusRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IForecastScenarioRepository>(
-                _ => new ForecastScenarioRepository(connectionString));
+            services.AddScoped<IAnomalyEventRepository>(sp =>
+                new AnomalyEventRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IForecastResultRepository>(
-                _ => new ForecastResultRepository(connectionString));
+            services.AddScoped<IKpiSnapshotRepository>(sp =>
+                new KpiSnapshotRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<ICloseIssueRepository>(
-                _ => new CloseIssueRepository(connectionString));
+            services.AddScoped<IForecastScenarioRepository>(sp =>
+                new ForecastScenarioRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IDimEntityRepository>(
-                _ => new DimEntityRepository(connectionString));
+            services.AddScoped<IForecastResultRepository>(sp =>
+                new ForecastResultRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
-            services.AddScoped<IConsolidatedPnlRepository>(
-                _ => new ConsolidatedPnlRepository(connectionString));
+            services.AddScoped<ICloseIssueRepository>(sp =>
+                new CloseIssueRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
+
+            services.AddScoped<IDimEntityRepository>(sp =>
+                new DimEntityRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
+
+            services.AddScoped<IConsolidatedPnlRepository>(sp =>
+                new ConsolidatedPnlRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
             return services;
         }

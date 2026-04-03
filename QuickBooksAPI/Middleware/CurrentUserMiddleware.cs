@@ -1,11 +1,13 @@
 using QuickBooksAPI.API.DTOs.Response;
-using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Infrastructure.Identity;
 using System.Security.Claims;
 using System.Text.Json;
 
 namespace QuickBooksAPI.Middleware
 {
+    /// <summary>
+    /// Validates realm/user for protected routes and populates scoped <see cref="RequestContext"/> (see <c>IRequestContext</c>).
+    /// </summary>
     public class CurrentUserMiddleware
     {
         private readonly RequestDelegate _next;
@@ -25,8 +27,11 @@ namespace QuickBooksAPI.Middleware
             _next = next;
         }
 
-        public async Task Invoke(HttpContext context, CurrentUser currentUser)
+        public async Task Invoke(HttpContext context, RequestContext requestContext)
         {
+            if (context.Items.TryGetValue(CorrelationIdMiddleware.CorrelationIdItemKey, out var correlationObj))
+                requestContext.CorrelationId = correlationObj?.ToString();
+
             // Check if this is an authenticated request
             if (context.User.Identity?.IsAuthenticated == true)
             {
@@ -75,9 +80,8 @@ namespace QuickBooksAPI.Middleware
                         return;
                     }
                 }
-                // Set the current user context
-                currentUser.UserId = userId;
-                currentUser.RealmId = realmId;
+                requestContext.UserId = userId;
+                requestContext.RealmId = realmId;
             }
 
             await _next(context);

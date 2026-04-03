@@ -1,29 +1,23 @@
 using Dapper;
 using QuickBooksAPI.DataAccessLayer.Models;
-using Microsoft.Data.SqlClient;
-using System.Data;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Linq;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class TokenRepository : ITokenRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public TokenRepository(string connectionString)
+        public TokenRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString;
-        }
-
-        private IDbConnection CreateConnection()
-        {
-            return new SqlConnection(_connectionString);
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task SaveTokenAsync(QuickBooksToken token)
         {
-            using var connection = CreateConnection();
-            
+            using var connection = _connectionFactory.CreateConnection();
+
             // Use MERGE to support multiple companies per user (upsert on UserId + RealmId)
             var sql = @"
 MERGE INTO QuickBooksToken AS target
@@ -45,7 +39,7 @@ WHEN NOT MATCHED THEN
 
             if (token.CreatedAt == default)
                 token.CreatedAt = DateTime.UtcNow;
-            
+
             token.UpdatedAt = DateTime.UtcNow;
 
             await connection.ExecuteAsync(sql, token);
@@ -53,7 +47,7 @@ WHEN NOT MATCHED THEN
 
         public async Task<QuickBooksToken?> GetTokenByUserAndRealmAsync(int userId, string realmId)
         {
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             var query = @"SELECT * FROM QuickBooksToken 
                   WHERE UserId = @UserId AND RealmId = @RealmId";
             return await connection.QueryFirstOrDefaultAsync<QuickBooksToken>(query,
@@ -62,14 +56,14 @@ WHEN NOT MATCHED THEN
 
         public async Task DeleteTokenAsync(int tokenId)
         {
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             var query = "DELETE FROM QuickBooksToken WHERE Id = @TokenId";
             await connection.ExecuteAsync(query, new { TokenId = tokenId });
         }
 
         public async Task<IEnumerable<string>> GetRealmIdsByUserIdAsync(int userId)
         {
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             var query = "SELECT DISTINCT RealmId FROM QuickBooksToken WHERE UserId = @UserId";
             var realmIds = await connection.QueryAsync<string>(query, new { UserId = userId });
             return realmIds ?? Enumerable.Empty<string>();
@@ -80,7 +74,7 @@ WHEN NOT MATCHED THEN
             if (token == null)
                 throw new ArgumentNullException(nameof(token));
 
-            using var connection = CreateConnection();
+            using var connection = _connectionFactory.CreateConnection();
             var sql = @"
                 UPDATE QuickBooksToken
                 SET IdToken = @IdToken,

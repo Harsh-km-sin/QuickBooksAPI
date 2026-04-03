@@ -1,14 +1,9 @@
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Repos;
 
 namespace QuickBooksAPI.Services
 {
-    public interface IVendorAnalyticsService
-    {
-        Task<IReadOnlyList<VendorSpendDto>> GetTopVendorsAsync(int userId, string realmId, int periodDays, int limit, CancellationToken cancellationToken = default);
-        Task<VendorSpendSummaryDto> GetSummaryAsync(int userId, string realmId, DateTime from, DateTime to, CancellationToken cancellationToken = default);
-    }
-
     /// <summary>
     /// Exposes vendor spend intelligence from the financial warehouse for CFO analytics.
     /// </summary>

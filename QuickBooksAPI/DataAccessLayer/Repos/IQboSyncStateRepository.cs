@@ -1,4 +1,4 @@
-﻿namespace QuickBooksAPI.DataAccessLayer.Repos
+namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public interface IQboSyncStateRepository
     {

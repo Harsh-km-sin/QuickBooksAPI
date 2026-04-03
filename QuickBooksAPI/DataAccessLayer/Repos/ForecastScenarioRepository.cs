@@ -1,17 +1,17 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class ForecastScenarioRepository : IForecastScenarioRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public ForecastScenarioRepository(string connectionString)
+        public ForecastScenarioRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task<int> InsertAsync(ForecastScenario scenario, CancellationToken cancellationToken = default)
@@ -21,9 +21,9 @@ INSERT INTO dbo.forecast_scenarios (UserId, RealmId, Name, CreatedAtUtc, Created
 VALUES (@UserId, @RealmId, @Name, @CreatedAtUtc, @CreatedBy, @HorizonMonths, @AssumptionsJson, @Status);
 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             var id = await connection.ExecuteScalarAsync<int>(
-                new CommandDefinition(sql, new
+                _connectionFactory.CreateCommand(sql, new
                 {
                     scenario.UserId,
                     scenario.RealmId,
@@ -33,7 +33,7 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
                     scenario.HorizonMonths,
                     scenario.AssumptionsJson,
                     scenario.Status
-                }, cancellationToken: cancellationToken));
+                }, cancellationToken));
             return id;
         }
 
@@ -42,9 +42,9 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
             const string sql = @"
 SELECT Id, UserId, RealmId, Name, CreatedAtUtc, CreatedBy, HorizonMonths, AssumptionsJson, Status
 FROM dbo.forecast_scenarios WHERE Id = @Id;";
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<ForecastScenario>(
-                new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+                _connectionFactory.CreateCommand(sql, new { Id = id }, cancellationToken));
         }
 
         public async Task<ForecastScenario?> GetByIdAndUserRealmAsync(int id, int userId, string realmId, CancellationToken cancellationToken = default)
@@ -52,17 +52,17 @@ FROM dbo.forecast_scenarios WHERE Id = @Id;";
             const string sql = @"
 SELECT Id, UserId, RealmId, Name, CreatedAtUtc, CreatedBy, HorizonMonths, AssumptionsJson, Status
 FROM dbo.forecast_scenarios WHERE Id = @Id AND UserId = @UserId AND RealmId = @RealmId;";
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<ForecastScenario>(
-                new CommandDefinition(sql, new { Id = id, UserId = userId, RealmId = realmId }, cancellationToken: cancellationToken));
+                _connectionFactory.CreateCommand(sql, new { Id = id, UserId = userId, RealmId = realmId }, cancellationToken));
         }
 
         public async Task UpdateStatusAsync(int scenarioId, string status, CancellationToken cancellationToken = default)
         {
             const string sql = "UPDATE dbo.forecast_scenarios SET Status = @Status WHERE Id = @ScenarioId;";
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(
-                new CommandDefinition(sql, new { ScenarioId = scenarioId, Status = status }, cancellationToken: cancellationToken));
+                _connectionFactory.CreateCommand(sql, new { ScenarioId = scenarioId, Status = status }, cancellationToken));
         }
     }
 }

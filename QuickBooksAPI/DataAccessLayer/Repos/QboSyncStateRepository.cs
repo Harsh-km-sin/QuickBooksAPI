@@ -1,21 +1,21 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class QboSyncStateRepository : IQboSyncStateRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public QboSyncStateRepository(string connectionString)
+        public QboSyncStateRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString;
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public IDbConnection CreateOpenConnection()
         {
-            var conn = new SqlConnection(_connectionString);
+            var conn = _connectionFactory.CreateConnection();
             conn.Open();
             return conn;
         }

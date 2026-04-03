@@ -1,17 +1,17 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class KpiSnapshotRepository : IKpiSnapshotRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public KpiSnapshotRepository(string connectionString)
+        public KpiSnapshotRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task UpsertAsync(KpiSnapshot snapshot, CancellationToken cancellationToken = default)
@@ -26,9 +26,9 @@ WHEN NOT MATCHED THEN
     INSERT (UserId, RealmId, SnapshotDate, KpiName, KpiValue, Period, MetadataJson)
     VALUES (@UserId, @RealmId, @SnapshotDate, @KpiName, @KpiValue, @Period, @MetadataJson);";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(
-                new CommandDefinition(sql, new
+                _connectionFactory.CreateCommand(sql, new
                 {
                     snapshot.UserId,
                     snapshot.RealmId,
@@ -37,7 +37,7 @@ WHEN NOT MATCHED THEN
                     snapshot.KpiValue,
                     snapshot.Period,
                     snapshot.MetadataJson
-                }, cancellationToken: cancellationToken));
+                }, cancellationToken));
         }
 
         public async Task<IReadOnlyList<KpiSnapshot>> GetAsync(int userId, string realmId, DateTime from, DateTime to, IReadOnlyList<string>? kpiNames, CancellationToken cancellationToken = default)
@@ -54,10 +54,10 @@ WHERE UserId = @UserId AND RealmId = @RealmId
             }
             sql += " ORDER BY SnapshotDate, KpiName;";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             var parameters = new { UserId = userId, RealmId = realmId, From = from.Date, To = to.Date, KpiNames = kpiNames };
             var rows = await connection.QueryAsync<KpiSnapshot>(
-                new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+                _connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return rows?.ToList() ?? new List<KpiSnapshot>();
         }
     }

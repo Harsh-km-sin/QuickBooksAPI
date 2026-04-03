@@ -1,17 +1,17 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class AnomalyEventRepository : IAnomalyEventRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public AnomalyEventRepository(string connectionString)
+        public AnomalyEventRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task InsertAsync(AnomalyEvent anomaly, CancellationToken cancellationToken = default)
@@ -20,9 +20,9 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
 INSERT INTO dbo.anomaly_events (UserId, RealmId, [Type], Severity, Details, DetectedAt)
 VALUES (@UserId, @RealmId, @Type, @Severity, @Details, @DetectedAt);";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(
-                new CommandDefinition(sql, new
+                _connectionFactory.CreateCommand(sql, new
                 {
                     anomaly.UserId,
                     anomaly.RealmId,
@@ -30,7 +30,7 @@ VALUES (@UserId, @RealmId, @Type, @Severity, @Details, @DetectedAt);";
                     anomaly.Severity,
                     anomaly.Details,
                     anomaly.DetectedAt
-                }, cancellationToken: cancellationToken));
+                }, cancellationToken));
         }
 
         public async Task<IReadOnlyList<AnomalyEvent>> GetByUserAndRealmAsync(int userId, string realmId, DateTime? since, CancellationToken cancellationToken = default)
@@ -43,10 +43,10 @@ WHERE UserId = @UserId AND RealmId = @RealmId";
                 sql += " AND DetectedAt >= @Since";
             sql += " ORDER BY DetectedAt DESC;";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             var parameters = new { UserId = userId, RealmId = realmId, Since = since };
             var rows = await connection.QueryAsync<AnomalyEvent>(
-                new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+                _connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return rows?.ToList() ?? new List<AnomalyEvent>();
         }
     }

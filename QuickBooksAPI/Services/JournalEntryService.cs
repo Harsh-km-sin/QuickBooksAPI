@@ -13,7 +13,7 @@ namespace QuickBooksAPI.Services
 {
     public class JournalEntryService : IJournalEntryService
     {
-        private readonly ICurrentUser _currentUser;
+        private readonly IRequestContext _requestContext;
         private readonly ITokenRepository _tokenRepository;
         private readonly IQuickBooksJournalEntryService _quickBooksJournalEntryService;
         private readonly IJournalEntryRepository _journalEntryRepository;
@@ -21,14 +21,14 @@ namespace QuickBooksAPI.Services
         private readonly IAuthService _authService;
 
         public JournalEntryService(
-            ICurrentUser currentUser,
+            IRequestContext requestContext,
             ITokenRepository tokenRepository,
             IQuickBooksJournalEntryService quickBooksJournalEntryService,
             IJournalEntryRepository journalEntryRepository,
             IQboSyncStateRepository qboSyncStateRepository,
             IAuthService authService)
         {
-            _currentUser = currentUser;
+            _requestContext = requestContext;
             _tokenRepository = tokenRepository;
             _quickBooksJournalEntryService = quickBooksJournalEntryService;
             _journalEntryRepository = journalEntryRepository;
@@ -38,20 +38,20 @@ namespace QuickBooksAPI.Services
 
         //public async Task<ApiResponse<IEnumerable<QBOJournalEntryHeader>>> ListJournalEntriesAsync()
         //{
-        //    if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+        //    if (string.IsNullOrEmpty(_requestContext.UserId) || string.IsNullOrEmpty(_requestContext.RealmId))
         //        return ApiResponse<IEnumerable<QBOJournalEntryHeader>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
 
-        //    var realmId = _currentUser.RealmId;
+        //    var realmId = _requestContext.RealmId;
         //    var entries = await _journalEntryRepository.GetAllByRealmAsync(realmId);
         //    return ApiResponse<IEnumerable<QBOJournalEntryHeader>>.Ok(entries);
         //}
 
         public async Task<ApiResponse<PagedResult<QBOJournalEntryHeader>>> ListJournalEntriesAsync(ListQueryParams query)
         {
-            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+            if (string.IsNullOrEmpty(_requestContext.UserId) || string.IsNullOrEmpty(_requestContext.RealmId))
                 return ApiResponse<PagedResult<QBOJournalEntryHeader>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
 
-            var realmId = _currentUser.RealmId;
+            var realmId = _requestContext.RealmId;
             var page = query.GetPage();
             var pageSize = query.GetPageSize();
             var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
@@ -63,8 +63,8 @@ namespace QuickBooksAPI.Services
         {
             try
             {
-                var userId = int.Parse(_currentUser.UserId);
-                var realmId = _currentUser.RealmId;
+                var userId = int.Parse(_requestContext.UserId);
+                var realmId = _requestContext.RealmId;
 
                 // Check and refresh token if expired
                 var token = await _authService.RefreshTokenIfExpiredAsync(userId, realmId);
@@ -97,7 +97,7 @@ namespace QuickBooksAPI.Services
                 {
                     var journalEntriesJson = await _quickBooksJournalEntryService.GetJournalEntryAsync(token.AccessToken, realmId, startPosition, PageSize, lastUpdatedAfter);
                     var journalEntryResponse = JsonSerializer.Deserialize<QuickBooksJournalEntryResponse>(journalEntriesJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-          
+
                     var journalEntries = journalEntryResponse?.QueryResponse?.JournalEntry;
                     if (journalEntries == null || journalEntries.Count == 0)
                     {
@@ -166,7 +166,7 @@ namespace QuickBooksAPI.Services
                     {
                         timeToStore = nowUtc;
                     }
-                    
+
                     // We synced records, use the max LastUpdatedTime from those records (already UTC)
                     await _qboSyncStateRepository.UpdateLastUpdatedAfterAsync(
                         userId,
@@ -241,7 +241,7 @@ namespace QuickBooksAPI.Services
                     })
             };
         }
-        public static IEnumerable<QBOJournalEntryLine> MapToLines(JournalEntry je,long journalEntryId)
+        public static IEnumerable<QBOJournalEntryLine> MapToLines(JournalEntry je, long journalEntryId)
         {
             if (je?.Line == null || je.Line.Count == 0)
                 yield break;

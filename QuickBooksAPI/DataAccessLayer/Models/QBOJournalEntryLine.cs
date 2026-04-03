@@ -1,4 +1,4 @@
-﻿namespace QuickBooksAPI.DataAccessLayer.Models
+namespace QuickBooksAPI.DataAccessLayer.Models
 {
     public class QBOJournalEntryLine
     {

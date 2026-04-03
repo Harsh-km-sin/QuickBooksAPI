@@ -1,18 +1,8 @@
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Repos;
 
 namespace QuickBooksAPI.Services
 {
-    public record CashRunwayResult(
-        decimal CurrentCash,
-        decimal MonthlyBurn,
-        decimal ExpectedRevenue,
-        decimal RunwayMonths);
-
-    public interface ICashRunwayService
-    {
-        Task<CashRunwayResult> GetRunwayAsync(int userId, string realmId, CancellationToken cancellationToken = default);
-    }
-
     /// <summary>
     /// Computes a simple, explainable cash runway using chart of accounts and
     /// warehouse facts. This is intentionally conservative and transparent.

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
+using QuickBooksShared.Options;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace QuickBooksAPI.Controllers
@@ -12,12 +14,14 @@ namespace QuickBooksAPI.Controllers
     [Authorize]
     public class AuthController : ControllerBase
     {
-        private readonly IConfiguration _config;
         private readonly IAuthService _authServices;
+        private readonly QuickBooksOptions _quickBooksOptions;
 
-        public AuthController(IConfiguration config, IAuthService authServices)
+        public AuthController(
+            IOptions<QuickBooksOptions> quickBooksOptions,
+            IAuthService authServices)
         {
-            _config = config;
+            _quickBooksOptions = quickBooksOptions?.Value ?? throw new ArgumentNullException(nameof(quickBooksOptions));
             _authServices = authServices;
         }
 
@@ -45,13 +49,13 @@ namespace QuickBooksAPI.Controllers
             // 1. Audit logging (who logged out when)
             // 2. Future token blacklist support if needed
             // 3. Best practice client-server logout handshake
-            
+
             var userIdClaim = User.FindFirst("UserId")?.Value;
             var userName = User.FindFirst("Name")?.Value ?? "Unknown";
-            
+
             // Log the logout event (optional: add to audit log table)
             // _logger.LogInformation("User {UserId} ({UserName}) logged out.", userIdClaim, userName);
-            
+
             return Ok(ApiResponse<string>.Ok("Logged out successfully.", "Logout complete."));
         }
 
@@ -84,7 +88,7 @@ namespace QuickBooksAPI.Controllers
         public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state, [FromQuery] string realmId)
         {
             var response = await _authServices.HandleCallbackAsync(code, state, realmId);
-            var frontendBase = _config["QuickBooks:FrontendBaseUrl"]?.TrimEnd('/');
+            var frontendBase = _quickBooksOptions.FrontendBaseUrl?.TrimEnd('/');
             if (!string.IsNullOrEmpty(frontendBase))
             {
                 if (response.Success)

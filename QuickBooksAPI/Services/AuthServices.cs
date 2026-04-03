@@ -1,450 +1,55 @@
-using Microsoft.IdentityModel.Tokens;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
-using QuickBooksService.Services;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Net.Mail;
+using QuickBooksAPI.Services.Auth;
 
-namespace QuickBooksAPI.Services
+namespace QuickBooksAPI.Services;
+
+/// <summary>Compatibility façade over focused auth/QBO services (Phase 3 decomposition).</summary>
+public class AuthServices : IAuthService
 {
-    public class AuthServices : IAuthService
+    private readonly IUserRegistrationService _registration;
+    private readonly IUserLoginService _login;
+    private readonly IQboConnectionService _qboConnection;
+    private readonly IQboTokenLifecycleService _qboTokenLifecycle;
+    private readonly IConnectedCompanyQueryService _connectedCompanies;
+
+    public AuthServices(
+        IUserRegistrationService registration,
+        IUserLoginService login,
+        IQboConnectionService qboConnection,
+        IQboTokenLifecycleService qboTokenLifecycle,
+        IConnectedCompanyQueryService connectedCompanies)
     {
-        private readonly IQuickBooksAuthService _quickBooksAuthService;
-        private readonly ITokenRepository _tokenRepo;
-        private readonly IAppUserRepository _userRepo;
-        private readonly ICompanyRepository _companyRepository;
-        private readonly IConfiguration _config;
-        private readonly ILogger<AuthServices> _logger;
-
-
-        private static readonly Regex NameRegex = new(@"^[A-Za-z]+$", RegexOptions.Compiled);
-        private static readonly Regex UsernameRegex = new(@"^[a-zA-Z0-9._]+$", RegexOptions.Compiled);
-        private static readonly Regex PasswordRegex = new(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,100}$", RegexOptions.Compiled);
-
-
-        public AuthServices(
-            IQuickBooksAuthService quickBooksAuthService,
-            ITokenRepository tokenRepo,
-            IConfiguration config,
-            IAppUserRepository userRepo,
-            ICompanyRepository companyRepository,
-            ILogger<AuthServices> logger)
-        {
-            _quickBooksAuthService = quickBooksAuthService;
-            _tokenRepo = tokenRepo;
-            _config = config;
-            _userRepo = userRepo;
-            _companyRepository = companyRepository;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
-
-        public async Task<string> GenerateOAuthUrlAsync(int userId)
-        {
-            var userExists = await _userRepo.UserExistsAsync(userId);
-            if (!userExists)
-                throw new ArgumentException("Invalid user ID.");
-
-            var clientId = _config["QuickBooks:ClientId"];
-            var redirectUri = _config["QuickBooks:RedirectUri"];
-            var scope = _config["QuickBooks:Scopes"];
-            var url = _config["QuickBooks:AuthUrl"];
-            var state = $"{userId}_{Guid.NewGuid():N}";
-
-            var authUrl = $"{url}" +
-                          $"?client_id={clientId}" +
-                          $"&redirect_uri={redirectUri}" +
-                          $"&response_type=code" +
-                          $"&scope={scope}" +
-                          $"&state={state}";
-
-            return authUrl;
-        }
-        public async Task<ApiResponse<int>> RegisterUserAsync(UserSignUpRequest request)
-        {
-            try
-            {
-                // 1. Sanitize Inputs
-                request.FirstName = request.FirstName?.Trim();
-                request.LastName = request.LastName?.Trim();
-                request.Username = request.Username?.Trim();
-                request.Email = request.Email?.Trim();
-
-                // 2. Validate Required Fields & Lengths
-                if (string.IsNullOrWhiteSpace(request.FirstName))
-                    return ApiResponse<int>.Fail("First Name is required.");
-
-                if (request.FirstName.Length > 50)
-                    return ApiResponse<int>.Fail("First Name cannot exceed 50 characters.");
-
-                if(!NameRegex.IsMatch(request.FirstName))
-                    return ApiResponse<int>.Fail("First Name can only contain letters.");
-
-                if (string.IsNullOrWhiteSpace(request.LastName))
-                    return ApiResponse<int>.Fail("Last Name is required.");
-
-                if (request.LastName.Length > 50)
-                    return ApiResponse<int>.Fail("Last Name cannot exceed 50 characters.");
-
-                if (!NameRegex.IsMatch(request.LastName))
-                    return ApiResponse<int>.Fail("Last Name can only contain letters.");
-
-                if (string.IsNullOrWhiteSpace(request.Username))
-                    return ApiResponse<int>.Fail("Username is required.");
-
-                if (request.Username.Length < 3 || request.Username.Length > 30)
-                    return ApiResponse<int>.Fail("Username must be between 3 and 30 characters.");
-
-                if (!UsernameRegex.IsMatch(request.Username))
-                    return ApiResponse<int>.Fail("Username can only contain letters, numbers, dots, and underscores.");
-
-                if (string.IsNullOrWhiteSpace(request.Email))
-                    return ApiResponse<int>.Fail("Email is required.");
-
-                if (!IsValidEmail(request.Email))
-                    return ApiResponse<int>.Fail("Please enter a valid email address.");
-
-                if (string.IsNullOrWhiteSpace(request.Password))
-                    return ApiResponse<int>.Fail("Password is required.");
-
-                // 3. Password Complexity Check
-                var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,100}$");
-                if (!passwordRegex.IsMatch(request.Password))
-                {
-                    return ApiResponse<int>.Fail(
-                        "Registration failed.",
-                        new[] { "Password must be 8-100 characters and include at least 1 uppercase, 1 lowercase, 1 number, and 1 special character." }
-                    );
-                }
-
-                // 4. Check for Uniqueness (Production grade: check before attempt)
-                var existingUserByEmail = await _userRepo.GetByEmailAsync(request.Email);
-                if (existingUserByEmail != null)
-                    return ApiResponse<int>.Fail("An account with this email already exists.");
-
-                var existingUserByUsername = await _userRepo.GetByUsernameAsync(request.Username);
-                if (existingUserByUsername != null)
-                    return ApiResponse<int>.Fail("This username is already taken.");
-
-                // 5. Hash Password & Save
-                var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-                
-                var user = new AppUser
-                {
-                    FirstName = request.FirstName,
-                    LastName = request.LastName,
-                    Username = request.Username,
-                    Email = request.Email,
-                    Password = passwordHash,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                var userId = await _userRepo.RegisterUserAsync(user);
-
-                if (userId > 0)
-                {
-                    return ApiResponse<int>.Ok(userId, "User registered successfully.");
-                }
-                
-                return ApiResponse<int>.Fail("Registration failed.", new[] { "Unable to create user account. Please try again." });
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<int>.Fail("Registration failed.", new[] { ex.Message });
-            }
-        }
-        public async Task<ApiResponse<string>> LoginUserAsync(UserLoginRequest request)
-        {
-            try
-            {
-                var user = await _userRepo.GetByEmailAsync(request.Email);
-                if (user == null)
-                {
-                    return ApiResponse<string>.Fail("Login failed.", new[] { "User not found with the provided email address." });
-                }
-
-                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
-                if (!isPasswordValid)
-                {
-                    return ApiResponse<string>.Fail("Login failed.", new[] { "Invalid password provided." });
-                }
-
-                var token = await GenerateJwtTokenAsync(user);
-                return ApiResponse<string>.Ok(token, "Login successful.");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<string>.Fail("Login failed.", new[] { ex.Message });
-            }
-        }
-        private async Task<string> GenerateJwtTokenAsync(AppUser user)
-        {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            // Get all realmIds for the user
-            var realmIds = await _tokenRepo.GetRealmIdsByUserIdAsync(user.Id);
-            var realmIdsJson = JsonSerializer.Serialize(realmIds);
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim("UserId", user.Id.ToString()),
-                new Claim("UserName", user.Username ?? string.Empty),
-                new Claim("Name", user.FirstName ?? string.Empty),
-                new Claim("RealmIds", realmIdsJson),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
-
-            var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                audience: _config["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(2), 
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-        public async Task<ApiResponse<QuickBooksToken>> HandleCallbackAsync(string code, string state, string realmId)
-        {
-            try
-            {
-                var stateParts = state?.Split('_');
-                if (stateParts == null || stateParts.Length != 2)
-                    return ApiResponse<QuickBooksToken>.Fail("QuickBooks authentication failed.", new[] { "Invalid state parameter received from QuickBooks." });
-
-                if (!int.TryParse(stateParts[0], out var userId))
-                    return ApiResponse<QuickBooksToken>.Fail("QuickBooks authentication failed.", new[] { "Invalid user ID in state parameter." });
-
-                var userExists = await _userRepo.UserExistsAsync(userId);
-                if (!userExists)
-                    return ApiResponse<QuickBooksToken>.Fail("QuickBooks authentication failed.", new[] { $"User with ID {userId} does not exist." });
-
-                var existingToken = await _tokenRepo.GetTokenByUserAndRealmAsync(userId, realmId);
-                if (existingToken != null)
-                {
-                    await _tokenRepo.DeleteTokenAsync(existingToken.Id);
-                }
-                var tokenJson = await _quickBooksAuthService.HandleCallbackAsync(code, realmId);
-                var tokenDto = JsonSerializer.Deserialize<TokenResponseDto>(tokenJson);
-
-                if (tokenDto == null)
-                    return ApiResponse<QuickBooksToken>.Fail("QuickBooks authentication failed.", new[] { "Failed to retrieve authentication tokens from QuickBooks." });
-
-                var token = new QuickBooksToken
-                {
-                    UserId = userId,
-                    RealmId = realmId,
-                    IdToken = tokenDto.IdToken ?? string.Empty,
-                    AccessToken = tokenDto.AccessToken ?? string.Empty,
-                    RefreshToken = tokenDto.RefreshToken ?? string.Empty,
-                    TokenType = tokenDto.TokenType ?? "bearer",
-                    ExpiresIn = tokenDto.ExpiresIn,
-                    XRefreshTokenExpiresIn = tokenDto.XRefreshTokenExpiresIn,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                await _tokenRepo.SaveTokenAsync(token);
-
-                // Persist into Companies table as well
-                string? companyName = null;
-                try
-                {
-                    var companyInfoJson = await _quickBooksAuthService.GetCompanyInfoAsync(token.AccessToken, realmId);
-                    var companyInfo = JsonSerializer.Deserialize<QuickBooksCompanyInfoResponse>(companyInfoJson);
-                    companyName = companyInfo?.CompanyInfo?.CompanyName ?? companyInfo?.CompanyInfo?.LegalName;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to fetch QuickBooks CompanyInfo for UserId={UserId}, RealmId={RealmId}", userId, realmId);
-                }
-
-                var company = new Company
-                {
-                    UserId = userId,
-                    QboRealmId = realmId,
-                    CompanyName = companyName,
-                    QboAccessToken = token.AccessToken,
-                    QboRefreshToken = token.RefreshToken,
-                    TokenExpiryUtc = token.CreatedAt.AddSeconds(token.ExpiresIn),
-                    IsQboConnected = true,
-                    ConnectedAtUtc = token.CreatedAt,
-                    DisconnectedAtUtc = null
-                };
-
-                await _companyRepository.UpsertCompanyAsync(company);
-
-                return ApiResponse<QuickBooksToken>.Ok(token, "QuickBooks token saved successfully.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "QuickBooks authentication failed during callback.");
-                return ApiResponse<QuickBooksToken>.Fail("QuickBooks authentication failed. Please try again or reconnect your account.");
-            }
-        }
-
-        /// <summary>
-        /// Checks if the QuickBooks access token has expired.
-        /// Token is expired if CreatedAt + ExpiresIn (in seconds) is less than current UTC time.
-        /// </summary>
-        public async Task<bool> IsTokenExpiredAsync(QuickBooksToken? token)
-        {
-            if (token == null)
-                return true; // Treat null token as expired
-
-            // Calculate expiration time: CreatedAt + ExpiresIn seconds
-            var expirationTime = token.CreatedAt.AddSeconds(token.ExpiresIn);
-            
-            // Add a 1-minute buffer to refresh tokens slightly before they actually expire
-            var bufferTime = expirationTime.AddMinutes(-1);
-            
-            return DateTime.UtcNow >= bufferTime;
-        }
-
-        /// <summary>
-        /// Checks if token is expired, and if so, refreshes it using the refresh token.
-        /// Returns the updated token (or original if not expired).
-        /// Returns null if refresh fails.
-        /// </summary>
-        public async Task<QuickBooksToken?> RefreshTokenIfExpiredAsync(int userId, string realmId)
-        {
-            try
-            {
-                // Get the current token
-                var token = await _tokenRepo.GetTokenByUserAndRealmAsync(userId, realmId);
-                if (token == null)
-                    return null; // No token found
-
-                // Check if token is expired
-                if (!await IsTokenExpiredAsync(token))
-                    return token; // Token is still valid, return as-is
-
-                // Token is expired, refresh it
-                var refreshResponseJson = await _quickBooksAuthService.RefreshTokenAsync(token.RefreshToken);
-                var refreshResponse = JsonSerializer.Deserialize<TokenResponseDto>(refreshResponseJson);
-
-                if (refreshResponse == null)
-                    return null; // Failed to parse refresh response
-
-                // Update the token with new values
-                token.IdToken = refreshResponse.IdToken ?? token.IdToken;
-                token.AccessToken = refreshResponse.AccessToken ?? token.AccessToken;
-                token.RefreshToken = refreshResponse.RefreshToken ?? token.RefreshToken; // QBO may return new refresh token
-                token.TokenType = refreshResponse.TokenType ?? token.TokenType;
-                token.ExpiresIn = refreshResponse.ExpiresIn;
-                token.XRefreshTokenExpiresIn = refreshResponse.XRefreshTokenExpiresIn;
-                token.CreatedAt = DateTime.UtcNow; // Reset CreatedAt to current time
-                token.UpdatedAt = DateTime.UtcNow;
-
-                // Update token in database
-                await _tokenRepo.UpdateTokenAsync(token);
-
-                // Mirror into Companies table
-                var company = new Company
-                {
-                    UserId = userId,
-                    QboRealmId = realmId,
-                    CompanyName = null, // keep existing name
-                    QboAccessToken = token.AccessToken,
-                    QboRefreshToken = token.RefreshToken,
-                    TokenExpiryUtc = token.CreatedAt.AddSeconds(token.ExpiresIn),
-                    IsQboConnected = true,
-                    ConnectedAtUtc = token.CreatedAt,
-                    DisconnectedAtUtc = null
-                };
-
-                await _companyRepository.UpsertCompanyAsync(company);
-
-                return token;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Token refresh failed. UserId={UserId}, RealmId={RealmId}", userId, realmId);
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Revokes the QuickBooks refresh token at Intuit and removes the token from the database for the given user and realm.
-        /// </summary>
-        public async Task<ApiResponse<string>> DisconnectQboAsync(int userId, string realmId)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(realmId))
-                    return ApiResponse<string>.Fail("Realm ID is required to disconnect.");
-
-                var token = await _tokenRepo.GetTokenByUserAndRealmAsync(userId, realmId);
-                if (token == null)
-                    return ApiResponse<string>.Fail("No QuickBooks connection found for this company.");
-
-                var revoked = await _quickBooksAuthService.DisconnectQboAsync(token.RefreshToken);
-                if (!revoked)
-                {
-                    _logger.LogWarning("Intuit revoke failed for UserId={UserId}, RealmId={RealmId}. Clearing local token anyway.", userId, realmId);
-                    // Still clear local token so user can reconnect
-                }
-
-                await _tokenRepo.DeleteTokenAsync(token.Id);
-                await _companyRepository.ClearCompanyTokenAsync(userId, realmId);
-
-                return ApiResponse<string>.Ok("QuickBooks company disconnected successfully.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Disconnect QBO failed. UserId={UserId}, RealmId={RealmId}", userId, realmId);
-                return ApiResponse<string>.Fail("Failed to disconnect QuickBooks.", new[] { ex.Message });
-            }
-        }
-
-        public async Task<ApiResponse<IEnumerable<ConnectedCompanyDto>>> GetConnectedCompaniesAsync(int userId)
-        {
-            try
-            {
-                var companies = await _companyRepository.GetConnectedCompaniesByUserIdAsync(userId);
-                var result = companies.Select(c => new ConnectedCompanyDto
-                {
-                    Id = c.Id,
-                    QboRealmId = c.QboRealmId,
-                    CompanyName = c.CompanyName,
-                    ConnectedAtUtc = c.ConnectedAtUtc,
-                    IsQboConnected = c.IsQboConnected
-                });
-
-                return ApiResponse<IEnumerable<ConnectedCompanyDto>>.Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch connected companies for UserId={UserId}", userId);
-                return ApiResponse<IEnumerable<ConnectedCompanyDto>>.Fail("Failed to fetch connected companies.", new[] { ex.Message });
-            }
-        }
-
-        private static bool IsValidEmail(string email)
-        {
-            if (string.IsNullOrWhiteSpace(email))
-                return false;
-
-            try
-            {
-                var addr = new MailAddress(email);
-                return addr.Address == email;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        _registration = registration;
+        _login = login;
+        _qboConnection = qboConnection;
+        _qboTokenLifecycle = qboTokenLifecycle;
+        _connectedCompanies = connectedCompanies;
     }
+
+    public Task<ApiResponse<int>> RegisterUserAsync(UserSignUpRequest request) =>
+        _registration.RegisterUserAsync(request);
+
+    public Task<ApiResponse<string>> LoginUserAsync(UserLoginRequest request) =>
+        _login.LoginUserAsync(request);
+
+    public Task<string> GenerateOAuthUrlAsync(int userId) =>
+        _qboConnection.GenerateOAuthUrlAsync(userId);
+
+    public Task<ApiResponse<QuickBooksToken>> HandleCallbackAsync(string code, string state, string realmId) =>
+        _qboConnection.HandleCallbackAsync(code, state, realmId);
+
+    public Task<bool> IsTokenExpiredAsync(QuickBooksToken? token) =>
+        _qboTokenLifecycle.IsTokenExpiredAsync(token);
+
+    public Task<QuickBooksToken?> RefreshTokenIfExpiredAsync(int userId, string realmId) =>
+        _qboTokenLifecycle.RefreshTokenIfExpiredAsync(userId, realmId);
+
+    public Task<ApiResponse<string>> DisconnectQboAsync(int userId, string realmId) =>
+        _qboConnection.DisconnectQboAsync(userId, realmId);
+
+    public Task<ApiResponse<IEnumerable<ConnectedCompanyDto>>> GetConnectedCompaniesAsync(int userId) =>
+        _connectedCompanies.GetConnectedCompaniesAsync(userId);
 }
-    

@@ -1,6 +1,6 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
@@ -87,17 +87,14 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
     /// </summary>
     public class FinancialWarehouseRepository : IFinancialWarehouseRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public FinancialWarehouseRepository(string connectionString)
+        public FinancialWarehouseRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString;
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
-        private IDbConnection CreateConnection()
-        {
-            return new SqlConnection(_connectionString);
-        }
+        private IDbConnection CreateConnection() => _connectionFactory.CreateConnection();
 
         public async Task RebuildFactsAsync(int userId, string realmId, CancellationToken cancellationToken = default)
         {
@@ -109,100 +106,9 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             parameters.Add("@UserId", userId);
             parameters.Add("@RealmId", realmId);
 
-            // NOTE: These statements rely on the warehouse tables and raw QBO tables
-            // following the naming conventions already in the database.
-            // They intentionally avoid complex joins and CTEs to keep things readable.
+            var sql = FinancialWarehouseRebuildFactsSql.Build();
 
-            var sql = @"
-DELETE FROM FactCustomerProfitability WHERE UserId = @UserId AND RealmId = @RealmId;
-DELETE FROM FactVendorSpend WHERE UserId = @UserId AND RealmId = @RealmId;
-DELETE FROM FactExpenses WHERE UserId = @UserId AND RealmId = @RealmId;
-DELETE FROM FactRevenue WHERE UserId = @UserId AND RealmId = @RealmId;
-DELETE FROM DimCustomer WHERE UserId = @UserId AND RealmId = @RealmId;
-DELETE FROM DimVendor WHERE UserId = @UserId AND RealmId = @RealmId;
-DELETE FROM DimAccount WHERE UserId = @UserId AND RealmId = @RealmId;
-
--- Dimensions
-INSERT INTO DimCustomer (UserId, RealmId, CustomerQboId, CustomerName)
-SELECT DISTINCT @UserId, @RealmId, QboId, COALESCE(DisplayName, CompanyName, GivenName + ' ' + FamilyName)
-FROM Customer
-WHERE UserId = @UserId AND RealmId = @RealmId;
-
-INSERT INTO DimVendor (UserId, RealmId, VendorQboId, VendorName)
-SELECT DISTINCT @UserId, @RealmId, QboId, COALESCE(DisplayName, CompanyName)
-FROM Vendor
-WHERE UserId = @UserId AND RealmId = @RealmId AND (DeletedAt IS NULL);
-
-INSERT INTO DimAccount (UserId, RealmId, AccountQboId, AccountName, AccountType, Classification)
-SELECT DISTINCT @UserId, @RealmId, QboId, Name, AccountType, Classification
-FROM ChartOfAccounts
-WHERE UserId = @UserId AND RealmId = @RealmId;
-
--- Revenue facts from invoice headers (one row per invoice)
-INSERT INTO FactRevenue (UserId, RealmId, Date, CustomerDimId, AccountDimId, InvoiceQboId, Amount, TaxAmount, NetAmount)
-SELECT
-    @UserId AS UserId,
-    @RealmId AS RealmId,
-    CAST(h.TxnDate AS date) AS [Date],
-    dc.Id AS CustomerDimId,
-    NULL AS AccountDimId,
-    h.QBOInvoiceId,
-    h.TotalAmt AS Amount,
-    0 AS TaxAmount,
-    h.TotalAmt AS NetAmount
-FROM QBOInvoiceHeader h
-LEFT JOIN DimCustomer dc
-    ON dc.UserId = @UserId AND dc.RealmId = @RealmId AND dc.CustomerQboId = h.CustomerRefId
-WHERE h.RealmId = @RealmId;
-
--- Expense facts from bill headers (one row per bill)
-INSERT INTO FactExpenses (UserId, RealmId, Date, VendorDimId, AccountDimId, BillQboId, Amount, TaxAmount, NetAmount)
-SELECT
-    @UserId AS UserId,
-    @RealmId AS RealmId,
-    CAST(h.TxnDate AS date) AS [Date],
-    dv.Id AS VendorDimId,
-    NULL AS AccountDimId,
-    h.QBOBillId,
-    h.TotalAmt AS Amount,
-    0 AS TaxAmount,
-    h.TotalAmt AS NetAmount
-FROM QBOBillHeader h
-LEFT JOIN DimVendor dv
-    ON dv.UserId = @UserId AND dv.RealmId = @RealmId AND dv.VendorQboId = h.VendorRefValue
-WHERE h.RealmId = @RealmId AND (h.IsDeleted = 0 OR h.IsDeleted IS NULL);
-
--- Vendor spend by month
-INSERT INTO FactVendorSpend (UserId, RealmId, VendorDimId, PeriodStart, PeriodEnd, TotalSpend, BillCount, LastBillDate)
-SELECT
-    @UserId AS UserId,
-    @RealmId AS RealmId,
-    fe.VendorDimId,
-    DATEFROMPARTS(YEAR(fe.Date), MONTH(fe.Date), 1) AS PeriodStart,
-    EOMONTH(fe.Date) AS PeriodEnd,
-    SUM(fe.NetAmount) AS TotalSpend,
-    COUNT(DISTINCT fe.BillQboId) AS BillCount,
-    MAX(fe.Date) AS LastBillDate
-FROM FactExpenses fe
-WHERE fe.UserId = @UserId AND fe.RealmId = @RealmId AND fe.VendorDimId IS NOT NULL
-GROUP BY fe.VendorDimId, YEAR(fe.Date), MONTH(fe.Date);
-
--- Customer profitability by month (revenue minus a simple proportional COGS proxy)
-INSERT INTO FactCustomerProfitability (UserId, RealmId, CustomerDimId, PeriodStart, PeriodEnd, Revenue, CostOfGoods)
-SELECT
-    @UserId AS UserId,
-    @RealmId AS RealmId,
-    fr.CustomerDimId,
-    DATEFROMPARTS(YEAR(fr.Date), MONTH(fr.Date), 1) AS PeriodStart,
-    EOMONTH(fr.Date) AS PeriodEnd,
-    SUM(fr.NetAmount) AS Revenue,
-    SUM(fr.NetAmount) * 0.4 AS CostOfGoods -- simple 40% COGS assumption for now
-FROM FactRevenue fr
-WHERE fr.UserId = @UserId AND fr.RealmId = @RealmId AND fr.CustomerDimId IS NOT NULL
-GROUP BY fr.CustomerDimId, YEAR(fr.Date), MONTH(fr.Date);
-";
-
-            await connection.ExecuteAsync(sql, parameters);
+            await connection.ExecuteAsync(_connectionFactory.CreateCommand(sql, parameters, cancellationToken));
         }
 
         public async Task<IReadOnlyList<VendorSpendTopRow>> GetVendorSpendTopAsync(int userId, string realmId, int periodDays, int limit, CancellationToken cancellationToken = default)
@@ -228,7 +134,7 @@ GROUP BY dv.Id, dv.VendorName
 ORDER BY SUM(fvs.TotalSpend) DESC
 OFFSET 0 ROWS FETCH NEXT @Limit ROWS ONLY;
 ";
-            var rows = await connection.QueryAsync<VendorSpendTopRow>(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+            var rows = await connection.QueryAsync<VendorSpendTopRow>(_connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return rows?.ToList() ?? new List<VendorSpendTopRow>();
         }
 
@@ -249,7 +155,7 @@ FROM FactVendorSpend fvs
 WHERE fvs.UserId = @UserId AND fvs.RealmId = @RealmId
   AND fvs.PeriodStart <= @To AND fvs.PeriodEnd >= @From;
 ";
-            var row = await connection.QuerySingleOrDefaultAsync<VendorSpendSummaryRow>(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+            var row = await connection.QuerySingleOrDefaultAsync<VendorSpendSummaryRow>(_connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return row ?? new VendorSpendSummaryRow();
         }
 
@@ -277,7 +183,7 @@ GROUP BY dc.Id, dc.CustomerName
 ORDER BY (SUM(fcp.Revenue) - SUM(fcp.CostOfGoods)) DESC
 OFFSET 0 ROWS FETCH NEXT @Top ROWS ONLY;
 ";
-            var rows = await connection.QueryAsync<CustomerProfitabilityRow>(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+            var rows = await connection.QueryAsync<CustomerProfitabilityRow>(_connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return rows?.ToList() ?? new List<CustomerProfitabilityRow>();
         }
 
@@ -308,7 +214,7 @@ WHERE fe.UserId = @UserId AND fe.RealmId = @RealmId
 GROUP BY YEAR(fe.Date), MONTH(fe.Date)
 ORDER BY MonthStart;
 ";
-            var raw = await connection.QueryAsync<RevenueExpensesMonthlyRow>(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+            var raw = await connection.QueryAsync<RevenueExpensesMonthlyRow>(_connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             // Collapse by month (we have separate rows for revenue and expenses)
             var byMonth = (raw ?? Enumerable.Empty<RevenueExpensesMonthlyRow>())
                 .GroupBy(r => r.MonthStart)
@@ -341,7 +247,7 @@ WHERE fvs.UserId = @UserId AND fvs.RealmId = @RealmId
 GROUP BY dv.VendorName, fvs.PeriodStart
 ORDER BY dv.VendorName, fvs.PeriodStart;
 ";
-            var rows = await connection.QueryAsync<VendorSpendByMonthRow>(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+            var rows = await connection.QueryAsync<VendorSpendByMonthRow>(_connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return rows?.ToList() ?? new List<VendorSpendByMonthRow>();
         }
 
@@ -357,7 +263,7 @@ SELECT ISNULL(AVG(fe.NetAmount), 0) AS AvgAmount, ISNULL(MAX(fe.NetAmount), 0) A
 FROM FactExpenses fe
 WHERE fe.UserId = @UserId AND fe.RealmId = @RealmId;
 ";
-            var row = await connection.QuerySingleOrDefaultAsync<ExpenseRevenueStatsRow>(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+            var row = await connection.QuerySingleOrDefaultAsync<ExpenseRevenueStatsRow>(_connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return row ?? new ExpenseRevenueStatsRow();
         }
 
@@ -373,7 +279,7 @@ SELECT ISNULL(AVG(fr.NetAmount), 0) AS AvgAmount, ISNULL(MAX(fr.NetAmount), 0) A
 FROM FactRevenue fr
 WHERE fr.UserId = @UserId AND fr.RealmId = @RealmId;
 ";
-            var row = await connection.QuerySingleOrDefaultAsync<ExpenseRevenueStatsRow>(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+            var row = await connection.QuerySingleOrDefaultAsync<ExpenseRevenueStatsRow>(_connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return row ?? new ExpenseRevenueStatsRow();
         }
     }

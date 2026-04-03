@@ -1,15 +1,14 @@
-using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Repos;
 using QuickBooksAPI.Infrastructure;
 using QuickBooksAPI.Infrastructure.Identity;
-using QuickBooksAPI.Infrastructure.Queue;
 using QuickBooksAPI.Middleware;
 using QuickBooksAPI.Services;
 using QuickBooksService.Services;
+using QuickBooksShared.Options;
+using QuickBooksShared;
 using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
@@ -18,76 +17,29 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddScoped<CurrentUser>();
-builder.Services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUser>());
-builder.Services.AddScoped<IAuthService, AuthServices>();
-builder.Services.AddScoped<IQuickBooksAuthService, QuickBooksAuthService>();
-builder.Services.AddScoped<IChartOfAccountsService, ChartOfAccountsServices>();
-builder.Services.AddScoped<IQuickBooksChartOfAccountsService, QuickBooksChartOfAccountsService>();
-builder.Services.AddScoped<IProductService, ProductServices>();
-builder.Services.AddScoped<IQuickBooksProductService, QuickBooksProductService>();
-builder.Services.AddScoped<IQuickBooksCustomerService, QuickBooksCustomerService>();
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-builder.Services.AddScoped<IQuickBooksJournalEntryService, QuickBooksJournalEntryService>();
-builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
-builder.Services.AddScoped<IQuickBooksInvoiceService, QuickBooksInvoiceService>();
-builder.Services.AddScoped<IInvoiceService, InvoiceService>();
-builder.Services.AddScoped<IQuickBooksVendorService, QuickBooksVendorService>();
-builder.Services.AddScoped<IVendorService, VendorService>();
-builder.Services.AddScoped<IQuickBooksBillService, QuickBooksBillService>();
-builder.Services.AddScoped<IBillService, BillService>();
-builder.Services.AddScoped<IFinancialWarehouseService, FinancialWarehouseService>();
-builder.Services.AddScoped<ICashRunwayService, CashRunwayService>();
-builder.Services.AddScoped<IVendorAnalyticsService, VendorAnalyticsService>();
-builder.Services.AddScoped<ICustomerProfitabilityService, CustomerProfitabilityService>();
-builder.Services.AddScoped<IRevenueExpensesService, RevenueExpensesService>();
-builder.Services.AddScoped<IAnomalyDetectionService, AnomalyDetectionService>();
-builder.Services.AddScoped<IKpiService, KpiService>();
-builder.Services.AddScoped<IForecastService, ForecastService>();
-builder.Services.AddScoped<ICfoAssistantService, CfoAssistantService>();
-builder.Services.AddScoped<ICloseIssueService, CloseIssueService>();
+builder.Services.AddScoped<RequestContext>();
+builder.Services.AddScoped<IRequestContext>(sp => sp.GetRequiredService<RequestContext>());
+builder.Services.AddQuickBooksAuthAndEntityApplicationServices();
+builder.Services.AddQuickBooksAnalyticsApplicationServices();
 
-// Warehouse repository (used by sync worker and by analytics read APIs)
-builder.Services.AddSingleton<IFinancialWarehouseRepository>(sp =>
-{
-    var configuration = sp.GetRequiredService<IConfiguration>();
-    var connectionString = configuration.GetConnectionString("DefaultConnection")
-        ?? configuration["ConnectionStrings:DefaultConnection"]
-        ?? throw new InvalidOperationException("DefaultConnection is missing.");
-    return new FinancialWarehouseRepository(connectionString);
-});
+// Typed options (Phase 1) - shared binding to prevent host drift
+builder.Services.AddQuickBooksTypedOptions(builder.Configuration, validateOnStart: true);
 
-// Service Bus + Sync
-var serviceBusConnectionString = builder.Configuration["ServiceBus:ConnectionString"];
-var serviceBusQueueName = builder.Configuration["ServiceBus:QueueName"] ?? "qbo-full-sync";
-
-if (!string.IsNullOrWhiteSpace(serviceBusConnectionString))
-{
-    builder.Services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));
-    builder.Services.AddSingleton<ServiceBusSender>(sp =>
-        sp.GetRequiredService<ServiceBusClient>().CreateSender(serviceBusQueueName));
-    builder.Services.AddSingleton<IQueuePublisher, ServiceBusPublisher>();
-}
-else
-{
-    builder.Services.AddSingleton<IQueuePublisher, NoOpQueuePublisher>();
-}
-builder.Services.AddScoped<ISyncService, SyncService>();
+builder.Services.AddQuickBooksServiceBusAndSync(builder.Configuration);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var jwtKey = builder.Configuration["Jwt:Key"];
-        var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-        var jwtAudience = builder.Configuration["Jwt:Audience"];
+        var jwtOptions = new JwtOptions();
+        builder.Configuration.GetSection("Jwt").Bind(jwtOptions);
 
-        if (string.IsNullOrWhiteSpace(jwtKey))
+        if (string.IsNullOrWhiteSpace(jwtOptions.Key))
             throw new InvalidOperationException("Jwt:Key configuration is missing or empty.");
-        if (string.IsNullOrWhiteSpace(jwtIssuer))
+        if (string.IsNullOrWhiteSpace(jwtOptions.Issuer))
             throw new InvalidOperationException("Jwt:Issuer configuration is missing or empty.");
-        if (string.IsNullOrWhiteSpace(jwtAudience))
+        if (string.IsNullOrWhiteSpace(jwtOptions.Audience))
             throw new InvalidOperationException("Jwt:Audience configuration is missing or empty.");
 
         options.TokenValidationParameters = new TokenValidationParameters
@@ -96,10 +48,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey)
+                Encoding.UTF8.GetBytes(jwtOptions.Key)
             ),
             ClockSkew = TimeSpan.Zero
         };
@@ -172,12 +124,15 @@ builder.Services.AddCors(options =>
     });
 });
 
+var rateLimitingOptions = new RateLimitingOptions();
+builder.Configuration.GetSection("RateLimiting").Bind(rateLimitingOptions);
+
 builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
     {
-        var permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 100);
-        var windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
+        var permitLimit = rateLimitingOptions.PermitLimit;
+        var windowSeconds = rateLimitingOptions.WindowSeconds;
         return RateLimitPartition.GetFixedWindowLimiter(
             context.User.Identity?.IsAuthenticated == true ? context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous" : context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = permitLimit, Window = TimeSpan.FromSeconds(windowSeconds) });
@@ -219,7 +174,7 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
- });
+});
 
 
 var app = builder.Build();

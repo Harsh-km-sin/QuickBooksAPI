@@ -11,13 +11,13 @@ namespace QuickBooksAPI.Controllers
     [Authorize]
     public class CompanyController : ControllerBase
     {
-        private readonly ICurrentUser _currentUser;
+        private readonly IRequestContext _requestContext;
         private readonly ISyncService _syncService;
         private readonly IAuthService _authServices;
 
-        public CompanyController(ICurrentUser currentUser, ISyncService syncService, IAuthService authServices)
+        public CompanyController(IRequestContext requestContext, ISyncService syncService, IAuthService authServices)
         {
-            _currentUser = currentUser;
+            _requestContext = requestContext;
             _syncService = syncService;
             _authServices = authServices;
         }
@@ -25,8 +25,8 @@ namespace QuickBooksAPI.Controllers
         [HttpPost("sync/full")]
         public async Task<IActionResult> FullSync([FromBody] SyncRequestDto dto)
         {
-            var userId = _currentUser.UserId;
-            var realmId = _currentUser.RealmId;
+            var userId = _requestContext.UserId;
+            var realmId = _requestContext.RealmId;
 
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(realmId))
                 return Unauthorized(new { success = false, message = "User context is missing." });
@@ -51,7 +51,7 @@ namespace QuickBooksAPI.Controllers
         [HttpGet("sync/status")]
         public async Task<IActionResult> GetSyncStatus()
         {
-            var realmId = _currentUser.RealmId;
+            var realmId = _requestContext.RealmId;
 
             if (string.IsNullOrEmpty(realmId))
                 return Unauthorized(new { success = false, message = "User context is missing." });
@@ -63,7 +63,7 @@ namespace QuickBooksAPI.Controllers
         [HttpPost("disconnect")]
         public async Task<IActionResult> Disconnect([FromBody] DisconnectQboRequest request)
         {
-            var userId = _currentUser.UserId;
+            var userId = _requestContext.UserId;
             if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var parsedUserId))
                 return Unauthorized("User ID claim is missing or invalid.");
 
@@ -79,7 +79,7 @@ namespace QuickBooksAPI.Controllers
         [HttpGet("connected-companies")]
         public async Task<IActionResult> GetConnectedCompanies()
         {
-            var userId = _currentUser.UserId;
+            var userId = _requestContext.UserId;
             if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var parsedUserId))
                 return Unauthorized("User ID claim is missing or invalid.");
 

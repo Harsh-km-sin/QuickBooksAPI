@@ -1,4 +1,4 @@
-﻿namespace QuickBooksAPI.API.DTOs.Request
+namespace QuickBooksAPI.API.DTOs.Request
 {
     public class SyncStatusDto
     {

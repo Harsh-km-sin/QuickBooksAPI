@@ -1,17 +1,17 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class CloseIssueRepository : ICloseIssueRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public CloseIssueRepository(string connectionString)
+        public CloseIssueRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task InsertAsync(CloseIssue issue, CancellationToken cancellationToken = default)
@@ -19,9 +19,9 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             const string sql = @"
 INSERT INTO dbo.close_issues (UserId, RealmId, IssueType, Severity, Details, DetectedAt)
 VALUES (@UserId, @RealmId, @IssueType, @Severity, @Details, @DetectedAt);";
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(
-                new CommandDefinition(sql, new
+                _connectionFactory.CreateCommand(sql, new
                 {
                     issue.UserId,
                     issue.RealmId,
@@ -29,7 +29,7 @@ VALUES (@UserId, @RealmId, @IssueType, @Severity, @Details, @DetectedAt);";
                     issue.Severity,
                     issue.Details,
                     issue.DetectedAt
-                }, cancellationToken: cancellationToken));
+                }, cancellationToken));
         }
 
         public async Task<IReadOnlyList<CloseIssue>> GetByUserAndRealmAsync(int userId, string realmId, DateTime? since, string? severity, bool unresolvedOnly, CancellationToken cancellationToken = default)
@@ -46,10 +46,10 @@ WHERE UserId = @UserId AND RealmId = @RealmId";
                 sql += " AND ResolvedAt IS NULL";
             sql += " ORDER BY DetectedAt DESC;";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             var parameters = new { UserId = userId, RealmId = realmId, Since = since, Severity = severity };
             var rows = await connection.QueryAsync<CloseIssue>(
-                new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+                _connectionFactory.CreateCommand(sql, parameters, cancellationToken));
             return rows?.ToList() ?? new List<CloseIssue>();
         }
 
@@ -57,9 +57,9 @@ WHERE UserId = @UserId AND RealmId = @RealmId";
         {
             const string sql = @"
 UPDATE dbo.close_issues SET ResolvedAt = SYSUTCDATETIME() WHERE Id = @Id AND UserId = @UserId AND RealmId = @RealmId;";
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(
-                new CommandDefinition(sql, new { Id = id, UserId = userId, RealmId = realmId }, cancellationToken: cancellationToken));
+                _connectionFactory.CreateCommand(sql, new { Id = id, UserId = userId, RealmId = realmId }, cancellationToken));
         }
     }
 }

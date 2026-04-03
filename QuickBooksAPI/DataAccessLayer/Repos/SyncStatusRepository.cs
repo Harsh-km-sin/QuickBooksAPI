@@ -1,17 +1,17 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.DataAccessLayer.Sql;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class SyncStatusRepository : ISyncStatusRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public SyncStatusRepository(string connectionString)
+        public SyncStatusRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString;
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task<bool> IsRunningAsync(string companyId)
@@ -23,7 +23,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                   AND Status IN ('Queued','Running')
                   AND UpdatedAt > DATEADD(MINUTE, -10, SYSUTCDATETIME())";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             return await connection.ExecuteScalarAsync<int>(sql, new { CompanyId = companyId }) > 0;
         }
 
@@ -43,7 +43,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                     INSERT (CompanyId, Status, LastRun, Error)
                     VALUES (@CompanyId, @Status, SYSUTCDATETIME(), @Error);";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(sql, new
             {
                 CompanyId = companyId,
@@ -59,7 +59,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 FROM CompanySyncStatus
                 WHERE CompanyId = @CompanyId";
 
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             return await connection.QuerySingleOrDefaultAsync<SyncStatusDto>(sql, new { CompanyId = companyId });
         }
     }

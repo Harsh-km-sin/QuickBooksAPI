@@ -1,22 +1,21 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class CustomerRepository : ICustomerRepository
     {
-        private readonly string _connectionString;
-        public CustomerRepository(string connectionString)
+        private readonly ISqlConnectionFactory _connectionFactory;
+
+        public CustomerRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString;
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
-        private IDbConnection CreateConnection()
-        {
-            return new SqlConnection(_connectionString);
-        }
+
+        private IDbConnection CreateConnection() => _connectionFactory.CreateConnection();
         public async Task<int> UpsertCustomersAsync(IEnumerable<Customer> customers, int userId, string realmId)
         {
             if (customers == null || !customers.Any()) return 0;

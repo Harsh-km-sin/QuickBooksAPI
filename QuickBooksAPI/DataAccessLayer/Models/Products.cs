@@ -2,7 +2,7 @@ namespace QuickBooksAPI.DataAccessLayer.Models
 {
     public class Products
     {
-        public int Id { get; set; } 
+        public int Id { get; set; }
         public string QBOId { get; set; } = null!;
 
         public string Name { get; set; } = null!;

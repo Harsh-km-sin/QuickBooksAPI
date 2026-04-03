@@ -1,17 +1,16 @@
 using Dapper;
 using QuickBooksAPI.DataAccessLayer.Models;
-using Microsoft.Data.SqlClient;
-using System.Data;
+using QuickBooksAPI.DataAccessLayer.Sql;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class CompanyRepository : ICompanyRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public CompanyRepository(string connectionString)
+        public CompanyRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task<Company?> GetByUserAndRealmAsync(int userId, string realmId)
@@ -34,7 +33,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                 WHERE UserId = @UserId
                                   AND QboRealmId = @RealmId;";
 
-            using var connection = CreateConnection();
+            using var connection = _connectionFactory.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<Company>(
                 sql,
                 new { UserId = userId, RealmId = realmId });
@@ -60,7 +59,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                 WHERE UserId = @UserId
                                   AND IsQboConnected = 1;";
 
-            using var connection = CreateConnection();
+            using var connection = _connectionFactory.CreateConnection();
             return await connection.QueryAsync<Company>(
                 sql,
                 new { UserId = userId });
@@ -72,7 +71,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                 SELECT DISTINCT UserId, QboRealmId AS RealmId
                                 FROM dbo.Companies
                                 WHERE IsQboConnected = 1;";
-            using var connection = CreateConnection();
+            using var connection = _connectionFactory.CreateConnection();
             var rows = await connection.QueryAsync<(int UserId, string RealmId)>(sql);
             return rows;
         }
@@ -124,7 +123,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                         SYSDATETIMEOFFSET()
                                     );";
 
-            using var connection = CreateConnection();
+            using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(sql, new
             {
                 company.UserId,
@@ -153,14 +152,8 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                 WHERE UserId = @UserId
                                   AND QboRealmId = @RealmId;";
 
-            using var connection = CreateConnection();
+            using var connection = _connectionFactory.CreateConnection();
             await connection.ExecuteAsync(sql, new { UserId = userId, RealmId = realmId });
-        }
-
-        private IDbConnection CreateConnection()
-        {
-            return new SqlConnection(_connectionString);
         }
     }
 }
-

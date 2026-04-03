@@ -1,13 +1,9 @@
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Repos;
 
 namespace QuickBooksAPI.Services
 {
-    public interface IRevenueExpensesService
-    {
-        Task<IReadOnlyList<RevenueExpensesMonthlyDto>> GetMonthlyAsync(int userId, string realmId, DateTime from, DateTime to, CancellationToken cancellationToken = default);
-    }
-
     /// <summary>
     /// Exposes revenue vs expenses from the financial warehouse for CFO dashboard charts.
     /// </summary>

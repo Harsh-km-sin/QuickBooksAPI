@@ -9,9 +9,9 @@ using System.Text.Json;
 
 namespace QuickBooksAPI.Services
 {
-    public class ChartOfAccountsServices: IChartOfAccountsService
+    public class ChartOfAccountsServices : IChartOfAccountsService
     {
-        private readonly ICurrentUser _currentUser;
+        private readonly IRequestContext _requestContext;
         private readonly IQuickBooksChartOfAccountsService _quickBooksChartOfAccountsService;
         private readonly ITokenRepository _tokenRepository;
         private readonly IChartOfAccountsRepository _chartOfAccountsRepository;
@@ -19,14 +19,14 @@ namespace QuickBooksAPI.Services
         private readonly IAuthService _authService;
 
         public ChartOfAccountsServices(
-            ICurrentUser currentUser,
+            IRequestContext requestContext,
             IQuickBooksChartOfAccountsService quickBooksChartOfAccountsService,
             ITokenRepository tokenRepository,
             IChartOfAccountsRepository chartOfAccountsRepository,
             IQboSyncStateRepository qboSyncStateRepository,
             IAuthService authService)
         {
-            _currentUser = currentUser;
+            _requestContext = requestContext;
             _quickBooksChartOfAccountsService = quickBooksChartOfAccountsService;
             _tokenRepository = tokenRepository;
             _chartOfAccountsRepository = chartOfAccountsRepository;
@@ -36,22 +36,22 @@ namespace QuickBooksAPI.Services
 
         public async Task<ApiResponse<IEnumerable<ChartOfAccounts>>> ListChartOfAccountsAsync()
         {
-            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+            if (string.IsNullOrEmpty(_requestContext.UserId) || string.IsNullOrEmpty(_requestContext.RealmId))
                 return ApiResponse<IEnumerable<ChartOfAccounts>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
 
-            var userId = int.Parse(_currentUser.UserId);
-            var realmId = _currentUser.RealmId;
+            var userId = int.Parse(_requestContext.UserId);
+            var realmId = _requestContext.RealmId;
             var accounts = await _chartOfAccountsRepository.GetAllByUserAndRealmAsync(userId, realmId);
             return ApiResponse<IEnumerable<ChartOfAccounts>>.Ok(accounts);
         }
 
         public async Task<ApiResponse<PagedResult<ChartOfAccounts>>> ListChartOfAccountsAsync(ListQueryParams query)
         {
-            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+            if (string.IsNullOrEmpty(_requestContext.UserId) || string.IsNullOrEmpty(_requestContext.RealmId))
                 return ApiResponse<PagedResult<ChartOfAccounts>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
 
-            var userId = int.Parse(_currentUser.UserId);
-            var realmId = _currentUser.RealmId;
+            var userId = int.Parse(_requestContext.UserId);
+            var realmId = _requestContext.RealmId;
             var page = query.GetPage();
             var pageSize = query.GetPageSize();
             var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
@@ -63,8 +63,8 @@ namespace QuickBooksAPI.Services
         {
             try
             {
-                var userId = int.Parse(_currentUser.UserId);
-                var realmId = _currentUser.RealmId;
+                var userId = int.Parse(_requestContext.UserId);
+                var realmId = _requestContext.RealmId;
 
                 // Check and refresh token if expired
                 var accessToken = await _authService.RefreshTokenIfExpiredAsync(userId, realmId);
@@ -139,13 +139,13 @@ namespace QuickBooksAPI.Services
                         if (dto.MetaData?.LastUpdatedTime != null)
                         {
                             var dtoLastUpdated = dto.MetaData.LastUpdatedTime;
-                            
+
                             // Convert to UTC properly
                             // If Kind is UTC, use as-is; otherwise convert (handles Unspecified/Local)
                             DateTime dtoLastUpdatedUtc = dtoLastUpdated.Kind == DateTimeKind.Utc
                                 ? dtoLastUpdated
                                 : dtoLastUpdated.ToUniversalTime();
-                            
+
                             if (!maxUpdatedTime.HasValue || dtoLastUpdatedUtc > maxUpdatedTime.Value)
                                 maxUpdatedTime = dtoLastUpdatedUtc;
                         }
@@ -174,7 +174,7 @@ namespace QuickBooksAPI.Services
                     {
                         timeToStore = nowUtc;
                     }
-                    
+
                     // We synced records, use the max LastUpdatedTime from those records (already UTC)
                     await _qboSyncStateRepository.UpdateLastUpdatedAfterAsync(
                         userId,

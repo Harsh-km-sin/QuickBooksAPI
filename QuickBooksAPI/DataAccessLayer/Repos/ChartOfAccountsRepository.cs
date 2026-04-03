@@ -1,7 +1,7 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 using System.Linq;
 
@@ -9,16 +9,16 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class ChartOfAccountsRepository : IChartOfAccountsRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public ChartOfAccountsRepository(string connectionString)
+        public ChartOfAccountsRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString;
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public IDbConnection CreateOpenConnection()
         {
-            var conn = new SqlConnection(_connectionString);
+            var conn = _connectionFactory.CreateConnection();
             conn.Open();
             return conn;
         }

@@ -1,16 +1,17 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
+using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class DimEntityRepository : IDimEntityRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public DimEntityRepository(string connectionString)
+        public DimEntityRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task<IReadOnlyList<DimEntity>> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
@@ -18,8 +19,8 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             const string sql = @"
 SELECT Id, UserId, RealmId, ParentEntityId, Name, Currency, IsConsolidatedNode
 FROM dbo.dim_entity WHERE UserId = @UserId ORDER BY CASE WHEN ParentEntityId IS NULL THEN 0 ELSE 1 END, ParentEntityId, Id;";
-            using var connection = new SqlConnection(_connectionString);
-            var list = await connection.QueryAsync<DimEntity>(new CommandDefinition(sql, new { UserId = userId }, cancellationToken: cancellationToken));
+            using var connection = _connectionFactory.CreateConnection();
+            var list = await connection.QueryAsync<DimEntity>(_connectionFactory.CreateCommand(sql, new { UserId = userId }, cancellationToken));
             return list?.ToList() ?? new List<DimEntity>();
         }
 
@@ -28,8 +29,8 @@ FROM dbo.dim_entity WHERE UserId = @UserId ORDER BY CASE WHEN ParentEntityId IS 
             const string sql = @"
 SELECT Id, UserId, RealmId, ParentEntityId, Name, Currency, IsConsolidatedNode
 FROM dbo.dim_entity WHERE ParentEntityId = @ParentEntityId ORDER BY Id;";
-            using var connection = new SqlConnection(_connectionString);
-            var list = await connection.QueryAsync<DimEntity>(new CommandDefinition(sql, new { ParentEntityId = parentEntityId }, cancellationToken: cancellationToken));
+            using var connection = _connectionFactory.CreateConnection();
+            var list = await connection.QueryAsync<DimEntity>(_connectionFactory.CreateCommand(sql, new { ParentEntityId = parentEntityId }, cancellationToken));
             return list?.ToList() ?? new List<DimEntity>();
         }
 
@@ -38,8 +39,8 @@ FROM dbo.dim_entity WHERE ParentEntityId = @ParentEntityId ORDER BY Id;";
             const string sql = @"
 SELECT Id, UserId, RealmId, ParentEntityId, Name, Currency, IsConsolidatedNode
 FROM dbo.dim_entity WHERE UserId = @UserId AND RealmId = @RealmId;";
-            using var connection = new SqlConnection(_connectionString);
-            return await connection.QuerySingleOrDefaultAsync<DimEntity>(new CommandDefinition(sql, new { UserId = userId, RealmId = realmId }, cancellationToken: cancellationToken));
+            using var connection = _connectionFactory.CreateConnection();
+            return await connection.QuerySingleOrDefaultAsync<DimEntity>(_connectionFactory.CreateCommand(sql, new { UserId = userId, RealmId = realmId }, cancellationToken));
         }
 
         public async Task<IReadOnlyList<DimEntity>> GetParentEntitiesAsync(int userId, CancellationToken cancellationToken = default)
@@ -50,8 +51,8 @@ FROM dbo.dim_entity p
 INNER JOIN dbo.dim_entity c ON c.ParentEntityId = p.Id
 WHERE p.UserId = @UserId
 ORDER BY p.Id;";
-            using var connection = new SqlConnection(_connectionString);
-            var list = await connection.QueryAsync<DimEntity>(new CommandDefinition(sql, new { UserId = userId }, cancellationToken: cancellationToken));
+            using var connection = _connectionFactory.CreateConnection();
+            var list = await connection.QueryAsync<DimEntity>(_connectionFactory.CreateCommand(sql, new { UserId = userId }, cancellationToken));
             return list?.ToList() ?? new List<DimEntity>();
         }
 
@@ -66,8 +67,8 @@ WHEN NOT MATCHED THEN
   INSERT (UserId, RealmId, ParentEntityId, Name, Currency, IsConsolidatedNode)
   VALUES (@UserId, @RealmId, @ParentEntityId, @Name, @Currency, @IsConsolidatedNode)
 OUTPUT INSERTED.Id;";
-            using var connection = new SqlConnection(_connectionString);
-            var id = await connection.ExecuteScalarAsync<int>(new CommandDefinition(sql, new
+            using var connection = _connectionFactory.CreateConnection();
+            var id = await connection.ExecuteScalarAsync<int>(_connectionFactory.CreateCommand(sql, new
             {
                 entity.UserId,
                 entity.RealmId,
@@ -75,7 +76,7 @@ OUTPUT INSERTED.Id;";
                 entity.Name,
                 entity.Currency,
                 entity.IsConsolidatedNode
-            }, cancellationToken: cancellationToken));
+            }, cancellationToken));
             return id;
         }
     }

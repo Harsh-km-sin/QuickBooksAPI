@@ -1,17 +1,17 @@
 using Dapper;
-using Microsoft.Data.SqlClient;
 using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {
     public class ForecastResultRepository : IForecastResultRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
 
-        public ForecastResultRepository(string connectionString)
+        public ForecastResultRepository(ISqlConnectionFactory connectionFactory)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         }
 
         public async Task InsertBatchAsync(IReadOnlyList<ForecastResult> results, CancellationToken cancellationToken = default)
@@ -22,12 +22,11 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
 INSERT INTO dbo.forecast_results (ScenarioId, PeriodStart, Revenue, Expenses, NetIncome, CashBalance, RunwayMonths, MetadataJson)
 VALUES (@ScenarioId, @PeriodStart, @Revenue, @Expenses, @NetIncome, @CashBalance, @RunwayMonths, @MetadataJson);";
 
-            using var connection = new SqlConnection(_connectionString);
-            await connection.OpenAsync(cancellationToken);
+            using var connection = _connectionFactory.CreateConnection();
             foreach (var r in results)
             {
                 await connection.ExecuteAsync(
-                    new CommandDefinition(sql, new
+                    _connectionFactory.CreateCommand(sql, new
                     {
                         r.ScenarioId,
                         PeriodStart = r.PeriodStart.Date,
@@ -37,7 +36,7 @@ VALUES (@ScenarioId, @PeriodStart, @Revenue, @Expenses, @NetIncome, @CashBalance
                         r.CashBalance,
                         r.RunwayMonths,
                         r.MetadataJson
-                    }, cancellationToken: cancellationToken));
+                    }, cancellationToken));
             }
         }
 
@@ -46,9 +45,9 @@ VALUES (@ScenarioId, @PeriodStart, @Revenue, @Expenses, @NetIncome, @CashBalance
             const string sql = @"
 SELECT Id, ScenarioId, PeriodStart, Revenue, Expenses, NetIncome, CashBalance, RunwayMonths, MetadataJson
 FROM dbo.forecast_results WHERE ScenarioId = @ScenarioId ORDER BY PeriodStart;";
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = _connectionFactory.CreateConnection();
             var rows = await connection.QueryAsync<ForecastResult>(
-                new CommandDefinition(sql, new { ScenarioId = scenarioId }, cancellationToken: cancellationToken));
+                _connectionFactory.CreateCommand(sql, new { ScenarioId = scenarioId }, cancellationToken));
             return rows?.ToList() ?? new List<ForecastResult>();
         }
     }

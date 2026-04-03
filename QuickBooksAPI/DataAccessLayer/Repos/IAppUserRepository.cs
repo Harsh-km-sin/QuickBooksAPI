@@ -1,4 +1,4 @@
-﻿using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.DataAccessLayer.Models;
 
 namespace QuickBooksAPI.DataAccessLayer.Repos
 {

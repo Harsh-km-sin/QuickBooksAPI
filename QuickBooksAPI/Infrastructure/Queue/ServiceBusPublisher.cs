@@ -1,10 +1,10 @@
-﻿using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus;
 using System.Text;
 using System.Text.Json;
 
 namespace QuickBooksAPI.Infrastructure.Queue
 {
-    public class ServiceBusPublisher: IQueuePublisher
+    public class ServiceBusPublisher : IQueuePublisher
     {
         private readonly ServiceBusSender _sender;
 

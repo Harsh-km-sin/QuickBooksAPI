@@ -10,9 +10,9 @@ using System.Text.Json.Serialization;
 
 namespace QuickBooksAPI.Services
 {
-    public class ProductServices : IProductService
+    public partial class ProductServices : IProductService
     {
-        private readonly ICurrentUser _currentUser;
+        private readonly IRequestContext _requestContext;
         private readonly ITokenRepository _tokenRepository;
         private readonly IQuickBooksProductService _quickBooksProductService;
         private readonly IProductRepository _productRepository;
@@ -20,14 +20,14 @@ namespace QuickBooksAPI.Services
         private readonly IAuthService _authService;
 
         public ProductServices(
-            ICurrentUser currentUser,
+            IRequestContext requestContext,
             ITokenRepository tokenRepository,
             IQuickBooksProductService quickBooksProductService,
             IProductRepository productRepository,
             IQboSyncStateRepository qboSyncStateRepository,
             IAuthService authService)
         {
-            _currentUser = currentUser;
+            _requestContext = requestContext;
             _tokenRepository = tokenRepository;
             _quickBooksProductService = quickBooksProductService;
             _productRepository = productRepository;
@@ -36,22 +36,22 @@ namespace QuickBooksAPI.Services
         }
         public async Task<ApiResponse<IEnumerable<Products>>> ListProductsAsync()
         {
-            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+            if (string.IsNullOrEmpty(_requestContext.UserId) || string.IsNullOrEmpty(_requestContext.RealmId))
                 return ApiResponse<IEnumerable<Products>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
 
-            var userId = int.Parse(_currentUser.UserId);
-            var realmId = _currentUser.RealmId;
+            var userId = int.Parse(_requestContext.UserId);
+            var realmId = _requestContext.RealmId;
             var products = await _productRepository.GetAllByUserAndRealmAsync(userId, realmId);
             return ApiResponse<IEnumerable<Products>>.Ok(products);
         }
 
         public async Task<ApiResponse<PagedResult<Products>>> ListProductsAsync(ListQueryParams query)
         {
-            if (string.IsNullOrEmpty(_currentUser.UserId) || string.IsNullOrEmpty(_currentUser.RealmId))
+            if (string.IsNullOrEmpty(_requestContext.UserId) || string.IsNullOrEmpty(_requestContext.RealmId))
                 return ApiResponse<PagedResult<Products>>.Fail("User context is missing. Please sign in and connect QuickBooks.");
 
-            var userId = int.Parse(_currentUser.UserId);
-            var realmId = _currentUser.RealmId;
+            var userId = int.Parse(_requestContext.UserId);
+            var realmId = _requestContext.RealmId;
             var page = query.GetPage();
             var pageSize = query.GetPageSize();
             var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
@@ -64,8 +64,8 @@ namespace QuickBooksAPI.Services
         {
             try
             {
-                var userId = int.Parse(_currentUser.UserId);
-                var realmId = _currentUser.RealmId;
+                var userId = int.Parse(_requestContext.UserId);
+                var realmId = _requestContext.RealmId;
 
                 // Check and refresh token if expired
                 var token = await _authService.RefreshTokenIfExpiredAsync(userId, realmId);
@@ -115,13 +115,13 @@ namespace QuickBooksAPI.Services
                         if (dto.MetaData?.LastUpdatedTime != default)
                         {
                             var dtoLastUpdated = dto.MetaData.LastUpdatedTime;
-                            
+
                             // Convert to UTC properly
                             // If Kind is UTC, use as-is; otherwise convert (handles Unspecified/Local)
                             DateTime dtoLastUpdatedUtc = dtoLastUpdated.Kind == DateTimeKind.Utc
                                 ? dtoLastUpdated
                                 : dtoLastUpdated.ToUniversalTime();
-                            
+
                             if (!maxUpdatedTime.HasValue || dtoLastUpdatedUtc > maxUpdatedTime.Value)
                                 maxUpdatedTime = dtoLastUpdatedUtc;
                         }
@@ -150,7 +150,7 @@ namespace QuickBooksAPI.Services
                     {
                         timeToStore = nowUtc;
                     }
-                    
+
                     // We synced records, use the max LastUpdatedTime from those records (already UTC)
                     await _qboSyncStateRepository.UpdateLastUpdatedAfterAsync(
                         userId,
@@ -182,9 +182,9 @@ namespace QuickBooksAPI.Services
         {
             try
             {
-                var userId = int.Parse(_currentUser.UserId);
-                var realmId = _currentUser.RealmId;
-                
+                var userId = int.Parse(_requestContext.UserId);
+                var realmId = _requestContext.RealmId;
+
                 // Check and refresh token if expired
                 var accessToken = await _authService.RefreshTokenIfExpiredAsync(userId, realmId);
                 if (accessToken == null)
@@ -210,7 +210,8 @@ namespace QuickBooksAPI.Services
                 var product = MapDtoToProduct(createdItem, userId, realmId);
                 await _productRepository.UpsertProductsAsync(new List<Products> { product });
                 return ApiResponse<string>.Ok(createResponse, "Product created successfully in QBO.");
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 return ApiResponse<string>.Fail("Product creation failed in QBO.", new[] { e.Message });
             }
@@ -219,9 +220,9 @@ namespace QuickBooksAPI.Services
         {
             try
             {
-                var userId = int.Parse(_currentUser.UserId);
-                var realmId = _currentUser.RealmId;
-                
+                var userId = int.Parse(_requestContext.UserId);
+                var realmId = _requestContext.RealmId;
+
                 // Check and refresh token if expired
                 var accessToken = await _authService.RefreshTokenIfExpiredAsync(userId, realmId);
                 if (accessToken == null)
@@ -240,7 +241,7 @@ namespace QuickBooksAPI.Services
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                     WriteIndented = true
                 });
-           
+
                 var updateResponse = await _quickBooksProductService.UpdateProductAsync(accessToken.AccessToken, realmId, jsonPayload);
                 var updatedResponse = JsonSerializer.Deserialize<QuickBooksItemMutationResponse>(updateResponse);
                 if (updatedResponse?.Item == null)
@@ -249,7 +250,8 @@ namespace QuickBooksAPI.Services
                 var product = MapDtoToProduct(updatedItem, userId, realmId);
                 await _productRepository.UpsertProductsAsync(new List<Products> { product });
                 return ApiResponse<string>.Ok(updateResponse, "Product updated successfully in QBO.");
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 return ApiResponse<string>.Fail("Product updation Failed in QBO.", new[] { e.Message });
             }
@@ -258,9 +260,9 @@ namespace QuickBooksAPI.Services
         {
             try
             {
-                var userId = int.Parse(_currentUser.UserId);
-                var realmId = _currentUser.RealmId;
-                
+                var userId = int.Parse(_requestContext.UserId);
+                var realmId = _requestContext.RealmId;
+
                 // Check and refresh token if expired
                 var accessToken = await _authService.RefreshTokenIfExpiredAsync(userId, realmId);
                 if (accessToken == null)
@@ -286,7 +288,7 @@ namespace QuickBooksAPI.Services
                 if (mutationResponse?.Item == null)
                     throw new Exception("Failed to soft delete product in QBO or response is invalid.");
 
-                var product = MapDtoToProduct(mutationResponse.Item,userId,realmId);
+                var product = MapDtoToProduct(mutationResponse.Item, userId, realmId);
 
                 await _productRepository.UpsertProductsAsync(new[] { product });
 
@@ -297,37 +299,5 @@ namespace QuickBooksAPI.Services
                 return ApiResponse<string>.Fail("Product deletion failed in QBO.", new[] { e.Message });
             }
         }
-        private Products MapDtoToProduct(QuickBooksItemDto dto, int userId, string realmId)
-        {
-            return new Products
-            {
-                QBOId = dto.QBOId,
-                Name = dto.Name,
-                Description = dto.Description,
-                Active = dto.Active,
-                FullyQualifiedName = dto.FullyQualifiedName,
-                Taxable = dto.Taxable,
-                UnitPrice = dto.UnitPrice,
-                Type = dto.Type,
-                QtyOnHand = dto.QtyOnHand ?? 0, // default to 0 if null
-                IncomeAccountRefValue = dto.IncomeAccountRef?.Value,
-                IncomeAccountRefName = dto.IncomeAccountRef?.Name,
-                ExpenseAccountRefValue = dto.ExpenseAccountRef?.Value,
-                ExpenseAccountRefName = dto.ExpenseAccountRef?.Name,
-                AssetAccountRefValue = dto.AssetAccountRef?.Value,
-                AssetAccountRefName = dto.AssetAccountRef?.Name,
-                PurchaseCost = dto.PurchaseCost,
-                TrackQtyOnHand = dto.TrackQtyOnHand,
-                InvStartDate = dto.InvStartDate,
-                Domain = dto.Domain,
-                Sparse = dto.Sparse,
-                SyncToken = dto.SyncToken,
-                CreateTime = dto.MetaData?.CreateTime ?? DateTime.Now,
-                LastUpdatedTime = dto.MetaData?.LastUpdatedTime ?? DateTime.Now,
-                UserId = userId,
-                RealmId = realmId
-            };
-        }
-
     }
 }

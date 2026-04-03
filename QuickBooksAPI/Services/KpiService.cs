@@ -1,13 +1,9 @@
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Repos;
 
 namespace QuickBooksAPI.Services
 {
-    public interface IKpiService
-    {
-        Task<IReadOnlyList<KpiSnapshotDto>> GetKpisAsync(int userId, string realmId, DateTime from, DateTime to, IReadOnlyList<string>? names, CancellationToken cancellationToken = default);
-    }
-
     /// <summary>
     /// Exposes KPI snapshot history for CFO dashboard sparklines.
     /// </summary>

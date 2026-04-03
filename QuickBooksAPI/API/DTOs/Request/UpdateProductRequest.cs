@@ -17,10 +17,10 @@ namespace QuickBooksAPI.API.DTOs.Request
         public string? Name { get; set; }
 
         [JsonPropertyName("Type")]
-        public string? Type { get; set; }   
+        public string? Type { get; set; }
 
         [JsonPropertyName("InvStartDate")]
-        public string? InvStartDate { get; set; } 
+        public string? InvStartDate { get; set; }
 
         [JsonPropertyName("UnitPrice")]
         public decimal? UnitPrice { get; set; }
@@ -29,7 +29,7 @@ namespace QuickBooksAPI.API.DTOs.Request
         public decimal? PurchaseCost { get; set; }
 
         [JsonPropertyName("QtyOnHand")]
-        public decimal? QtyOnHand { get; set; }   
+        public decimal? QtyOnHand { get; set; }
 
         [JsonPropertyName("AssetAccountRef")]
         public ReferenceType? AssetAccountRef { get; set; }
@@ -38,7 +38,7 @@ namespace QuickBooksAPI.API.DTOs.Request
         public ReferenceType? IncomeAccountRef { get; set; }
 
         [JsonPropertyName("ExpenseAccountRef")]
-        public ReferenceType? ExpenseAccountRef { get; set; } 
+        public ReferenceType? ExpenseAccountRef { get; set; }
     }
 
     public class ReferenceType
