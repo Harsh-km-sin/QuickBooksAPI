@@ -1,0 +1,154 @@
+using NetArchTest.Rules;
+using QuickBooksAPI.Application.Interfaces;
+using QuickBooksService.Services;
+
+namespace ArchitectureTests;
+
+public class DependencyRulesTests
+{
+    private static string FailureMessage(TestResult result)
+    {
+        if (result.FailingTypeNames == null)
+            return "Architecture rule failed.";
+
+        return string.Join(Environment.NewLine, result.FailingTypeNames);
+    }
+
+    [Fact]
+    public void Services_ShouldNotDependOnControllers()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Services")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.Controllers")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void Features_ShouldNotDependOn_Controllers()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespaceStartingWith("QuickBooksAPI.Features")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.Controllers")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void Repositories_ShouldNotDependOnControllers()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.DataAccessLayer.Repos")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.Controllers")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void QuickBooksService_ShouldNotDependOn_Controllers()
+    {
+        var result = Types
+            .InAssembly(typeof(IQuickBooksAuthService).Assembly)
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.Controllers")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void Application_ShouldNotDependOn_SqlClient()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Application")
+            .ShouldNot()
+            .HaveDependencyOn("Microsoft.Data.SqlClient")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void Controllers_ShouldNotDependOn_SqlClient()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespaceStartingWith("QuickBooksAPI.Controllers")
+            .ShouldNot()
+            .HaveDependencyOn("Microsoft.Data.SqlClient")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void Controllers_ShouldNotDependOn_DataAccessLayer_Repos()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespaceStartingWith("QuickBooksAPI.Controllers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.DataAccessLayer.Repos")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void Controllers_ShouldNotDependOn_QuickBooksService_Adapters()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespaceStartingWith("QuickBooksAPI.Controllers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksService.Services")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void Services_ShouldNotDependOn_SqlClient()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespaceStartingWith("QuickBooksAPI.Services")
+            .ShouldNot()
+            .HaveDependencyOn("Microsoft.Data.SqlClient")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void Features_ShouldNotDependOn_SqlClient()
+    {
+        var result = Types
+            .InAssembly(typeof(IAuthService).Assembly)
+            .That()
+            .ResideInNamespaceStartingWith("QuickBooksAPI.Features")
+            .ShouldNot()
+            .HaveDependencyOn("Microsoft.Data.SqlClient")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+}

@@ -1,5 +1,6 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using QuickBooksShared.Options;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -13,13 +14,16 @@ namespace QuickBooksService.Services
     public class QuickBooksAuthService : IQuickBooksAuthService
     {
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IConfiguration _config;
+        private readonly QuickBooksOptions _quickBooksOptions;
         private readonly ILogger<QuickBooksAuthService> _logger;
 
-        public QuickBooksAuthService(IHttpClientFactory httpClientFactory, IConfiguration config, ILogger<QuickBooksAuthService> logger)
+        public QuickBooksAuthService(
+            IHttpClientFactory httpClientFactory,
+            IOptions<QuickBooksOptions> quickBooksOptions,
+            ILogger<QuickBooksAuthService> logger)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _quickBooksOptions = quickBooksOptions?.Value ?? throw new ArgumentNullException(nameof(quickBooksOptions));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -27,29 +31,29 @@ namespace QuickBooksService.Services
         {
             if (string.IsNullOrWhiteSpace(code))
                 throw new ArgumentException("Code cannot be null or empty.", nameof(code));
-            
+
             if (string.IsNullOrWhiteSpace(realmId))
                 throw new ArgumentException("Realm ID cannot be null or empty.", nameof(realmId));
 
-            var clientId = _config["QuickBooks:ClientId"];
+            var clientId = _quickBooksOptions.ClientId;
             if (string.IsNullOrWhiteSpace(clientId))
                 throw new InvalidOperationException("QuickBooks:ClientId configuration is missing or empty.");
 
-            var clientSecret = _config["QuickBooks:ClientSecret"];
+            var clientSecret = _quickBooksOptions.ClientSecret;
             if (string.IsNullOrWhiteSpace(clientSecret))
                 throw new InvalidOperationException("QuickBooks:ClientSecret configuration is missing or empty.");
 
-            var redirectUri = _config["QuickBooks:RedirectUri"];
+            var redirectUri = _quickBooksOptions.RedirectUri;
             if (string.IsNullOrWhiteSpace(redirectUri))
                 throw new InvalidOperationException("QuickBooks:RedirectUri configuration is missing or empty.");
 
-            var tokenUrl = _config["QuickBooks:TokenUrl"];
+            var tokenUrl = _quickBooksOptions.TokenUrl;
             if (string.IsNullOrWhiteSpace(tokenUrl))
                 throw new InvalidOperationException("QuickBooks:TokenUrl configuration is missing or empty.");
 
             var client = _httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(HttpMethod.Post, tokenUrl);
-            
+
             var basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
 
@@ -62,7 +66,7 @@ namespace QuickBooksService.Services
 
             var response = await client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("QBO token exchange failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
@@ -80,21 +84,21 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(refreshToken))
                 throw new ArgumentException("Refresh token cannot be null or empty.", nameof(refreshToken));
 
-            var clientId = _config["QuickBooks:ClientId"];
+            var clientId = _quickBooksOptions.ClientId;
             if (string.IsNullOrWhiteSpace(clientId))
                 throw new InvalidOperationException("QuickBooks:ClientId configuration is missing or empty.");
 
-            var clientSecret = _config["QuickBooks:ClientSecret"];
+            var clientSecret = _quickBooksOptions.ClientSecret;
             if (string.IsNullOrWhiteSpace(clientSecret))
                 throw new InvalidOperationException("QuickBooks:ClientSecret configuration is missing or empty.");
 
-            var tokenUrl = _config["QuickBooks:TokenUrl"];
+            var tokenUrl = _quickBooksOptions.TokenUrl;
             if (string.IsNullOrWhiteSpace(tokenUrl))
                 throw new InvalidOperationException("QuickBooks:TokenUrl configuration is missing or empty.");
 
             var client = _httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(HttpMethod.Post, tokenUrl);
-            
+
             var basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
 
@@ -106,7 +110,7 @@ namespace QuickBooksService.Services
 
             var response = await client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("QBO token refresh failed. StatusCode={StatusCode}, Response={ResponseBody}", response.StatusCode, content);
@@ -127,21 +131,21 @@ namespace QuickBooksService.Services
                 return false;
             }
 
-            var clientId = _config["QuickBooks:ClientId"];
+            var clientId = _quickBooksOptions.ClientId;
             if (string.IsNullOrWhiteSpace(clientId))
             {
                 _logger.LogError("QuickBooks:ClientId configuration is missing.");
                 return false;
             }
 
-            var clientSecret = _config["QuickBooks:ClientSecret"];
+            var clientSecret = _quickBooksOptions.ClientSecret;
             if (string.IsNullOrWhiteSpace(clientSecret))
             {
                 _logger.LogError("QuickBooks:ClientSecret configuration is missing.");
                 return false;
             }
 
-            var revokeUrl = _config["QuickBooks:RevokeUrl"];
+            var revokeUrl = _quickBooksOptions.RevokeUrl;
             if (string.IsNullOrWhiteSpace(revokeUrl))
                 throw new InvalidOperationException("QuickBooks:RevokeUrl configuration is missing or empty.");
 
@@ -173,7 +177,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(realmId))
                 throw new ArgumentException("Realm ID cannot be null or empty.", nameof(realmId));
 
-            var baseUrl = _config["QuickBooks:RequestURL"];
+            var baseUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(baseUrl))
                 throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 

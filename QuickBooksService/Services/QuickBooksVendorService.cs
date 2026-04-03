@@ -1,5 +1,6 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using QuickBooksShared.Options;
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -11,14 +12,17 @@ namespace QuickBooksService.Services
 {
     public class QuickBooksVendorService : IQuickBooksVendorService
     {
-        private readonly IConfiguration _config;
+        private readonly QuickBooksOptions _quickBooksOptions;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<QuickBooksVendorService> _logger;
 
-        public QuickBooksVendorService(IConfiguration config, IHttpClientFactory httpClientFactory, ILogger<QuickBooksVendorService> logger)
+        public QuickBooksVendorService(
+            IHttpClientFactory httpClientFactory,
+            IOptions<QuickBooksOptions> quickBooksOptions,
+            ILogger<QuickBooksVendorService> logger)
         {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            _quickBooksOptions = quickBooksOptions?.Value ?? throw new ArgumentNullException(nameof(quickBooksOptions));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -29,7 +33,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(realmId))
                 throw new ArgumentException("Realm ID cannot be null or empty.", nameof(realmId));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl))
                 throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
@@ -63,7 +67,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(realmId)) throw new ArgumentException("Realm ID cannot be null or empty.", nameof(realmId));
             if (string.IsNullOrWhiteSpace(vendorPayload)) throw new ArgumentException("Vendor payload cannot be null or empty.", nameof(vendorPayload));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl)) throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
             var client = _httpClientFactory.CreateClient();
@@ -89,7 +93,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(realmId)) throw new ArgumentException("Realm ID cannot be null or empty.", nameof(realmId));
             if (string.IsNullOrWhiteSpace(vendorPayload)) throw new ArgumentException("Vendor payload cannot be null or empty.", nameof(vendorPayload));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl)) throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
             var client = _httpClientFactory.CreateClient();
@@ -117,7 +121,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Vendor Id cannot be null or empty.", nameof(id));
             if (string.IsNullOrWhiteSpace(syncToken)) throw new ArgumentException("SyncToken cannot be null or empty.", nameof(syncToken));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl)) throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
             var payload = new { Id = id, SyncToken = syncToken, sparse = true, Active = false };

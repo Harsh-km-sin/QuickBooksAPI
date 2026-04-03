@@ -1,5 +1,6 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using QuickBooksShared.Options;
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -10,14 +11,17 @@ namespace QuickBooksService.Services
 {
     public class QuickBooksInvoiceService : IQuickBooksInvoiceService
     {
-        private readonly IConfiguration _config;
+        private readonly QuickBooksOptions _quickBooksOptions;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<QuickBooksInvoiceService> _logger;
 
-        public QuickBooksInvoiceService(IConfiguration config, IHttpClientFactory httpClientFactory, ILogger<QuickBooksInvoiceService> logger)
+        public QuickBooksInvoiceService(
+            IHttpClientFactory httpClientFactory,
+            IOptions<QuickBooksOptions> quickBooksOptions,
+            ILogger<QuickBooksInvoiceService> logger)
         {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            _quickBooksOptions = quickBooksOptions?.Value ?? throw new ArgumentNullException(nameof(quickBooksOptions));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -25,28 +29,28 @@ namespace QuickBooksService.Services
         {
             if (string.IsNullOrWhiteSpace(accessToken))
                 throw new ArgumentException("Access token cannot be null or empty.", nameof(accessToken));
-            
+
             if (string.IsNullOrWhiteSpace(realmId))
                 throw new ArgumentException("Realm ID cannot be null or empty.", nameof(realmId));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl))
                 throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
             var client = _httpClientFactory.CreateClient();
 
             var query = "select * from Invoice";
-            
+
             // Add WHERE clause for MetaData.LastUpdatedTime if date filter is provided
             // QuickBooks API expects UTC timestamps in ISO 8601 format
             // Use ">" (not ">=") to skip already-synced records
             if (lastUpdatedAfter.HasValue)
             {
                 // Ensure the DateTime is UTC (don't double-convert if already UTC)
-                var utcDate = lastUpdatedAfter.Value.Kind == DateTimeKind.Utc 
-                    ? lastUpdatedAfter.Value 
+                var utcDate = lastUpdatedAfter.Value.Kind == DateTimeKind.Utc
+                    ? lastUpdatedAfter.Value
                     : lastUpdatedAfter.Value.ToUniversalTime();
-                
+
                 // Format as ISO 8601 UTC (yyyy-MM-ddTHH:mm:ssZ)
                 var dateFilter = utcDate.ToString("yyyy-MM-ddTHH:mm:ssZ");
                 query += $" WHERE MetaData.LastUpdatedTime > '{dateFilter}'";
@@ -58,13 +62,13 @@ namespace QuickBooksService.Services
                 HttpMethod.Get,
                 $"{requestUrl}/{realmId}/query?query={Uri.EscapeDataString(query)}"
             );
-            
+
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             var response = await client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("QBO Invoice request failed. StatusCode={StatusCode}, RealmId={RealmId}, Response={ResponseBody}", response.StatusCode, realmId, content);
@@ -86,7 +90,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(invoicePayload))
                 throw new ArgumentException("Invoice payload cannot be null or empty.", nameof(invoicePayload));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl))
                 throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
@@ -120,7 +124,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(invoicePayload))
                 throw new ArgumentException("Invoice payload cannot be null or empty.", nameof(invoicePayload));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl))
                 throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
@@ -154,7 +158,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(invoicePayload))
                 throw new ArgumentException("Invoice payload cannot be null or empty.", nameof(invoicePayload));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl))
                 throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
@@ -188,7 +192,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(invoicePayload))
                 throw new ArgumentException("Invoice payload cannot be null or empty.", nameof(invoicePayload));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl))
                 throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 

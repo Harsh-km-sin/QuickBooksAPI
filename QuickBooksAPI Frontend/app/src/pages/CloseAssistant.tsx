@@ -17,11 +17,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ClipboardCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
+/** Radix Select.Item cannot use value=""; empty string is reserved for clearing selection. */
+const FILTER_ANY = '__any__';
+
 export function CloseAssistant() {
   const [issues, setIssues] = useState<CloseIssue[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [since, setSince] = useState<string>('');
-  const [severity, setSeverity] = useState<string>('');
+  const [since, setSince] = useState<string>(FILTER_ANY);
+  const [severity, setSeverity] = useState<string>(FILTER_ANY);
   const [unresolvedOnly, setUnresolvedOnly] = useState(true);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
 
@@ -29,8 +32,8 @@ export function CloseAssistant() {
     setLoading(true);
     try {
       const res = await analyticsApi.getCloseIssues({
-        since: since || undefined,
-        severity: severity || undefined,
+        since: since === FILTER_ANY ? undefined : since,
+        severity: severity === FILTER_ANY ? undefined : severity,
         unresolvedOnly,
       });
       if (res.success && res.data) setIssues(res.data);
@@ -89,7 +92,7 @@ export function CloseAssistant() {
                 <SelectValue placeholder="Any" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any</SelectItem>
+                <SelectItem value={FILTER_ANY}>Any</SelectItem>
                 <SelectItem value={new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}>Last 7 days</SelectItem>
                 <SelectItem value={new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}>Last 30 days</SelectItem>
                 <SelectItem value={new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}>Last 90 days</SelectItem>
@@ -103,7 +106,7 @@ export function CloseAssistant() {
                 <SelectValue placeholder="Any" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any</SelectItem>
+                <SelectItem value={FILTER_ANY}>Any</SelectItem>
                 <SelectItem value="High">High</SelectItem>
                 <SelectItem value="Medium">Medium</SelectItem>
               </SelectContent>

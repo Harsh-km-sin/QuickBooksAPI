@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\QuickBooksAPI\QuickBooksAPI.csproj" />
     <ProjectReference Include="..\QuickBooksService\QuickBooksService.csproj" />
+    <ProjectReference Include="..\Contracts\QuickBooksShared\QuickBooksShared.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

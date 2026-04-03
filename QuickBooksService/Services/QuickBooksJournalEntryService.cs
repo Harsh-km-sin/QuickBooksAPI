@@ -1,24 +1,28 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using QuickBooksShared.Options;
 
 namespace QuickBooksService.Services
 {
     public class QuickBooksJournalEntryService : IQuickBooksJournalEntryService
     {
-        private readonly IConfiguration _config;
+        private readonly QuickBooksOptions _quickBooksOptions;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<QuickBooksJournalEntryService> _logger;
 
-        public QuickBooksJournalEntryService(IConfiguration configuration, IHttpClientFactory httpClientFactory, ILogger<QuickBooksJournalEntryService> logger)
+        public QuickBooksJournalEntryService(
+            IHttpClientFactory httpClientFactory,
+            IOptions<QuickBooksOptions> quickBooksOptions,
+            ILogger<QuickBooksJournalEntryService> logger)
         {
-            _config = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _quickBooksOptions = quickBooksOptions?.Value ?? throw new ArgumentNullException(nameof(quickBooksOptions));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<string> GetJournalEntryAsync(string accessToken, string realmId, int startPosition = 1, int maxResults = 100, DateTime? lastUpdatedAfter = null)
         {
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             var client = _httpClientFactory.CreateClient();
 
             var query = "select * from JournalEntry";
@@ -29,10 +33,10 @@ namespace QuickBooksService.Services
             if (lastUpdatedAfter.HasValue)
             {
                 // Ensure the DateTime is UTC (don't double-convert if already UTC)
-                var utcDate = lastUpdatedAfter.Value.Kind == DateTimeKind.Utc 
-                    ? lastUpdatedAfter.Value 
+                var utcDate = lastUpdatedAfter.Value.Kind == DateTimeKind.Utc
+                    ? lastUpdatedAfter.Value
                     : lastUpdatedAfter.Value.ToUniversalTime();
-                
+
                 // Format as ISO 8601 UTC (yyyy-MM-ddTHH:mm:ssZ)
                 var dateFilter = utcDate.ToString("yyyy-MM-ddTHH:mm:ssZ");
                 query += $" WHERE MetaData.LastUpdatedTime > '{dateFilter}'";

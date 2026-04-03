@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  backend-worker-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore QuickBooksAPI.sln
+
+      - name: Build
+        run: dotnet build QuickBooksAPI.sln --no-restore --configuration Release
+
+      - name: Verify formatting (full solution)
+        run: dotnet format QuickBooksAPI.sln --verify-no-changes --no-restore
+
+      - name: Run Unit and Architecture Tests
+        run: dotnet test QuickBooksAPI.sln --no-build --configuration Release
+
+      - name: Dependency Vulnerability Scan (.NET)
+        run: dotnet list QuickBooksAPI.sln package --vulnerable --include-transitive
+
+  frontend-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "QuickBooksAPI Frontend/app"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: "QuickBooksAPI Frontend/app/package-lock.json"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Dependency Vulnerability Scan (npm)
+        run: npm audit --omit=dev --audit-level=high
+
+  governance:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: File Size — backend & worker (strict)
+        shell: pwsh
+        run: |
+          ./tests/scripts/check-file-size.ps1 -Root QuickBooksAPI -MaxLines 300 -FailOnViolation
+          ./tests/scripts/check-file-size.ps1 -Root SyncWorker -MaxLines 300 -FailOnViolation
+          ./tests/scripts/check-file-size.ps1 -Root tests -MaxLines 300 -FailOnViolation
+
+      - name: File Size — frontend (strict; shadcn under components/ui excluded)
+        shell: pwsh
+        run: ./tests/scripts/check-file-size.ps1 -Root "QuickBooksAPI Frontend/app/src" -MaxLines 300 -FailOnViolation -ExcludePathSubstrings @("components\ui")
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -236,7 +236,7 @@ Full-company sync runs asynchronously via a separate **SyncWorker** Azure Functi
 - The `SyncWorker.FullSyncWorker` function is triggered by `[ServiceBusTrigger("qbo-full-sync", Connection = "ServiceBusConnection")]`.
 - The worker:
   - Sets sync status via `ISyncStatusRepository` (`Queued` → `Running` → `Completed` / `PartiallyFailed` / `Failed`).
-  - Sets `ICurrentUser` context using `SyncCurrentUser` (UserId + RealmId from the message).
+  - Sets scoped `IRequestContext` / `ISyncContext` via `SyncContext` (UserId + RealmId + optional CorrelationId from the message).
   - Calls the existing services to sync **Customers, Vendors, Products, Chart of Accounts, Invoices, Bills, Journal Entries**, updating `IQboSyncStateRepository` per entity.
   - Retries each entity up to 3 times, then records errors if they persist.
 

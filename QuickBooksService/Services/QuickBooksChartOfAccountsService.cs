@@ -1,5 +1,6 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using QuickBooksShared.Options;
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -9,14 +10,17 @@ namespace QuickBooksService.Services
 {
     public class QuickBooksChartOfAccountsService : IQuickBooksChartOfAccountsService
     {
-        private readonly IConfiguration _config;
+        private readonly QuickBooksOptions _quickBooksOptions;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<QuickBooksChartOfAccountsService> _logger;
 
-        public QuickBooksChartOfAccountsService(IHttpClientFactory httpClientFactory, IConfiguration config, ILogger<QuickBooksChartOfAccountsService> logger)
+        public QuickBooksChartOfAccountsService(
+            IHttpClientFactory httpClientFactory,
+            IOptions<QuickBooksOptions> quickBooksOptions,
+            ILogger<QuickBooksChartOfAccountsService> logger)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _quickBooksOptions = quickBooksOptions?.Value ?? throw new ArgumentNullException(nameof(quickBooksOptions));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -27,7 +31,7 @@ namespace QuickBooksService.Services
             if (string.IsNullOrWhiteSpace(realmId))
                 throw new ArgumentException("Realm ID cannot be null or empty.", nameof(realmId));
 
-            var requestUrl = _config["QuickBooks:RequestURL"];
+            var requestUrl = _quickBooksOptions.RequestURL;
             if (string.IsNullOrWhiteSpace(requestUrl))
                 throw new InvalidOperationException("QuickBooks:RequestURL configuration is missing or empty.");
 
