@@ -8,6 +8,7 @@ namespace QuickBooksAPI.Infrastructure.Queue
     {
         private readonly ServiceBusSender _sender;
 
+
         public ServiceBusPublisher(ServiceBusSender sender)
         {
             _sender = sender;
