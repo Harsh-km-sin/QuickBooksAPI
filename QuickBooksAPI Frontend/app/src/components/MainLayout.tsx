@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -34,7 +34,7 @@ import {
   MessageCircle,
   ClipboardCheck,
 } from 'lucide-react';
-import { companyApi } from '@/api/client';
+import { useConnectedCompanies } from '@/features/company';
 import { useTheme } from '@/components/theme-provider';
 
 interface NavItem {
@@ -62,25 +62,7 @@ function Sidebar({ className }: { className?: string }) {
   const { pathname: currentPath } = useLocation();
   const { user, currentRealmId, setCurrentRealm, logout } = useAuth();
   const { theme, setTheme } = useTheme();
-  const [companies, setCompanies] = useState<Array<{ qboRealmId: string; companyName: string | null; isQboConnected: boolean }>>([]);
-
-  // Fetch connected companies from backend
-  useEffect(() => {
-    let mounted = true;
-    companyApi.getConnectedCompanies()
-      .then((res) => {
-        if (mounted) {
-          const data = res?.data ?? res ?? [];
-          if (Array.isArray(data)) {
-            setCompanies(data);
-          }
-        }
-      })
-      .catch(() => {
-        if (mounted) setCompanies([]);
-      });
-    return () => { mounted = false; };
-  }, []);
+  const { companies } = useConnectedCompanies({ silent: true });
 
   const connectedCompanies = companies.filter((c) => c.isQboConnected);
   const connectedCount = connectedCompanies.length;
@@ -146,15 +128,22 @@ function Sidebar({ className }: { className?: string }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start px-2 hover:bg-muted hover:text-foreground">
-              <Avatar className="h-8 w-8 mr-2">
+            <Button
+              variant="ghost"
+              className="w-full min-w-0 justify-start px-2 hover:bg-muted hover:text-foreground"
+            >
+              <Avatar className="h-8 w-8 mr-2 shrink-0">
                 <AvatarFallback>{user?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 text-left">
-                <p className="text-sm font-medium truncate">{user?.name}</p>
-                {currentCompanyName && <p className="text-xs text-muted-foreground truncate">{currentCompanyName}</p>}
+              <div className="min-w-0 flex-1 overflow-hidden text-left">
+                <p className="truncate text-sm font-medium">{user?.name}</p>
+                {currentCompanyName && (
+                  <p className="truncate text-xs text-muted-foreground" title={currentCompanyName}>
+                    {currentCompanyName}
+                  </p>
+                )}
               </div>
-              <ChevronDown className="h-4 w-4 ml-2" />
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { assistantApi } from '@/api/client';
+import { assistantApi } from '@/api/assistantApi';
 import type { CfoAssistantResponse } from '@/types';
 
 export interface ChatMessage {

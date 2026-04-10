@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { vendorApi } from '@/api/client';
+import { vendorApi } from '@/api/vendorApi';
 import type { Vendor, CreateVendorRequest, UpdateVendorRequest, SoftDeleteVendorRequest, ListQueryParams } from '@/types';
 import { toast } from 'sonner';
 

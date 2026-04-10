@@ -1,4 +1,5 @@
 using Dapper;
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;

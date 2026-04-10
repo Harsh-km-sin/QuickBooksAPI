@@ -1,5 +1,5 @@
 /**
- * CFO / dashboard analytics endpoints — isolated module for AI-friendly navigation (import from `@/api/client` re-exports).
+ * CFO / dashboard analytics endpoints — isolated module for AI-friendly navigation (import from `@/api/analyticsApi` or the `client` barrel).
  */
 import { apiClient } from './core';
 import type {

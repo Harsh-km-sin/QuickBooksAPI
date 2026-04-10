@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { customerApi } from '@/api/client';
+import { customerApi } from '@/api/customerApi';
 import type { Customer, CreateCustomerRequest, UpdateCustomerRequest, DeleteCustomerRequest, ListQueryParams } from '@/types';
 import { toast } from 'sonner';
 

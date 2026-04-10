@@ -30,6 +30,7 @@ public static class QuickBooksAnalyticsApplicationServiceCollectionExtensions
         services.AddScoped<ICfoAssistantIntentHandler, CfoAssistantRevenueExpensesIntentHandler>();
         services.AddScoped<ICfoAssistantIntentHandler, CfoAssistantCustomerProfitIntentHandler>();
         services.AddScoped<ICfoAssistantIntentHandler, CfoAssistantVendorSpendIntentHandler>();
+        services.AddHttpClient(CfoAssistantService.AzureOpenAiHttpClientName);
         services.AddScoped<ICfoAssistantService, CfoAssistantService>();
         return services;
     }

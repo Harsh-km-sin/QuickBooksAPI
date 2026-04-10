@@ -7,6 +7,7 @@ using QuickBooksAPI.Infrastructure;
 using QuickBooksAPI.Services;
 using QuickBooksShared;
 using SyncWorker;
+using SyncWorker.Steps;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
@@ -29,10 +30,20 @@ var host = new HostBuilder()
         services.AddScoped<ISyncContext>(sp => sp.GetRequiredService<SyncContext>());
         services.AddScoped<IRequestContext>(sp => sp.GetRequiredService<SyncContext>());
 
+        // SQL repos + shared app services (same extension graph as API host, minus Swagger/JWT).
         services.AddInfrastructure(context.Configuration);
 
         services.AddHttpClient();
         services.AddQuickBooksAuthAndEntityApplicationServices();
+
+        services.AddScoped<IFullSyncEntitySyncStep, FullSyncCustomersStep>();
+        services.AddScoped<IFullSyncEntitySyncStep, FullSyncVendorsStep>();
+        services.AddScoped<IFullSyncEntitySyncStep, FullSyncProductsStep>();
+        services.AddScoped<IFullSyncEntitySyncStep, FullSyncChartOfAccountsStep>();
+        services.AddScoped<IFullSyncEntitySyncStep, FullSyncInvoicesStep>();
+        services.AddScoped<IFullSyncEntitySyncStep, FullSyncBillsStep>();
+        services.AddScoped<IFullSyncEntitySyncStep, FullSyncJournalEntriesStep>();
+
         services.AddScoped<IFullSyncOrchestrator, FullSyncOrchestrator>();
         services.AddScoped<IFullSyncCompletedSubscriber, LoggingFullSyncCompletedSubscriber>();
     })

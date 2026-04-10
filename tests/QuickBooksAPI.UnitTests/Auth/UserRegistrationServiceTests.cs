@@ -4,7 +4,6 @@ using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
 using QuickBooksAPI.Services.Auth;
 
 namespace QuickBooksAPI.UnitTests.Auth;

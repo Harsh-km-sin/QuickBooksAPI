@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { invoiceApi } from '@/api/client';
+import { invoiceApi } from '@/api/invoiceApi';
 import type {
   QBOInvoiceHeader,
   CreateInvoiceRequest,

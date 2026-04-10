@@ -1,7 +1,7 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
 
 namespace QuickBooksAPI.Services;
 
@@ -27,24 +27,24 @@ public sealed class CustomerService : ICustomerService
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
     }
 
-    public async Task<ApiResponse<IEnumerable<Customer>>> ListCustomersAsync()
+    public async Task<ApiResponse<IEnumerable<CustomerDto>>> ListCustomersAsync()
     {
         if (!TryGetUserRealm(out var userId, out var realmId, out var err))
-            return ApiResponse<IEnumerable<Customer>>.Fail(err!);
+            return ApiResponse<IEnumerable<CustomerDto>>.Fail(err!);
         return await _read.ListAsync(userId, realmId);
     }
 
-    public async Task<ApiResponse<PagedResult<Customer>>> ListCustomersAsync(ListQueryParams query)
+    public async Task<ApiResponse<PagedResult<CustomerDto>>> ListCustomersAsync(ListQueryParams query)
     {
         if (!TryGetUserRealm(out var userId, out var realmId, out var err))
-            return ApiResponse<PagedResult<Customer>>.Fail(err!);
+            return ApiResponse<PagedResult<CustomerDto>>.Fail(err!);
         return await _read.ListPagedAsync(userId, realmId, query);
     }
 
-    public async Task<ApiResponse<Customer>> GetCustomerByIdAsync(string id)
+    public async Task<ApiResponse<CustomerDto>> GetCustomerByIdAsync(string id)
     {
         if (!TryGetUserRealm(out var userId, out var realmId, out var err))
-            return ApiResponse<Customer>.Fail(err!);
+            return ApiResponse<CustomerDto>.Fail(err!);
         return await _read.GetByQboIdAsync(userId, realmId, id);
     }
 

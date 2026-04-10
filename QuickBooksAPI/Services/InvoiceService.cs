@@ -1,7 +1,7 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
 
 namespace QuickBooksAPI.Services;
 
@@ -27,17 +27,17 @@ public sealed class InvoiceService : IInvoiceService
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
     }
 
-    public async Task<ApiResponse<IEnumerable<QBOInvoiceHeader>>> ListInvoicesAsync()
+    public async Task<ApiResponse<IEnumerable<InvoiceListItemDto>>> ListInvoicesAsync()
     {
         if (!TryGetRealm(out var realmId, out var err))
-            return ApiResponse<IEnumerable<QBOInvoiceHeader>>.Fail(err!);
+            return ApiResponse<IEnumerable<InvoiceListItemDto>>.Fail(err!);
         return await _read.ListAsync(realmId);
     }
 
-    public async Task<ApiResponse<PagedResult<QBOInvoiceHeader>>> ListInvoicesAsync(ListQueryParams query)
+    public async Task<ApiResponse<PagedResult<InvoiceListItemDto>>> ListInvoicesAsync(ListQueryParams query)
     {
         if (!TryGetRealm(out var realmId, out var err))
-            return ApiResponse<PagedResult<QBOInvoiceHeader>>.Fail(err!);
+            return ApiResponse<PagedResult<InvoiceListItemDto>>.Fail(err!);
         return await _read.ListPagedAsync(realmId, query);
     }
 

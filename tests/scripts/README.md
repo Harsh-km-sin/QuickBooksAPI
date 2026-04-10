@@ -15,6 +15,15 @@ These scripts mirror key CI checks locally before commits.
 - `install-git-hooks.cmd`
   - Windows-friendly hook installer alternative
 
+- `print-operational-parity.ps1`
+  - Prints paths to `tests/docs` operational parity / smoke checklists (also run from CI after tests), then runs `verify-dev-prerequisites.ps1 -Ci`.
+
+- `verify-dev-prerequisites.ps1`
+  - Ensures `QuickBooksAPI/appsettings.json` has required configuration sections and keys. Use `-Strict` locally before running the API (non-empty JWT key and connection string). Use `-Ci` in pipelines where values are empty in repo files.
+
+- `verify-phase3-objects.sql`
+  - SQL Server script to confirm Phase 3 analytics tables exist; see `tests/docs/PHASE3_DATABASE_CHECKLIST.md`.
+
 ## Usage
 
 ### Run checks manually

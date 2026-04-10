@@ -1,14 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
-using QuickBooksAPI.Services;
+using QuickBooksShared.Messages;
 
 namespace SyncWorker;
 
 /// <summary>
-/// Coordinates full-company QBO sync, warehouse rebuild, and anomaly detection (per-entity steps are listed in <see cref="BuildSteps"/>).
+/// Coordinates full-company QBO sync, warehouse rebuild, and anomaly detection. Entity steps are <see cref="IFullSyncEntitySyncStep"/> implementations registered in order.
 /// </summary>
 public sealed class FullSyncOrchestrator : IFullSyncOrchestrator
 {
@@ -17,15 +15,18 @@ public sealed class FullSyncOrchestrator : IFullSyncOrchestrator
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<FullSyncOrchestrator> _logger;
+    private readonly IReadOnlyList<IFullSyncEntitySyncStep> _syncSteps;
     private readonly IReadOnlyList<IFullSyncCompletedSubscriber> _completionSubscribers;
 
     public FullSyncOrchestrator(
         IServiceScopeFactory scopeFactory,
         ILogger<FullSyncOrchestrator> logger,
+        IEnumerable<IFullSyncEntitySyncStep> syncSteps,
         IEnumerable<IFullSyncCompletedSubscriber> completionSubscribers)
     {
         _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _syncSteps = syncSteps?.ToList() ?? throw new ArgumentNullException(nameof(syncSteps));
         _completionSubscribers = completionSubscribers?.ToList() ?? throw new ArgumentNullException(nameof(completionSubscribers));
     }
 
@@ -59,11 +60,11 @@ public sealed class FullSyncOrchestrator : IFullSyncOrchestrator
         var errors = new List<string>();
         var realmId = data.CompanyId;
 
-        foreach (var step in BuildSteps())
+        foreach (var step in _syncSteps)
         {
             cancellationToken.ThrowIfCancellationRequested();
             await SyncEntityAsync(step.EntityName, step.EntityTypeForSyncState, userId, realmId, qboSyncStateRepo,
-                () => step.Execute(sp), results, errors, cancellationToken);
+                () => step.ExecuteAsync(sp, cancellationToken), results, errors, cancellationToken);
         }
 
         try
@@ -126,52 +127,6 @@ public sealed class FullSyncOrchestrator : IFullSyncOrchestrator
             Errors = errors
         };
     }
-
-    private static IReadOnlyList<FullSyncEntityStep> BuildSteps() =>
-    [
-        new("Customers", "Customer", static async sp =>
-        {
-            var svc = sp.GetRequiredService<ICustomerService>();
-            var result = await svc.GetCustomersAsync();
-            return result.Data;
-        }),
-        new("Vendors", "Vendors", static async sp =>
-        {
-            var svc = sp.GetRequiredService<IVendorService>();
-            var result = await svc.GetVendorsAsync();
-            return result.Data;
-        }),
-        new("Products", "Products", static async sp =>
-        {
-            var svc = sp.GetRequiredService<IProductService>();
-            var result = await svc.GetProductsAsync();
-            return result.Data;
-        }),
-        new("ChartOfAccounts", "Chart_Of_Accounts", static async sp =>
-        {
-            var svc = sp.GetRequiredService<IChartOfAccountsService>();
-            var result = await svc.syncChartOfAccounts();
-            return result.Data;
-        }),
-        new("Invoices", "Invoice", static async sp =>
-        {
-            var svc = sp.GetRequiredService<IInvoiceService>();
-            var result = await svc.SyncInvoicesAsync();
-            return result.Data;
-        }),
-        new("Bills", "Bills", static async sp =>
-        {
-            var svc = sp.GetRequiredService<IBillService>();
-            var result = await svc.SyncBillsAsync();
-            return result.Data;
-        }),
-        new("JournalEntries", "Manual_Journals", static async sp =>
-        {
-            var svc = sp.GetRequiredService<IJournalEntryService>();
-            var result = await svc.SyncJournalEntriesAsync();
-            return result.Data;
-        })
-    ];
 
     private async Task SyncEntityAsync(
         string entityName,
@@ -248,9 +203,4 @@ public sealed class FullSyncOrchestrator : IFullSyncOrchestrator
 
         errors.Add($"{entityName}: {lastException!.Message}");
     }
-
-    private readonly record struct FullSyncEntityStep(
-        string EntityName,
-        string EntityTypeForSyncState,
-        Func<IServiceProvider, Task<int>> Execute);
 }

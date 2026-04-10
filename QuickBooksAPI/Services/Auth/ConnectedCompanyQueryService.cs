@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Logging;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Repos;
-
 namespace QuickBooksAPI.Services.Auth;
 
 public class ConnectedCompanyQueryService : IConnectedCompanyQueryService

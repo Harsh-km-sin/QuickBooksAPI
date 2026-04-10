@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { chartOfAccountsApi } from '@/api/client';
+import { chartOfAccountsApi } from '@/api/chartOfAccountsApi';
 import type { ChartOfAccounts, ListQueryParams } from '@/types';
 import { toast } from 'sonner';
 

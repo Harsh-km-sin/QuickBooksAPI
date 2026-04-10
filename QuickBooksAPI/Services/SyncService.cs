@@ -1,8 +1,7 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
 using QuickBooksAPI.Infrastructure.Queue;
+using QuickBooksShared.Messages;
 
 namespace QuickBooksAPI.Services
 {
@@ -28,6 +27,7 @@ namespace QuickBooksAPI.Services
 
             var msg = new FullSyncMessage
             {
+                SchemaVersion = 1,
                 CompanyId = companyId,
                 UserId = userId,
                 RequestedAt = DateTime.UtcNow

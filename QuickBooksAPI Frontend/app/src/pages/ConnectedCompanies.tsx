@@ -1,8 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { useQuickBooks } from '@/hooks/useQuickBooks';
-import { companyApi, setRealmId } from '@/api/client';
+import { useAuth, useQuickBooks } from '@/features/auth';
+import { companyApi, setRealmId, useConnectedCompanies } from '@/features/company';
 import type { ConnectedCompany } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,32 +46,11 @@ export function ConnectedCompanies() {
   const { user, currentRealmId, setCurrentRealm } = useAuth();
   const { connect, isConnecting } = useQuickBooks();
   const { theme } = useTheme();
-  const [companies, setCompanies] = useState<ConnectedCompany[]>([]);
   const [connectImageError, setConnectImageError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  const fetchCompanies = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await companyApi.getConnectedCompanies();
-      if (response.success && response.data) {
-        setCompanies(response.data);
-      } else {
-        setCompanies([]);
-      }
-    } catch {
-      setCompanies([]);
-      toast.error('Failed to load connected companies');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCompanies();
-  }, [fetchCompanies]);
+  const { companies, loading: isLoading, refetch } = useConnectedCompanies();
 
   // Handle OAuth callback redirect from backend (?oauth=success | ?oauth=error&message=...)
   useEffect(() => {
@@ -83,7 +61,7 @@ export function ConnectedCompanies() {
       toast.success('QuickBooks connected successfully.', {
         description: 'Your company has been linked. You may need to log out and back in to see it in the sidebar.',
       });
-      fetchCompanies();
+      void refetch();
     } else if (oauth === 'error') {
       toast.error('QuickBooks connection failed', {
         description: message ? decodeURIComponent(message) : 'Please try again.',
@@ -94,7 +72,7 @@ export function ConnectedCompanies() {
     next.delete('oauth');
     next.delete('message');
     setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams, fetchCompanies]);
+  }, [searchParams, setSearchParams, refetch]);
 
   const handleDisconnect = async (company: ConnectedCompany) => {
     setDisconnectingId(company.qboRealmId);
@@ -104,7 +82,7 @@ export function ConnectedCompanies() {
         toast.success('Company disconnected', {
           description: response.message ?? undefined,
         });
-        await fetchCompanies();
+        await refetch();
       } else {
         toast.error(response.message ?? 'Failed to disconnect');
       }

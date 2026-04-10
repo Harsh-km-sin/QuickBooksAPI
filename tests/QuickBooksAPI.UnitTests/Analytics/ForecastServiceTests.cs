@@ -1,7 +1,6 @@
 using Moq;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
 using QuickBooksAPI.Features.Forecast;
 
 namespace QuickBooksAPI.UnitTests.Analytics;

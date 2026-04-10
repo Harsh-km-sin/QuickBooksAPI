@@ -1,8 +1,8 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
+using QuickBooksAPI.Application.Mapping;
 
 namespace QuickBooksAPI.Services.Bills;
 
@@ -15,30 +15,30 @@ public sealed class BillReadService : IBillReadService
         _billRepository = billRepository ?? throw new ArgumentNullException(nameof(billRepository));
     }
 
-    public async Task<ApiResponse<IEnumerable<QBOBillHeader>>> ListAsync(string realmId)
+    public async Task<ApiResponse<IEnumerable<BillListItemDto>>> ListAsync(string realmId)
     {
         var bills = await _billRepository.GetAllByRealmAsync(realmId);
-        return ApiResponse<IEnumerable<QBOBillHeader>>.Ok(bills);
+        return ApiResponse<IEnumerable<BillListItemDto>>.Ok(bills.Select(InvoiceBillReadMapping.ToBillDto));
     }
 
-    public async Task<ApiResponse<PagedResult<QBOBillHeader>>> ListPagedAsync(string realmId, ListQueryParams query)
+    public async Task<ApiResponse<PagedResult<BillListItemDto>>> ListPagedAsync(string realmId, ListQueryParams query)
     {
         var page = query.GetPage();
         var pageSize = query.GetPageSize();
         var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
         var result = await _billRepository.GetPagedByRealmAsync(realmId, page, pageSize, search);
-        return ApiResponse<PagedResult<QBOBillHeader>>.Ok(result);
+        return ApiResponse<PagedResult<BillListItemDto>>.Ok(InvoiceBillReadMapping.ToBillDtoPaged(result));
     }
 
-    public async Task<ApiResponse<QBOBillHeader>> GetByIdAsync(string realmId, string id)
+    public async Task<ApiResponse<BillListItemDto>> GetByIdAsync(string realmId, string id)
     {
         if (string.IsNullOrWhiteSpace(id))
-            return ApiResponse<QBOBillHeader>.Fail("Bill id is required.");
+            return ApiResponse<BillListItemDto>.Fail("Bill id is required.");
 
         var bill = await _billRepository.GetByQboBillIdAsync(realmId, id.Trim());
         if (bill == null)
-            return ApiResponse<QBOBillHeader>.Fail("Bill not found.");
+            return ApiResponse<BillListItemDto>.Fail("Bill not found.");
 
-        return ApiResponse<QBOBillHeader>.Ok(bill);
+        return ApiResponse<BillListItemDto>.Ok(InvoiceBillReadMapping.ToBillDto(bill));
     }
 }

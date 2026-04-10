@@ -1,3 +1,4 @@
+/** Invoice list row from `InvoiceListItemDto` (aligned with backend read APIs). */
 export interface QBOInvoiceHeader {
   invoiceId: number;
   qboInvoiceId: string;
@@ -12,7 +13,11 @@ export interface QBOInvoiceHeader {
   currencyCode: string | null;
   exchangeRate: number;
   totalAmt: number;
+  homeTotalAmt?: number;
   balance: number;
+  homeBalance?: number;
+  globalTaxCalculation?: string | null;
+  privateNote?: string | null;
   createTime: string;
   lastUpdatedTime: string;
   rawJson: string | null;

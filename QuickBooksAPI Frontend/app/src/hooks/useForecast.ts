@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { analyticsApi } from '@/api/client';
+import { analyticsApi } from '@/api/analyticsApi';
 import type { ForecastDetail, CreateForecastRequest } from '@/types';
 
 export function useForecast() {

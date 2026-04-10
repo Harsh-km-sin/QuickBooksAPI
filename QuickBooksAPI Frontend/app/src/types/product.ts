@@ -1,3 +1,6 @@
+/** API list row (maps from backend `ProductDto`; same JSON shape as legacy `Products`). */
+export type ProductDto = Products;
+
 export interface Products {
   id: number;
   qboId: string;

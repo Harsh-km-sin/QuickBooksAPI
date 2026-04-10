@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { analyticsApi } from '@/api/client';
+import { analyticsApi } from '@/api/analyticsApi';
 import type { CashRunwayResult, VendorSpend, CustomerProfitability, RevenueExpensesMonthly, Anomaly, KpiSnapshot, CloseIssue } from '@/types';
 
 interface UseAnalyticsReturn {

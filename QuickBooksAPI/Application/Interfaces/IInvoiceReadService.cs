@@ -1,12 +1,12 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
-using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.Application.Dtos;
 
 namespace QuickBooksAPI.Application.Interfaces;
 
 public interface IInvoiceReadService
 {
-    Task<ApiResponse<IEnumerable<QBOInvoiceHeader>>> ListAsync(string realmId);
+    Task<ApiResponse<IEnumerable<InvoiceListItemDto>>> ListAsync(string realmId);
 
-    Task<ApiResponse<PagedResult<QBOInvoiceHeader>>> ListPagedAsync(string realmId, ListQueryParams query);
+    Task<ApiResponse<PagedResult<InvoiceListItemDto>>> ListPagedAsync(string realmId, ListQueryParams query);
 }

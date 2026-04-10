@@ -1,8 +1,7 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
-using Vendor = QuickBooksAPI.DataAccessLayer.Models.Vendor;
 
 namespace QuickBooksAPI.Services;
 
@@ -28,17 +27,17 @@ public sealed class VendorService : IVendorService
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
     }
 
-    public async Task<ApiResponse<IEnumerable<Vendor>>> ListVendorsAsync()
+    public async Task<ApiResponse<IEnumerable<VendorDto>>> ListVendorsAsync()
     {
         if (!TryGetUserRealm(out var userId, out var realmId, out var err))
-            return ApiResponse<IEnumerable<Vendor>>.Fail(err!);
+            return ApiResponse<IEnumerable<VendorDto>>.Fail(err!);
         return await _read.ListAsync(userId, realmId);
     }
 
-    public async Task<ApiResponse<PagedResult<Vendor>>> ListVendorsAsync(ListQueryParams query)
+    public async Task<ApiResponse<PagedResult<VendorDto>>> ListVendorsAsync(ListQueryParams query)
     {
         if (!TryGetUserRealm(out var userId, out var realmId, out var err))
-            return ApiResponse<PagedResult<Vendor>>.Fail(err!);
+            return ApiResponse<PagedResult<VendorDto>>.Fail(err!);
         return await _read.ListPagedAsync(userId, realmId, query);
     }
 

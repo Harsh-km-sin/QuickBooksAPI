@@ -1,12 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, Login, Register } from '@/features/auth';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { MainLayout } from '@/components/MainLayout';
 import { Toaster } from '@/components/ui/sonner';
 import {
-  Login,
-  Register,
   Dashboard,
   ConnectedCompanies,
   Customers,

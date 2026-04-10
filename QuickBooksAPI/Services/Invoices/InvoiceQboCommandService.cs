@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Repos;
 using QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs;
 using QuickBooksService.Services;
 using Microsoft.Extensions.Logging;

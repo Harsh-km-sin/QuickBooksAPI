@@ -1,78 +1,92 @@
 # AI Readiness Improvement Roadmap - QuickBooksAPI
 
-## Current State Summary
+## Current State Summary (kept current)
 
-### Project Context (as observed)
+**Authoritative phase checklists:** `PHASE0_IMPLEMENTATION_TRACKER.md` → `PHASE3_IMPLEMENTATION_TRACKER.md`, plus `ARCHITECTURE_DEPENDENCIES.md` and `AI_GUIDELINES.md`.
+
+### Project context
 - **Solution:** `QuickBooksAPI.sln`
 - **Backend:** .NET 8 ASP.NET Core Web API (`QuickBooksAPI`)
-- **Integration Library:** .NET 8 class library (`QuickBooksService`) for QuickBooks HTTP interactions
-- **Worker:** Azure Functions v4 (`SyncWorker`) with Service Bus trigger for full sync
+- **Integration library:** .NET 8 `QuickBooksService` (QuickBooks HTTP / OAuth helpers)
+- **Worker:** Azure Functions isolated worker (`SyncWorker`) — Service Bus trigger for full sync
 - **Frontend:** React + Vite + TypeScript (`QuickBooksAPI Frontend/app`)
-- **Data Access:** Dapper + SQL Server (`DataAccessLayer/Repos`)
-- **Auth:** JWT + QuickBooks OAuth 2.0 callback flow
-- **Messaging:** Azure Service Bus queue (`qbo-full-sync`)
-- **Testing/CI:** No test project or CI workflow files were found during analysis
+- **Data access:** Dapper + SQL Server; repositories under `DataAccessLayer/Repos`
+- **Auth:** JWT for app users; QuickBooks OAuth callback and token storage; see **Auth (implemented split)** below
+- **Messaging:** Azure Service Bus (e.g. `qbo-full-sync` per typed `ServiceBusOptions`)
 
-### Dominant Architectural Pattern
-- Current style is a **layered monolith** with technical folders (`Controllers`, `Services`, `Repos`) plus:
-  - external integration project (`QuickBooksService`)
-  - asynchronous worker project (`SyncWorker`)
-- This gives partial separation, but feature ownership is spread across multiple folders/projects.
+### Tests and CI (implemented)
+- **Test projects**
+  - `tests/ArchitectureTests` — NetArch rules (e.g. controllers ↔ `DataAccessLayer.Repos`, `SqlClient` boundaries), plus SQL data-access characterization tests (`SqlDataAccessTests`).
+  - `tests/QuickBooksAPI.UnitTests` — focused unit tests (e.g. auth slices under `Auth/`, analytics where added). Run: `dotnet test QuickBooksAPI.sln -c Release`.
+- **CI:** `.github/workflows/ci.yml` — `dotnet restore/build`, **`dotnet format --verify-no-changes`**, **`dotnet test`** on the solution, .NET package vulnerability listing, frontend `npm ci` / lint / build / audit, **strict file-size** checks (`tests/scripts/check-file-size.ps1`), **Gitleaks** on PR/push to `main`/`master`.
 
-### Folder/Layout Issues
-- Feature logic is dispersed across:
-  - `QuickBooksAPI/Controllers/*`
-  - `QuickBooksAPI/Services/*`
-  - `QuickBooksAPI/DataAccessLayer/Repos/*`
-  - `QuickBooksService/Services/*`
-  - `SyncWorker/*`
-- `QuickBooksAPI/Program.cs` and `SyncWorker/Program.cs` both hold large DI/composition logic, creating drift risk.
-- Frontend API usage is centralized in one high-churn file: `QuickBooksAPI Frontend/app/src/api/client.ts`.
+### Auth (implemented split)
+- `IAuthService` is implemented by a **thin façade** `AuthServices` delegating to focused types in `QuickBooksAPI/Services/Auth/`:
+  - `IUserRegistrationService`, `IUserLoginService`, `IQboConnectionService`, `IQboTokenLifecycleService` (QBO access tokens — not app JWT), `IConnectedCompanyQueryService`
+- Field rules for sign-up live in `IUserSignUpValidator` / `UserSignUpRequestValidator`.
+- Controllers still depend on `IAuthService` for compatibility; worker registers the same slices + façade.
 
-### Data Access Pattern and Risks
-- Pattern is **Repository + Dapper + raw SQL**, with direct `new SqlConnection(...)` in most repositories.
-- Positive: repository interfaces exist.
-- Risks:
-  - repeated boilerplate and inconsistent patterns
-  - large SQL blobs with business assumptions in repository code (`FinancialWarehouseRepository`)
-  - more difficult safe edits for AI agents
+### Data access (Phase 2 baseline in place)
+- **`ISqlConnectionFactory`** + **`DatabaseOptions`** (command timeout); repositories migrated to factory-based connections; shared `AddSqlDataAccess()` used by API and worker.
+- **`ISqlExecutor`** available for consistent command definition/timeouts.
+- Warehouse: large rebuild SQL extracted (`FinancialWarehouseRebuildFactsSql`), policy constants in `WarehouseAnalyticsPolicy`; **`FinancialWarehouseRepository`** remains a **high-churn / high-fan-in** hotspot.
+- SQL conventions documented: `DataAccessLayer/SQL_CONVENTIONS.md`.
 
-### Frontend/Backend Coupling
-- Backend depends on `X-Realm-Id` header and claim extraction in middleware.
-- Frontend stores auth and realm context globally (`sessionStorage`, `localStorage`) and routes all APIs through one file.
-- API contracts are typed in TS but not clearly versioned as a contract layer.
+### Explicit context (Phase 2.3)
+- **`IRequestContext`** / **`RequestContext`** (API middleware) and **`ISyncContext`** / **`SyncContext`** (worker per message). **`ICurrentUser` / ambient user types removed** — use injected context.
 
-### Messaging/Worker Gaps
-- Queue boundary exists, but message contract is not formally versioned.
-- `FullSyncWorker` acts as both trigger handler and orchestration engine, increasing coupling and edit conflicts.
+### Worker shape (Phase 2.2)
+- **`FullSyncWorker`** is a thin trigger; pipeline lives in **`IFullSyncOrchestrator` / `FullSyncOrchestrator`** with declarative steps.
+- Optional: **`IFullSyncCompletedSubscriber`** for in-process completion hooks (e.g. logging).
 
----
+### Frontend API surface (modularized)
+- Shared HTTP/token helpers: `Frontend/app/src/api/core.ts`.
+- Per-domain modules (`*Api.ts`) + thin `api/client.ts` barrel; feature imports can target modules directly or the barrel.
 
-## Main Problems Hurting AI-Driven Development
+### Dominant pattern (evolving)
+- **Layered monolith** still covers most of the API (`Controllers`, `Services`, `Repos`), but **Auth** and **Companies** now have **vertical slices** (`QuickBooksAPI/Features/Auth`, `…/Features/Companies`) with matching frontend (`features/auth`, `features/company`, `authApi` / `companyApi`). Remaining endpoints and UI are still technical-folder first; **multi-agent parallel ownership** is improved for those two slices, not yet global.
 
-| # | Problem | Where It Appears | AI Impact |
-|---|---|---|---|
-| 1 | God/overloaded service classes with mixed concerns | `Services/AuthServices.cs`, `CustomerService.cs`, `VendorService.cs`, `InvoiceService.cs` | AI cannot safely modify one responsibility without understanding unrelated logic in the same class |
-| 2 | Overloaded worker orchestrator | `SyncWorker/FullSyncWorker.cs` | Parallel changes collide; one bugfix can affect multiple sync paths |
-| 3 | Monolithic frontend API layer | `Frontend/app/src/api/client.ts` | Any API change creates broad conflict surface and high merge risk |
-| 4 | DI duplication and composition sprawl | `QuickBooksAPI/Program.cs`, `SyncWorker/Program.cs`, `Infrastructure/DependencyInjection.cs` | AI must track multiple registration sites; drift causes runtime failures |
-| 5 | Scattered string-based configuration | `_config["..."]` access in multiple services/programs | Magic strings are easy to copy incorrectly and hard to validate globally |
-| 6 | SQL + business assumptions mixed in infra | `FinancialWarehouseRepository.cs` | Business logic is split between C# and SQL, reducing local comprehensibility |
-| 7 | Ambient context coupling | `CurrentUserMiddleware`, `CurrentUser`, `SyncCurrentUser` | Hidden runtime dependencies make isolated edits/testing harder |
-| 8 | Missing architecture test guardrails | No architecture test project/CI enforcement observed | AI and human refactors can silently violate boundaries |
+### Remaining pressure points for AI-assisted work
+- **`SyncWorker/Program.cs`:** small but not unified with the API into a single shared `AddApplicationStack()` (hosts differ by design: Functions vs Kestrel).
+- **Queue contracts:** `FullSyncMessage` is versioned in `QuickBooksShared`; broader Phase 4 naming (`FullSyncRequestedV1`-style envelopes) is optional.
+- **Frontend:** per-domain `*Api.ts` + thin `client.ts` barrel is in place; further import-only refactors are optional.
+- **Operational parity:** DB/schema must still match code for analytics; **`verify-dev-prerequisites.ps1`** (CI: `-Ci`) and **`verify-phase3-objects.sql`** add automated structure/table checks beyond doc links alone.
 
 ---
 
-## Target Outcome (Before vs After)
+## Main problems vs mitigations (living document)
 
-### Before (Current)
+Original audit issues are **not all open**. Use this table to see **what still hurts** vs what has been **addressed** (do not regress).
+
+| # | Topic | Status | Notes |
+|---|--------|--------|--------|
+| 1 | Overloaded auth service | **Mitigated** | `Services/Auth/*` + façade; unit tests in `tests/QuickBooksAPI.UnitTests/Auth` |
+| 2 | God classes for core entities | **Mitigated** | Customer/Vendor/Invoice/Bill split into `Services/<Area>/*` + thin façades |
+| 3 | Worker orchestration in one class | **Mitigated** | `IFullSyncOrchestrator` / `FullSyncOrchestrator`; thin `FullSyncWorker` |
+| 4 | Monolithic frontend API | **Partial** | `api/core.ts`, `analyticsApi.ts`, barrel `client.ts` — Phase 6 still targets full feature modules |
+| 5 | DI sprawl across hosts | **Partial** | API host composition split into `Infrastructure/QuickBooksApiWebApplicationBuilderExtensions` + `QuickBooksApiWebApplicationExtensions`; repos still registered in `AddInfrastructure` |
+| 6 | Magic string configuration | **Mitigated** | Typed options in `QuickBooksShared`; `IOptions<>` in consumers (see Phase 1 tracker) |
+| 7 | SQL + policy in warehouse | **Partial** | `WarehouseAnalyticsPolicy`, extracted rebuild SQL; repository still large |
+| 8 | Ambient user context | **Mitigated** | `IRequestContext` / `ISyncContext`; `ICurrentUser` removed |
+| 9 | No architecture enforcement | **Mitigated** | `tests/ArchitectureTests` + CI `dotnet test`; NetArch rules on key edges |
+| 10 | Technical folders vs features | **Partial** | Entity HTTP in `Features/*`; QBO adapter DI grouped under `Integrations/QuickBooks/` |
+
+---
+
+## Target Outcome (Baseline vs today vs desired)
+
+### Baseline (original external audit snapshot)
 - Layered technical folders with scattered feature logic.
-- Multiple overloaded classes (`AuthServices`, `FullSyncWorker`, `client.ts`).
-- String-based config and duplicated DI registration.
-- Data access patterns repeated across many repositories.
-- Weak guardrails for dependency direction and AI-safe parallel edits.
+- Overloaded `AuthServices`, monolithic worker orchestration, fat `client.ts`.
+- String-based config and inconsistent data-access wiring in many repos.
+- Little or no automated architecture enforcement.
 
-### After (Desired AI-Ready)
+### Today (2026 — after Phases 0–3 work + Auth/Companies vertical slice pilots)
+- Typed options, SQL factory/executor baseline, explicit request/sync context, auth and entity service splits, architecture tests in CI, partial frontend API split, documented dependency graph.
+- **Auth and Companies** end-to-end slices: backend `Features/Auth`, `Features/Companies`; frontend `features/auth`, `features/company`, `authApi` / `companyApi`; READMEs and barrels for ownership boundaries.
+- **Mostly layered** layout with **feature-first HTTP** and **per-domain frontend API modules**; `FullSyncMessage` versioned; architecture tests enforce key boundaries (including `Integrations` → not `Features`).
+
+### After (Desired AI-Ready end state)
 - **Feature-first modular monolith** (`Features/<FeatureName>/...`) with clear ownership.
 - **Integration abstraction layer** (`Integrations/Abstractions` + `Integrations/Providers/<Provider>`).
 - **Thin entry points** (controllers/functions) delegating to command/query handlers.
@@ -81,15 +95,16 @@
 - **Architecture tests + CI gates** enforcing dependency rules, size limits, and secrets scanning.
 - Frontend API split into **core transport + feature modules**, reducing conflict surface.
 
-### AI Readiness Score Projection
-- **Single-AI readiness:** ~4.5/10 -> ~8.5/10
-- **Multi-AI readiness:** ~4/10 -> ~8/10
+### AI readiness score (qualitative)
 
-Primary drivers:
-- Vertical slice ownership
-- Service decomposition
-- Integration contract boundaries
-- CI-enforced architecture governance
+| Lens | Original audit (approx.) | **Current (approx.)** | Target (roadmap end state) |
+|------|--------------------------|-------------------------|----------------------------|
+| Single agent / single stream | ~4.5/10 | **~8–8.5/10** | ~8–8.5/10 |
+| Multi-agent / parallel work | ~4/10 | **~7.5–8/10** | ~8/10 |
+
+**Current drivers (strengths):** service decomposition, auth tests, architecture tests in CI, explicit context, typed config, documented boundaries; **vertical slices** across auth, companies, and **entity/analytics HTTP** (`Features/*` controllers); **frontend** `client.ts` is a thin barrel with **per-domain `*Api.ts`** files; **`Features_ShouldNotDependOn_DataAccessLayer_Repos`** satisfied via `Application.Interfaces` + warehouse row types in `Models`; **`FullSyncMessage`** in `QuickBooksShared` with **`SchemaVersion`** and worker version gate; **API host** slim `Program.cs` with **Infrastructure** extensions for JWT, Swagger, CORS, rate limiting, health; **QuickBooks Online** adapter registrations in **`Integrations/QuickBooks`**; optional **DB readiness** via **`HealthChecks:IncludeDatabase`**; **operational parity** scripts (`verify-dev-prerequisites.ps1`, `verify-phase3-objects.sql`) + doc links in CI.
+
+**Still limiting parallel AI:** large **`AddInfrastructure`** repository list; **multi-provider** `Integrations/Abstractions` (e.g. Xero) not started; **no Testcontainers/SQL** in default CI; further gains from **command/query handlers** and splitting worker/API shared composition if desired.
 
 ---
 
@@ -101,8 +116,10 @@ Primary drivers:
   - `IUserRegistrationService`
   - `IUserLoginService`
   - `IQboConnectionService`
-  - `ITokenLifecycleService`
+  - `IQboTokenLifecycleService` (QBO access tokens)
   - `IConnectedCompanyQueryService`
+  - plus `IUserSignUpValidator` for field rules
+- **Implemented (Phase 3):** Thin `AuthServices` façade + `Services/Auth/*`; unit tests under `tests/QuickBooksAPI.UnitTests/Auth`.
 - **Outcome:** Safer isolated edits and easier targeted tests.
 
 ### 2) Overloaded Full Sync Worker
@@ -111,6 +128,7 @@ Primary drivers:
   - `IFullSyncOrchestrator`
   - `ISyncStep` strategies (`CustomerSyncStep`, `VendorSyncStep`, etc.)
   - separate retry policy service
+- **Implemented (Phase 2.2):** Thin `FullSyncWorker` + `FullSyncOrchestrator` with declarative `FullSyncEntityStep` list; optional `IFullSyncCompletedSubscriber`. Per-entity `ISyncStep` classes and dedicated retry service remain **future hardening** (Phase 4).
 - **Outcome:** Each sync step is independently modifiable and testable.
 
 ### 3) Monolithic Frontend API Client
@@ -133,21 +151,25 @@ Primary drivers:
 ### 5) Magic String Configuration
 - **Problem:** scattered `_config["QuickBooks:..."]`, `_config["Jwt:..."]`, etc.
 - **Solution:** typed options + startup validation.
+- **Implemented (Phase 1):** `QuickBooksShared` options (`QuickBooksOptions`, `JwtOptions`, `ServiceBusOptions`, `DatabaseOptions`, etc.) and `IOptions<>` consumers; see `PHASE1_IMPLEMENTATION_TRACKER.md`.
 - **Outcome:** predictable, discoverable, and safer config evolution.
 
 ### 6) SQL and Business Logic Entanglement
 - **Problem:** business assumptions (for example fixed COGS) embedded in repository SQL.
 - **Solution:** policy extraction to application/domain + query object boundaries.
+- **Partially implemented:** `WarehouseAnalyticsPolicy`, `FinancialWarehouseRebuildFactsSql`; `FinancialWarehouseRepository` still central and large.
 - **Outcome:** business rule edits become local and testable.
 
 ### 7) Hidden Context Coupling
 - **Problem:** runtime context is ambient and mutable.
 - **Solution:** pass explicit request/sync context objects through handlers.
+- **Implemented (Phase 2.3):** `IRequestContext` / `ISyncContext`; `ICurrentUser` removed.
 - **Outcome:** clearer dependencies and safer concurrency.
 
 ### 8) No Enforced Architecture Rules
 - **Problem:** boundaries are convention-only.
 - **Solution:** architecture tests + CI failure gates.
+- **Implemented (Phase 2.4+):** `tests/ArchitectureTests` run in CI; see `DependencyRulesTests` (`UnitTest1.cs`), `SqlDataAccessTests.cs`, and `ARCHITECTURE_DEPENDENCIES.md`.
 - **Outcome:** prevents boundary erosion during AI-assisted coding.
 
 ---
@@ -180,6 +202,21 @@ Logging, Auth, Config, Correlation, Health, Telemetry
 ---
 
 ## Full Phased Implementation Plan and TODOs
+
+### Phases 0–3 (status: largely shipped)
+
+Implementation work for **Phases 0 through 3** is **mostly complete** in this repository. **Use the phase tracker files as the source of truth** for what is done vs still open:
+
+| Phase | Tracker |
+|-------|---------|
+| 0 — Foundation, CI, governance | `PHASE0_IMPLEMENTATION_TRACKER.md` |
+| 1 — Typed options / config | `PHASE1_IMPLEMENTATION_TRACKER.md` |
+| 2 — Data access, context, coupling, worker extract | `PHASE2_IMPLEMENTATION_TRACKER.md` |
+| 3 — Auth split + optional product/analytics items | `PHASE3_IMPLEMENTATION_TRACKER.md` |
+
+The **checkbox lists in the sections below** are the **original roadmap backlog**. They are **not automatically kept in sync** — agents should **not** assume an unchecked box means work is missing without reading the tracker.
+
+---
 
 ## Phase 0 - Foundation and Guardrails (Week 1)
 **Goal:** Create migration-safe base and governance controls.
@@ -386,11 +423,16 @@ Logging, Auth, Config, Correlation, Health, Telemetry
 ---
 
 ## Recommended First Sprint (2 Weeks)
-- [ ] Add scaffolding (`Features`, `Integrations`, `Contracts`, `tests`)
-- [ ] Add typed options and startup validation
-- [ ] Extract shared DI registration modules
-- [ ] Add architecture test project and baseline CI checks
-- [ ] Begin `AuthServices` decomposition (first extraction only)
-- [ ] Define and add `FullSyncRequestedV1` contract
-- [ ] Start frontend API split with `httpClient.ts` + `auth.ts` + `company.ts`
+
+**Superseded** — the items below were the **initial** sprint plan. Much of this has since landed (scaffolding, typed options, architecture tests, CI, auth decomposition, partial frontend `api/` split). **Use `PHASE0`–`PHASE3` trackers** and **Phases 4–6** below for current next steps.
+
+Historical checklist (for archive context only):
+
+- Add scaffolding (`Features`, `Integrations`, `Contracts`, `tests`)
+- Add typed options and startup validation
+- Extract shared DI registration modules
+- Add architecture test project and baseline CI checks
+- Begin `AuthServices` decomposition (first extraction only)
+- Define and add `FullSyncRequestedV1` contract
+- Start frontend API split with `httpClient.ts` + `auth.ts` + `company.ts`
 

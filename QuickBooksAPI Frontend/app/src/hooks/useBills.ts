@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { billApi } from '@/api/client';
+import { billApi } from '@/api/billApi';
 import type { QBOBillHeader, CreateBillRequest, UpdateBillRequest, DeleteBillRequest, ListQueryParams } from '@/types';
 import { toast } from 'sonner';
 

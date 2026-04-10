@@ -1,6 +1,6 @@
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces.Analytics;
-using QuickBooksAPI.DataAccessLayer.Repos;
+using QuickBooksAPI.Application.Interfaces;
 
 namespace QuickBooksAPI.Services.Analytics;
 

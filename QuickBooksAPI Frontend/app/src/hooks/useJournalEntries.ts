@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { journalEntryApi } from '@/api/client';
+import { journalEntryApi } from '@/api/journalEntryApi';
 import type { QBOJournalEntryHeader } from '@/types';
 import { toast } from 'sonner';
 

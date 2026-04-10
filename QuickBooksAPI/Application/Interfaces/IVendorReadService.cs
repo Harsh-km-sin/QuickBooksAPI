@@ -1,12 +1,12 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
-using Vendor = QuickBooksAPI.DataAccessLayer.Models.Vendor;
+using QuickBooksAPI.Application.Dtos;
 
 namespace QuickBooksAPI.Application.Interfaces;
 
 public interface IVendorReadService
 {
-    Task<ApiResponse<IEnumerable<Vendor>>> ListAsync(int userId, string realmId);
+    Task<ApiResponse<IEnumerable<VendorDto>>> ListAsync(int userId, string realmId);
 
-    Task<ApiResponse<PagedResult<Vendor>>> ListPagedAsync(int userId, string realmId, ListQueryParams query);
+    Task<ApiResponse<PagedResult<VendorDto>>> ListPagedAsync(int userId, string realmId, ListQueryParams query);
 }

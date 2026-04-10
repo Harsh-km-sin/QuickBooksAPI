@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Services.Auth;
 
 namespace QuickBooksAPI.UnitTests.Auth;

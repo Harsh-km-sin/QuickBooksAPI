@@ -20,14 +20,36 @@ jobs:
       - name: Restore
         run: dotnet restore QuickBooksAPI.sln
 
+      - name: Restore local .NET tools (OpenAPI CLI)
+        run: dotnet tool restore
+
       - name: Build
         run: dotnet build QuickBooksAPI.sln --no-restore --configuration Release
+
+      - name: Emit OpenAPI JSON (contract artifact)
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__DefaultConnection: "Server=localhost;Database=ci_openapi;User Id=sa;Password=OpenApiCiPlaceholder1!;TrustServerCertificate=True"
+          Jwt__Key: "0123456789012345678901234567890123456789012345678901234567890123"
+        run: |
+          mkdir -p artifacts
+          dotnet swagger tofile --output artifacts/openapi.json QuickBooksAPI/bin/Release/net8.0/QuickBooksAPI.dll v1
+
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-v1
+          path: artifacts/openapi.json
 
       - name: Verify formatting (full solution)
         run: dotnet format QuickBooksAPI.sln --verify-no-changes --no-restore
 
       - name: Run Unit and Architecture Tests
         run: dotnet test QuickBooksAPI.sln --no-build --configuration Release
+
+      - name: Operational parity doc pointers
+        shell: pwsh
+        run: ./tests/scripts/print-operational-parity.ps1
 
       - name: Dependency Vulnerability Scan (.NET)
         run: dotnet list QuickBooksAPI.sln package --vulnerable --include-transitive

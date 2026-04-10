@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { customerApi, productApi, vendorApi, billApi, invoiceApi } from '@/api/client';
+import { billApi } from '@/api/billApi';
+import { customerApi } from '@/api/customerApi';
+import { invoiceApi } from '@/api/invoiceApi';
+import { productApi } from '@/api/productApi';
+import { vendorApi } from '@/api/vendorApi';
 import type { DashboardStats } from '@/types';
 
 interface UseDashboardStatsReturn {

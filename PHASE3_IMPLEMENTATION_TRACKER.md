@@ -38,7 +38,9 @@ Assign **owners per track** if more than one person; if solo, **sequence** (e.g.
 - [x] `dotnet build SyncWorker/SyncWorker.csproj` (0 errors)
 - [x] `dotnet test QuickBooksAPI.sln -c Release` (pass: architecture + unit tests)
 - [x] Unit tests: `tests/QuickBooksAPI.UnitTests/Analytics/ForecastServiceTests.cs` (forecast compute + null path)
-- [ ] Track B: run [`tests/docs/TRACK_B_API_SMOKE.md`](tests/docs/TRACK_B_API_SMOKE.md) against a deployed API
+- [x] **AI readiness batch:** [`tests/scripts/verify-dev-prerequisites.ps1`](tests/scripts/verify-dev-prerequisites.ps1) `-Ci` — appsettings structure/sections OK (run in CI or locally before deploy work)
+- [ ] Track B: run [`tests/docs/TRACK_B_API_SMOKE.md`](tests/docs/TRACK_B_API_SMOKE.md) against a deployed API (requires live API + DB objects from PHASE3 checklist)
+- [ ] Full sync: execute [`tests/docs/FULLSYNC_WORKER_SMOKE.md`](tests/docs/FULLSYNC_WORKER_SMOKE.md) in an environment with Service Bus + SQL + QBO tokens (not automatable in repo CI without secrets)
 
 ---
 

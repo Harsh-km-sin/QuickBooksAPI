@@ -3,8 +3,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
+using QuickBooksShared.Messages;
 using System.Text.Json;
 
 namespace SyncWorker;
@@ -42,6 +41,14 @@ public class FullSyncWorker
             data = JsonSerializer.Deserialize<FullSyncMessage>(body);
             if (data == null || string.IsNullOrEmpty(data.CompanyId) || string.IsNullOrEmpty(data.UserId))
                 throw new InvalidOperationException("Invalid sync message: missing CompanyId or UserId.");
+
+            var version = data.SchemaVersion <= 0 ? 1 : data.SchemaVersion;
+            if (version > 1)
+            {
+                _logger.LogWarning("Unsupported FullSyncMessage schema version {Version}; completing message without processing.", data.SchemaVersion);
+                await messageActions.CompleteMessageAsync(message);
+                return;
+            }
 
             var ct = context.CancellationToken;
             await _orchestrator.RunAsync(data, ct);

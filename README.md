@@ -33,11 +33,19 @@ A .NET 8 Web API for QuickBooks Online integration. Provides JWT authentication,
 - **JWT Bearer** authentication
 - **SQL Server** with Dapper for persistence
 - **QuickBooks Online API** (via QuickBooksService library)
-- **Swagger/OpenAPI** for interactive documentation
+- **Swagger/OpenAPI** for interactive documentation (Swagger UI at runtime; **OpenAPI JSON** is also emitted in **CI** as a build artifact — see `.config/dotnet-tools.json` and `dotnet swagger tofile`).
 
 ---
 
 ## Architecture
+
+**Vertical slices (API):** HTTP entry points live under `QuickBooksAPI/Features/` (auth, companies, CRUD entities, analytics, CFO assistant, etc.). See [`QuickBooksAPI/Features/README.md`](QuickBooksAPI/Features/README.md). The React app uses `QuickBooksAPI Frontend/app/src/features/*` and `app/src/api/*Api.ts` modules.
+
+**Host composition:** [`Program.cs`](QuickBooksAPI/Program.cs) delegates to [`QuickBooksApiWebApplicationBuilderExtensions.cs`](QuickBooksAPI/Infrastructure/QuickBooksApiWebApplicationBuilderExtensions.cs) and [`QuickBooksApiWebApplicationExtensions.cs`](QuickBooksAPI/Infrastructure/QuickBooksApiWebApplicationExtensions.cs) for JWT, Swagger, CORS, rate limiting, and health endpoints.
+
+**External integrations:** QuickBooks Online HTTP/OAuth adapter registrations live under [`QuickBooksAPI/Integrations/QuickBooks/`](QuickBooksAPI/Integrations/QuickBooks/README.md) (implementations remain in the `QuickBooksService` project). Provider-agnostic boundaries for migrating consumers live under [`QuickBooksAPI/Integrations/Abstractions/`](QuickBooksAPI/Integrations/Abstractions/README.md) (e.g. vendor sync gateway pilot).
+
+**Infrastructure DI:** SQL repository registration is split into partial `DependencyInjection` files (core entity repos vs analytics/warehouse); application services are split into [`QuickBooksApplicationServiceCollectionExtensions`](QuickBooksAPI/Infrastructure/QuickBooksApplicationServiceCollectionExtensions.cs) (auth/integration vs entity façades).
 
 ```mermaid
 flowchart TB
@@ -51,7 +59,7 @@ flowchart TB
         MW3[RateLimiter]
         MW4[CORS]
         MW5[CurrentUserMiddleware]
-        CTRL[Controllers]
+        CTRL[Controllers and Features controllers]
         SVC[Services]
         REPO[Repositories]
     end
@@ -82,6 +90,14 @@ flowchart TB
 3. RateLimiter – enforces request limits
 4. CORS
 5. CurrentUserMiddleware – extracts UserId and RealmId from JWT/headers
+
+### Operational parity (DB, smoke, workers)
+
+Before relying on analytics, full sync, or timers locally or in CI, align the database and configuration with these runbooks:
+
+- [tests/docs/PHASE3_DATABASE_CHECKLIST.md](tests/docs/PHASE3_DATABASE_CHECKLIST.md) — warehouse / Track B tables
+- [tests/docs/TRACK_B_API_SMOKE.md](tests/docs/TRACK_B_API_SMOKE.md) — CFO analytics API smoke
+- [tests/docs/FULLSYNC_WORKER_SMOKE.md](tests/docs/FULLSYNC_WORKER_SMOKE.md) — Service Bus `FullSyncMessage` contract and SyncWorker
 
 ---
 
@@ -223,7 +239,9 @@ All API responses use the `ApiResponse<T>` wrapper:
 | GET | /api/chartofaccounts/sync | Yes | Sync chart of accounts from QuickBooks |
 | GET | /api/journalentry/list | Yes | List journal entries from DB |
 | GET | /api/journalentry/sync | Yes | Sync journal entries from QuickBooks |
-| GET | /health | No | Health check |
+| GET | /health | No | Readiness (same as `/health/ready`) |
+| GET | /health/ready | No | Readiness: process + optional DB probe |
+| GET | /health/live | No | Liveness: process only |
 
 ---
 
@@ -237,7 +255,7 @@ Full-company sync runs asynchronously via a separate **SyncWorker** Azure Functi
 - The worker:
   - Sets sync status via `ISyncStatusRepository` (`Queued` → `Running` → `Completed` / `PartiallyFailed` / `Failed`).
   - Sets scoped `IRequestContext` / `ISyncContext` via `SyncContext` (UserId + RealmId + optional CorrelationId from the message).
-  - Calls the existing services to sync **Customers, Vendors, Products, Chart of Accounts, Invoices, Bills, Journal Entries**, updating `IQboSyncStateRepository` per entity.
+  - Runs entity syncs through **`IFullSyncEntitySyncStep`** implementations in [`SyncWorker/Steps/`](SyncWorker/Steps/), registered in order in [`SyncWorker/Program.cs`](SyncWorker/Program.cs); each step calls the same domain services for **Customers, Vendors, Products, Chart of Accounts, Invoices, Bills, Journal Entries**, updating `IQboSyncStateRepository` per entity.
   - Retries each entity up to 3 times, then records errors if they persist.
 
 **Configuration:**
@@ -994,6 +1012,7 @@ For frontend implementation:
 | Cors | AllowedOrigins | Array of allowed origins |
 | RateLimiting | PermitLimit | Requests per window (default 100) |
 | RateLimiting | WindowSeconds | Window in seconds (default 60) |
+| HealthChecks | IncludeDatabase | When `true`, `/health` and `/health/ready` probe SQL (`SELECT 1`); default `false` |
 
 For local development, use User Secrets (see USER_SECRETS.md).
 
@@ -1010,4 +1029,7 @@ For local development, use User Secrets (see USER_SECRETS.md).
 
 ## Health Check
 
-- **GET /health** – Returns 200 when the service is healthy. No authentication required.
+- **GET /health** and **GET /health/ready** – Readiness: returns 200 when the process is healthy and (if enabled) SQL Server is reachable. No authentication required.
+- **GET /health/live** – Liveness: returns 200 when the process is up (does not probe the database).
+
+Set **`HealthChecks:IncludeDatabase`** to `true` in configuration (or user secrets) to add a `SELECT 1` probe against `ConnectionStrings:DefaultConnection`. Default is `false` so local runs and tests are not forced to have a live database for a passing readiness check.

@@ -2,9 +2,9 @@ using System.Text.Json;
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
 using QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs;
-using QuickBooksService.Services;
+using QuickBooksAPI.Integrations.Abstractions;
+using QuickBooksAPI.Services.Sync;
 using Microsoft.Extensions.Logging;
 using Vendor = QuickBooksAPI.DataAccessLayer.Models.Vendor;
 
@@ -13,20 +13,20 @@ namespace QuickBooksAPI.Services.Vendors;
 public sealed class VendorQboSyncService : IVendorQboSyncService
 {
     private readonly IAuthService _authService;
-    private readonly IQuickBooksVendorService _vendorService;
+    private readonly IVendorAccountingSyncGateway _vendorSyncGateway;
     private readonly IVendorRepository _vendorRepository;
     private readonly IQboSyncStateRepository _qboSyncStateRepository;
     private readonly ILogger<VendorQboSyncService> _logger;
 
     public VendorQboSyncService(
         IAuthService authService,
-        IQuickBooksVendorService vendorService,
+        IVendorAccountingSyncGateway vendorSyncGateway,
         IVendorRepository vendorRepository,
         IQboSyncStateRepository qboSyncStateRepository,
         ILogger<VendorQboSyncService> logger)
     {
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
-        _vendorService = vendorService ?? throw new ArgumentNullException(nameof(vendorService));
+        _vendorSyncGateway = vendorSyncGateway ?? throw new ArgumentNullException(nameof(vendorSyncGateway));
         _vendorRepository = vendorRepository ?? throw new ArgumentNullException(nameof(vendorRepository));
         _qboSyncStateRepository = qboSyncStateRepository ?? throw new ArgumentNullException(nameof(qboSyncStateRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -48,14 +48,13 @@ public sealed class VendorQboSyncService : IVendorQboSyncService
                 .GetLastUpdatedAfterAsync(userId, realmId, QboEntityType.Vendors.ToString());
             var isFirstSync = !lastUpdatedAfter.HasValue;
 
-            if (lastUpdatedAfter.HasValue && lastUpdatedAfter.Value.Kind != DateTimeKind.Utc)
-                lastUpdatedAfter = DateTime.SpecifyKind(lastUpdatedAfter.Value, DateTimeKind.Utc);
+            lastUpdatedAfter = QboSyncTimeHelper.NormalizeLastUpdatedAfterFromDb(lastUpdatedAfter);
 
             DateTime? maxUpdatedTime = null;
 
             while (true)
             {
-                var json = await _vendorService.GetVendorsAsync(
+                var json = await _vendorSyncGateway.FetchVendorsPageAsync(
                     token.AccessToken,
                     realmId,
                     startPosition,
@@ -95,10 +94,7 @@ public sealed class VendorQboSyncService : IVendorQboSyncService
 
             if (totalSynced > 0 && maxUpdatedTime.HasValue)
             {
-                var timeToStore = maxUpdatedTime.Value;
-                var nowUtc = DateTime.UtcNow;
-                if (timeToStore > nowUtc.AddSeconds(30))
-                    timeToStore = nowUtc;
+                var timeToStore = QboSyncTimeHelper.ClampFutureSyncTimestampUtc(maxUpdatedTime.Value);
 
                 await _qboSyncStateRepository.UpdateLastUpdatedAfterAsync(
                     userId,

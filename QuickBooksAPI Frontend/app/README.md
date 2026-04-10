@@ -19,25 +19,36 @@ A modern React frontend for the QuickBooks Online accounting integration platfor
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui (based on Radix UI)
-- **State Management**: React Context API
-- **Data Fetching**: Custom hooks with fetch API
+- **State Management**: React Context API (`features/auth` for session and realm selection)
+- **Data Fetching**: Custom hooks with a shared HTTP core (`api/core.ts`) and one module per domain (`api/*Api.ts`); optional barrel `api/client.ts` re-exports for convenience
 - **Charts**: Recharts
 - **Notifications**: Sonner toast notifications
 - **Routing**: React Router v6
 
 ## Project Structure
 
+Vertical slices for cross-cutting domains live under `src/features/` (e.g. **auth**, **company**). Shared HTTP helpers are in `api/core.ts`. Each domain exposes `api/<domain>Api.ts` (e.g. `customerApi.ts`, `analyticsApi.ts`). `api/client.ts` is an optional barrel that re-exports core + all `*Api` modules — prefer importing from `@/api/<name>Api` in app code for clearer ownership.
+
 ```
 src/
 ├── api/
-│   └── client.ts          # API client with fetch, interceptors, and error handling
+│   ├── core.ts            # Base URL, jwt/realm storage, apiClient, ApiError
+│   ├── authApi.ts         # Login, sign-up, logout, QuickBooks OAuth URL/callback
+│   ├── companyApi.ts      # Connected companies, sync, disconnect
+│   ├── analyticsApi.ts    # CFO / dashboard analytics
+│   ├── customerApi.ts … assistantApi.ts  # Entity + assistant APIs (one file per domain)
+│   ├── listQuery.ts       # Shared list query string builder
+│   └── client.ts          # Barrel: re-exports core + all *Api modules
+├── features/
+│   ├── auth/              # Auth slice: AuthProvider, useAuth, useQuickBooks, Login, Register
+│   │   └── README.md
+│   └── company/           # Company/realm slice: useConnectedCompanies, companyApi helpers
+│       └── README.md
 ├── components/
 │   ├── ui/                # shadcn/ui components
 │   ├── MainLayout.tsx     # Main layout with sidebar and navigation
 │   ├── ProtectedRoute.tsx # Route guard for authenticated routes
 │   └── theme-provider.tsx # Dark/light mode provider
-├── context/
-│   └── AuthContext.tsx    # Authentication state management
 ├── hooks/
 │   ├── useCustomers.ts    # Customer data operations
 │   ├── useProducts.ts     # Product data operations
@@ -46,24 +57,37 @@ src/
 │   ├── useInvoices.ts     # Invoice data operations
 │   ├── useChartOfAccounts.ts
 │   ├── useJournalEntries.ts
-│   ├── useDashboardStats.ts
-│   └── useQuickBooks.ts   # QuickBooks OAuth connection
+│   └── useDashboardStats.ts
 ├── pages/
-│   ├── Login.tsx
-│   ├── Register.tsx
 │   ├── Dashboard.tsx
+│   ├── ConnectedCompanies.tsx
 │   ├── Customers.tsx
 │   ├── Products.tsx
 │   ├── Vendors.tsx
 │   ├── Bills.tsx
 │   ├── Invoices.tsx
 │   ├── ChartOfAccounts.tsx
-│   └── JournalEntries.tsx
+│   ├── JournalEntries.tsx
+│   └── …                  # Other routed pages (see App.tsx)
+├── pages/index.ts         # Re-exports pages; Login/Register come from @/features/auth
 ├── types/
-│   └── index.ts           # TypeScript interfaces and types
+│   ├── index.ts           # Re-exports domain type modules
+│   ├── common.ts, auth.ts, customer.ts, …  # Domain-specific interfaces
 ├── App.tsx
 └── main.tsx
 ```
+
+See `src/features/auth/README.md` and `src/features/company/README.md` for slice boundaries and imports.
+
+### Company slice (summary)
+
+The **company / realm** vertical slice groups everything that lists QuickBooks-linked companies, drives **full sync** and **sync status**, **disconnect**, and **realm selection** (`X-Realm-Id`):
+
+- **HTTP:** [`api/companyApi.ts`](src/api/companyApi.ts) — calls `api/company/*` (split out from the main `client` barrel for focused edits).
+- **Feature code:** [`features/company/`](src/features/company/) — `useConnectedCompanies`, re-exports of `companyApi` and `setRealmId` / `getRealmId` from [`index.ts`](src/features/company/index.ts); consumed by **Connected Companies** and **MainLayout** (sidebar company switcher).
+- **Backend:** `CompanyController` lives under `QuickBooksAPI/Features/Companies/` (not `Controllers/`).
+
+Import auth vs company explicitly: `@/features/auth` and `@/features/company` (do not merge concerns in a single feature folder).
 
 ## Getting Started
 
@@ -176,12 +200,14 @@ The dashboard includes:
 
 ### Adding New Entities
 
-1. Create TypeScript interface in `src/types/index.ts`
-2. Add API methods in `src/api/client.ts`
+1. Add or extend TypeScript types in `src/types/<domain>.ts` and export from `src/types/index.ts`
+2. Add API methods in `src/api/<feature>Api.ts` (and optionally re-export from `src/api/client.ts`)
 3. Create custom hook in `src/hooks/`
 4. Create page component in `src/pages/`
 5. Add route in `src/App.tsx`
 6. Add navigation item in `src/components/MainLayout.tsx`
+
+Authentication and QuickBooks OAuth connection live in **`src/features/auth`** — do not add a second auth context under `context/`.
 
 ### Theming
 
@@ -241,7 +267,7 @@ The `dist/` folder can be deployed to any static hosting service:
 ### State Management
 
 - Server state: Custom hooks with fetch API
-- Client state: React Context API
+- Client state: React Context API (`AuthProvider` / `useAuth` from `@/features/auth`)
 - Form state: Controlled components with useState
 
 ### Performance

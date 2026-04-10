@@ -1,4 +1,4 @@
-using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksShared.Messages;
 
 namespace QuickBooksAPI.Application.Interfaces;
 

@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs;
 using QuickBooksAPI.Services.Auth;
 using QuickBooksService.Services;

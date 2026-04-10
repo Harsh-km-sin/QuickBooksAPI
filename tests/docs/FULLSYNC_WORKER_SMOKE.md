@@ -14,10 +14,11 @@ Validates the path: **API (or manual)** → **Azure Service Bus queue `qbo-full-
 
 ## Message contract
 
-Payload is JSON for `QuickBooksAPI.DataAccessLayer.Models.FullSyncMessage`. The API publisher uses `JsonSerializer.Serialize` with **default** naming (**PascalCase** property names):
+Payload type: `QuickBooksShared.Messages.FullSyncMessage` (shared by API publisher and SyncWorker). Serialize with **default** JSON naming (**PascalCase** property names). **`SchemaVersion`** is required for new messages (`1` = current shape). Messages without `SchemaVersion` in the JSON deserialize as `0` and are treated as **version 1** for compatibility. **Deploy API and SyncWorker together** when changing this contract.
 
 ```json
 {
+  "SchemaVersion": 1,
   "CompanyId": "<QBO realm id>",
   "UserId": "<app user id as string>",
   "RequestedAt": "2026-04-03T12:00:00Z",
@@ -25,7 +26,7 @@ Payload is JSON for `QuickBooksAPI.DataAccessLayer.Models.FullSyncMessage`. The 
 }
 ```
 
-If you hand-author JSON for the queue, match **PascalCase** unless you configure `PropertyNamingPolicy` on both ends.
+If you hand-author JSON for the queue, match **PascalCase** unless you configure `PropertyNamingPolicy` on both ends. Unknown `SchemaVersion` values greater than **1** cause the worker to log a warning and **complete the message without processing** (avoid poison retries until a handler exists).
 
 ## Path A — Trigger from API (recommended)
 
@@ -35,6 +36,7 @@ If you hand-author JSON for the queue, match **PascalCase** unless you configure
 4. Watch **SyncWorker** logs for:
    - `Received sync message: ...`
    - `Full sync starting CorrelationId=...`
+   - Per-entity `Syncing {Entity}...` lines in **registration order** (`IFullSyncEntitySyncStep` in `SyncWorker/Program.cs`: Customers → Vendors → Products → Chart of Accounts → Invoices → Bills → Journal Entries).
    - Completion or structured error.
 
 ## Path B — Send message manually (Service Bus Explorer / Azure CLI)

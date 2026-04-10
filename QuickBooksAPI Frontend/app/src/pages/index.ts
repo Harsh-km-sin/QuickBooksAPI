@@ -1,5 +1,4 @@
-export { Login } from './Login';
-export { Register } from './Register';
+export { Login, Register } from '@/features/auth';
 export { Dashboard } from './Dashboard';
 export { ConnectedCompanies } from './ConnectedCompanies';
 export { Customers } from './Customers';

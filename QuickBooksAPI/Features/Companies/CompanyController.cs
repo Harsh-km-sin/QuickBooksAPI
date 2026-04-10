@@ -1,0 +1,92 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using QuickBooksAPI.API.DTOs.Request;
+using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Interfaces;
+
+namespace QuickBooksAPI.Features.Companies;
+
+[Route("api/[controller]")]
+[ApiController]
+[Authorize]
+public class CompanyController : ControllerBase
+{
+    private readonly IRequestContext _requestContext;
+    private readonly ISyncService _syncService;
+    private readonly IAuthService _authServices;
+
+    public CompanyController(IRequestContext requestContext, ISyncService syncService, IAuthService authServices)
+    {
+        _requestContext = requestContext;
+        _syncService = syncService;
+        _authServices = authServices;
+    }
+
+    [HttpPost("sync/full")]
+    public async Task<IActionResult> FullSync([FromBody] SyncRequestDto dto)
+    {
+        var userId = _requestContext.UserId;
+        var realmId = _requestContext.RealmId;
+
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(realmId))
+            return Unauthorized(new { success = false, message = "User context is missing." });
+
+        try
+        {
+            await _syncService.StartFullSyncAsync(realmId, userId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { success = false, message = ex.Message });
+        }
+
+        return Accepted(new
+        {
+            success = true,
+            message = "Full sync queued successfully",
+            companyId = realmId
+        });
+    }
+
+    [HttpGet("sync/status")]
+    public async Task<IActionResult> GetSyncStatus()
+    {
+        var realmId = _requestContext.RealmId;
+
+        if (string.IsNullOrEmpty(realmId))
+            return Unauthorized(new { success = false, message = "User context is missing." });
+
+        var status = await _syncService.GetSyncStatusAsync(realmId);
+        return Ok(new { success = true, data = status });
+    }
+
+    [HttpPost("disconnect")]
+    public async Task<IActionResult> Disconnect([FromBody] DisconnectQboRequest request)
+    {
+        var userId = _requestContext.UserId;
+        if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var parsedUserId))
+            return Unauthorized("User ID claim is missing or invalid.");
+
+        if (request == null || string.IsNullOrWhiteSpace(request.RealmId))
+            return BadRequest(ApiResponse<string>.Fail("RealmId is required."));
+
+        var response = await _authServices.DisconnectQboAsync(parsedUserId, request.RealmId.Trim());
+        if (!response.Success)
+            return BadRequest(response);
+        return Ok(response);
+    }
+
+    [HttpGet("connected-companies")]
+    public async Task<IActionResult> GetConnectedCompanies()
+    {
+        var userId = _requestContext.UserId;
+        if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var parsedUserId))
+            return Unauthorized("User ID claim is missing or invalid.");
+
+        var response = await _authServices.GetConnectedCompaniesAsync(parsedUserId);
+        if (!response.Success)
+            return BadRequest(response);
+
+        return Ok(response);
+    }
+}

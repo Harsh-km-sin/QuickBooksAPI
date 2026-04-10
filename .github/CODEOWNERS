@@ -1,0 +1,18 @@
+# Code ownership — replace @PLACEHOLDER_REPLACE_WITH_TEAM with your GitHub org team(s) or @username(s).
+# Invalid handles are ignored by GitHub until updated. See AI_GUIDELINES.md Definition of Done (Multi-AI).
+
+* @PLACEHOLDER_REPLACE_WITH_TEAM
+
+# Backend vertical slices
+/QuickBooksAPI/Features/ @PLACEHOLDER_REPLACE_WITH_TEAM
+/QuickBooksAPI/Services/ @PLACEHOLDER_REPLACE_WITH_TEAM
+/QuickBooksAPI/Application/ @PLACEHOLDER_REPLACE_WITH_TEAM
+/QuickBooksAPI/Infrastructure/ @PLACEHOLDER_REPLACE_WITH_TEAM
+/QuickBooksAPI/Integrations/ @PLACEHOLDER_REPLACE_WITH_TEAM
+
+# Worker
+/SyncWorker/ @PLACEHOLDER_REPLACE_WITH_TEAM
+
+# Frontend (path contains space — quote-style not supported; use literal path from repo root)
+/QuickBooksAPI Frontend/app/src/api/ @PLACEHOLDER_REPLACE_WITH_TEAM
+/QuickBooksAPI Frontend/app/src/features/ @PLACEHOLDER_REPLACE_WITH_TEAM

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.DataAccessLayer.Repos;
+using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Services.Auth;
 using QuickBooksShared.Options;
 

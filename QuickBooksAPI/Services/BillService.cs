@@ -1,7 +1,7 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
 
 namespace QuickBooksAPI.Services;
 
@@ -27,24 +27,24 @@ public sealed class BillService : IBillService
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
     }
 
-    public async Task<ApiResponse<IEnumerable<QBOBillHeader>>> ListBillsAsync()
+    public async Task<ApiResponse<IEnumerable<BillListItemDto>>> ListBillsAsync()
     {
         if (!TryGetRealm(out var realmId, out var err))
-            return ApiResponse<IEnumerable<QBOBillHeader>>.Fail(err!);
+            return ApiResponse<IEnumerable<BillListItemDto>>.Fail(err!);
         return await _read.ListAsync(realmId);
     }
 
-    public async Task<ApiResponse<PagedResult<QBOBillHeader>>> ListBillsAsync(ListQueryParams query)
+    public async Task<ApiResponse<PagedResult<BillListItemDto>>> ListBillsAsync(ListQueryParams query)
     {
         if (!TryGetRealm(out var realmId, out var err))
-            return ApiResponse<PagedResult<QBOBillHeader>>.Fail(err!);
+            return ApiResponse<PagedResult<BillListItemDto>>.Fail(err!);
         return await _read.ListPagedAsync(realmId, query);
     }
 
-    public async Task<ApiResponse<QBOBillHeader>> GetBillByIdAsync(string id)
+    public async Task<ApiResponse<BillListItemDto>> GetBillByIdAsync(string id)
     {
         if (!TryGetRealm(out var realmId, out var err))
-            return ApiResponse<QBOBillHeader>.Fail(err!);
+            return ApiResponse<BillListItemDto>.Fail(err!);
         return await _read.GetByIdAsync(realmId, id);
     }
 

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { analyticsApi } from '@/api/client';
+import { analyticsApi } from '@/api/analyticsApi';
 import type { Entity, ConsolidatedPnlRow } from '@/types';
 import {
   TrendingUp,

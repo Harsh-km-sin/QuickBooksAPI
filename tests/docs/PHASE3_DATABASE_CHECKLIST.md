@@ -20,6 +20,8 @@ SELECT OBJECT_ID('dbo.dim_entity', 'U'), OBJECT_ID('dbo.fact_consolidated_pnl', 
 
 Expect non-`NULL` object ids after scripts succeed.
 
+**Automated query file:** run [`tests/scripts/verify-phase3-objects.sql`](../scripts/verify-phase3-objects.sql) against the same database (e.g. `sqlcmd -S <server> -d <database> -E -i tests/scripts/verify-phase3-objects.sql` on Windows; adjust `-U`/`-P` as needed).
+
 ## Environments
 
 - [ ] Local / dev

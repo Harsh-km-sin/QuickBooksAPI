@@ -1,17 +1,17 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
-using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.Application.Dtos;
 
 namespace QuickBooksAPI.Application.Interfaces
 {
     public interface ICustomerService
     {
         Task<ApiResponse<int>> GetCustomersAsync();
-        Task<ApiResponse<IEnumerable<Customer>>> ListCustomersAsync();
-        Task<ApiResponse<PagedResult<Customer>>> ListCustomersAsync(ListQueryParams query);
+        Task<ApiResponse<IEnumerable<CustomerDto>>> ListCustomersAsync();
+        Task<ApiResponse<PagedResult<CustomerDto>>> ListCustomersAsync(ListQueryParams query);
         Task<ApiResponse<string>> CreateCustomerAsync(CreateCustomerRequest request);
         Task<ApiResponse<string>> UpdateCustomerAsync(UpdateCustomerRequest request);
         Task<ApiResponse<string>> DeleteCustomerAsync(DeleteCustomerRequest request);
-        Task<ApiResponse<Customer>> GetCustomerByIdAsync(string id);
+        Task<ApiResponse<CustomerDto>> GetCustomerByIdAsync(string id);
     }
 }
