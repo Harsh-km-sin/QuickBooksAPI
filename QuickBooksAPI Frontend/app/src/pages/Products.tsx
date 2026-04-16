@@ -155,18 +155,8 @@ export function ProductsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-            <p className="text-muted-foreground">Manage your products and services</p>
-          </div>
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <Skeleton className="h-[400px] w-full" />
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-between"><div><h1 className="text-3xl font-bold tracking-tight">Products</h1><p className="text-muted-foreground">Manage your products and services</p></div><Skeleton className="h-10 w-32" /></div>
+        <Card><CardContent className="p-6"><Skeleton className="h-[400px] w-full" /></CardContent></Card>
       </div>
     );
   }
@@ -174,10 +164,7 @@ export function ProductsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="text-muted-foreground">Manage your products and services</p>
-        </div>
+        <div><h1 className="text-3xl font-bold tracking-tight">Products</h1><p className="text-muted-foreground">Manage your products and services</p></div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">
             {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
@@ -294,27 +281,13 @@ export function ProductsPage() {
       </Card>
 
       <Dialog open={isCreateDialogOpen} onOpenChange={(open) => !open && dispatch(closeCreateDialog())}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '700px' }}>
-          <DialogHeader><DialogTitle>Add Product</DialogTitle><DialogDescription>Create a new product or service</DialogDescription></DialogHeader>
-          <ProductForm onSubmit={handleCreate} onCancel={() => dispatch(closeCreateDialog())} isSubmitting={isSubmitting} />
-        </DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '700px' }}><DialogHeader><DialogTitle>Add Product</DialogTitle><DialogDescription>Create a new product or service</DialogDescription></DialogHeader><ProductForm onSubmit={handleCreate} onCancel={() => dispatch(closeCreateDialog())} isSubmitting={isSubmitting} /></DialogContent>
       </Dialog>
-
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => !open && dispatch(closeEditDialog())}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '700px' }}>
-          <DialogHeader><DialogTitle>Edit Product</DialogTitle><DialogDescription>Update product information</DialogDescription></DialogHeader>
-          {selectedProduct && <ProductForm product={selectedProduct} onSubmit={handleUpdate} onCancel={() => dispatch(closeEditDialog())} isSubmitting={isSubmitting} />}
-        </DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ maxWidth: '700px' }}><DialogHeader><DialogTitle>Edit Product</DialogTitle><DialogDescription>Update product information</DialogDescription></DialogHeader>{selectedProduct && <ProductForm product={selectedProduct} onSubmit={handleUpdate} onCancel={() => dispatch(closeEditDialog())} isSubmitting={isSubmitting} />}</DialogContent>
       </Dialog>
-
       <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => !open && dispatch(closeDeleteDialog())}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Delete Product</DialogTitle><DialogDescription>Are you sure you want to delete {selectedProduct?.name}?</DialogDescription></DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => dispatch(closeDeleteDialog())}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete</Button>
-          </DialogFooter>
-        </DialogContent>
+        <DialogContent><DialogHeader><DialogTitle>Delete Product</DialogTitle><DialogDescription>Are you sure you want to delete {selectedProduct?.name}?</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => dispatch(closeDeleteDialog())}>Cancel</Button><Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete</Button></DialogFooter></DialogContent>
       </Dialog>
     </div>
   );
