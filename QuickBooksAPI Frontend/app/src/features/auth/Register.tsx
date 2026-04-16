@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AlertCircle, Loader2, Building2, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
+
 export function Register() {
   const navigate = useNavigate();
   const { signUp, isLoading } = useAuth();
@@ -21,7 +23,7 @@ export function Register() {
     if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
     if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
     if (!/[0-9]/.test(password)) errors.push('One number');
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) errors.push('One special character');
+    if (!SPECIAL_CHAR_REGEX.test(password)) errors.push('One special character');
     return errors;
   };
 
@@ -66,7 +68,7 @@ export function Register() {
     { test: /[A-Z]/.test(formData.password), text: 'One uppercase letter' },
     { test: /[a-z]/.test(formData.password), text: 'One lowercase letter' },
     { test: /[0-9]/.test(formData.password), text: 'One number' },
-    { test: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password), text: 'One special character' },
+    { test: SPECIAL_CHAR_REGEX.test(formData.password), text: 'One special character' },
   ];
 
   return (

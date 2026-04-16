@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useCustomers, useDebouncedValue } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -57,11 +57,19 @@ export function Customers() {
   } = useCustomers({ listParams });
   const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, pageSize, activeFilter]);
-
   const goToPage = (nextPage: number) => setPage(() => Math.max(1, Math.min(nextPage, totalPages || 1)));
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value);
+    setPage(1);
+  };
+  const handleActiveFilterChange = (value: 'active' | 'inactive' | 'all') => {
+    setActiveFilter(value);
+    setPage(1);
+  };
 
   const dispatch = useAppDispatch();
   const {
@@ -157,9 +165,9 @@ export function Customers() {
 
       <CustomersListCard
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         activeFilter={activeFilter}
-        onActiveFilterChange={setActiveFilter}
+        onActiveFilterChange={handleActiveFilterChange}
         totalCount={totalCount}
         customers={customers}
         debouncedSearch={debouncedSearch}
@@ -170,7 +178,7 @@ export function Customers() {
         isLoadingCustomer={isLoadingCustomer}
         currentPage={currentPage}
         pageSize={pageSize}
-        onPageSizeChange={setPageSize}
+        onPageSizeChange={handlePageSizeChange}
         totalPages={totalPages}
         hasNextPage={hasNextPage}
         hasPreviousPage={hasPreviousPage}

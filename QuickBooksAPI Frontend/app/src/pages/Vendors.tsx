@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useVendors, useDebouncedValue } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -93,11 +93,19 @@ export function Vendors() {
     sync,
   } = useVendors({ listParams });
 
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, pageSize, activeFilter]);
-
   const goToPage = (nextPage: number) => setPage(() => Math.max(1, Math.min(nextPage, totalPages || 1)));
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value);
+    setPage(1);
+  };
+  const handleActiveFilterChange = (value: 'active' | 'inactive' | 'all') => {
+    setActiveFilter(value);
+    setPage(1);
+  };
 
   const dispatch = useAppDispatch();
   const {
@@ -165,8 +173,8 @@ export function Vendors() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search vendors..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" /></div>
-            <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as 'active' | 'inactive' | 'all')}>
+            <div className="relative flex-1 max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search vendors..." value={searchTerm} onChange={(e) => handleSearchChange(e.target.value)} className="pl-9" /></div>
+            <Select value={activeFilter} onValueChange={(value) => handleActiveFilterChange(value as 'active' | 'inactive' | 'all')}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
@@ -225,7 +233,7 @@ export function Vendors() {
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
-                  <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
+                  <Select value={String(pageSize)} onValueChange={(value) => handlePageSizeChange(Number(value))}>
                     <SelectTrigger className="w-[70px]" size="sm">
                       <SelectValue />
                     </SelectTrigger>

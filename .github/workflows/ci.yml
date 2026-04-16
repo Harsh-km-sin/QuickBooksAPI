@@ -31,6 +31,8 @@ jobs:
           ASPNETCORE_ENVIRONMENT: Development
           ConnectionStrings__DefaultConnection: "Server=localhost;Database=ci_openapi;User Id=sa;Password=OpenApiCiPlaceholder1!;TrustServerCertificate=True"
           Jwt__Key: "0123456789012345678901234567890123456789012345678901234567890123"
+          Jwt__Issuer: "QuickBooksAPI-CI"
+          Jwt__Audience: "QuickBooksAPI-CI-Users"
         run: |
           mkdir -p artifacts
           dotnet swagger tofile --output artifacts/openapi.json QuickBooksAPI/bin/Release/net8.0/QuickBooksAPI.dll v1
