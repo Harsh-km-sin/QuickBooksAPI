@@ -1,6 +1,7 @@
 using Moq;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.Services;
@@ -26,7 +27,7 @@ public class AuthServicesFacadeTests
         qbo.Setup(x => x.HandleCallbackAsync("c", "s", "r"))
             .ReturnsAsync(ApiResponse<QuickBooksToken>.Ok(new QuickBooksToken()));
         lifecycle.Setup(x => x.IsTokenExpiredAsync(null)).ReturnsAsync(true);
-        lifecycle.Setup(x => x.RefreshTokenIfExpiredAsync(1, "r")).ReturnsAsync((QuickBooksToken?)null);
+        lifecycle.Setup(x => x.RefreshTokenIfExpiredAsync(1, "r")).ReturnsAsync((QboAccessTokenSnapshot?)null);
         qbo.Setup(x => x.DisconnectQboAsync(1, "r"))
             .ReturnsAsync(ApiResponse<string>.Ok("ok"));
         companies.Setup(x => x.GetConnectedCompaniesAsync(1))

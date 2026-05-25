@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs;
 using QuickBooksService.Services;
 
@@ -37,7 +37,7 @@ public class QboTokenLifecycleService : IQboTokenLifecycleService
         return Task.FromResult(DateTime.UtcNow >= bufferTime);
     }
 
-    public async Task<QuickBooksToken?> RefreshTokenIfExpiredAsync(int userId, string realmId)
+    public async Task<QboAccessTokenSnapshot?> RefreshTokenIfExpiredAsync(int userId, string realmId)
     {
         try
         {
@@ -46,7 +46,7 @@ public class QboTokenLifecycleService : IQboTokenLifecycleService
                 return null;
 
             if (!await IsTokenExpiredAsync(token))
-                return token;
+                return ToSnapshot(token);
 
             var refreshResponseJson = await _quickBooksAuthService.RefreshTokenAsync(token.RefreshToken);
             var refreshResponse = JsonSerializer.Deserialize<TokenResponseDto>(refreshResponseJson);
@@ -80,7 +80,7 @@ public class QboTokenLifecycleService : IQboTokenLifecycleService
 
             await _companyRepository.UpsertCompanyAsync(company);
 
-            return token;
+            return ToSnapshot(token);
         }
         catch (Exception ex)
         {
@@ -88,4 +88,7 @@ public class QboTokenLifecycleService : IQboTokenLifecycleService
             return null;
         }
     }
+
+    private static QboAccessTokenSnapshot ToSnapshot(QuickBooksToken token) =>
+        new() { AccessToken = token.AccessToken };
 }

@@ -1,0 +1,25 @@
+using QuickBooksAPI.API.DTOs.Request;
+using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.Features.Shared;
+
+namespace QuickBooksAPI.Features.Invoices.Handlers;
+
+public sealed class UpdateInvoiceHandler
+{
+    private readonly IRequestContext _requestContext;
+    private readonly IInvoiceQboCommandService _commands;
+
+    public UpdateInvoiceHandler(IRequestContext requestContext, IInvoiceQboCommandService commands)
+    {
+        _requestContext = requestContext;
+        _commands = commands;
+    }
+
+    public async Task<ApiResponse<string>> HandleAsync(UpdateInvoiceRequest request)
+    {
+        if (!FeatureRequestContextGuard.TryGetUserRealm(_requestContext, out var userId, out var realmId, out var err))
+            return ApiResponse<string>.Fail(err!);
+        return await _commands.UpdateAsync(userId, realmId, request);
+    }
+}

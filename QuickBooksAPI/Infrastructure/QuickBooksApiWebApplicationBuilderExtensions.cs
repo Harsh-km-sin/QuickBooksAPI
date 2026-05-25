@@ -24,6 +24,7 @@ public static class QuickBooksApiWebApplicationBuilderExtensions
         });
 
         builder.Services.AddHttpClient();
+        builder.Services.AddHttpContextAccessor();
 
         builder.Services.AddQuickBooksApiHealthChecks(builder.Configuration);
 

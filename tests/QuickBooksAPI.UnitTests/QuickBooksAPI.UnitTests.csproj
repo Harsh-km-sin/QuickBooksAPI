@@ -18,8 +18,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\QuickBooksAPI\QuickBooksAPI.csproj" />
     <ProjectReference Include="..\..\QuickBooksService\QuickBooksService.csproj" />
+    <ProjectReference Include="..\..\SyncWorker\SyncWorker.csproj" />
   </ItemGroup>
 
   <ItemGroup>

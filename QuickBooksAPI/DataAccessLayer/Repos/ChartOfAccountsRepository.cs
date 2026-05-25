@@ -1,6 +1,8 @@
 using Dapper;
-using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
+using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.Application.Mapping;
 using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
@@ -24,7 +26,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return conn;
         }
 
-        public async Task<IEnumerable<ChartOfAccounts>> GetAllByUserAndRealmAsync(int userId, string realmId)
+        public async Task<IEnumerable<ChartOfAccountsItemDto>> GetAllByUserAndRealmAsync(int userId, string realmId)
         {
             using var connection = CreateOpenConnection();
             const string sql = @"
@@ -35,10 +37,11 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 FROM dbo.ChartOfAccounts
                 WHERE UserId = @UserId AND RealmId = @RealmId
                 ORDER BY FullyQualifiedName";
-            return await connection.QueryAsync<ChartOfAccounts>(sql, new { UserId = userId, RealmId = realmId });
+            var rows = await connection.QueryAsync<ChartOfAccounts>(sql, new { UserId = userId, RealmId = realmId });
+            return rows.Select(ChartOfAccountsReadMapping.ToDto);
         }
 
-        public async Task<PagedResult<ChartOfAccounts>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
+        public async Task<PagedResult<ChartOfAccountsItemDto>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
         {
             using var connection = CreateOpenConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
@@ -61,23 +64,49 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 ORDER BY FullyQualifiedName
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
             var items = await connection.QueryAsync<ChartOfAccounts>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
+            var dtoItems = items.Select(ChartOfAccountsReadMapping.ToDto).ToList();
 
-            return new PagedResult<ChartOfAccounts> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
+            return new PagedResult<ChartOfAccountsItemDto> { Items = dtoItems, TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
 
-        public async Task<int> UpsertChartOfAccountsAsync(IEnumerable<ChartOfAccounts> accounts)
+        public async Task<int> UpsertChartOfAccountsAsync(IEnumerable<ChartOfAccountsUpsertDto> accounts)
         {
             if (accounts == null || !accounts.Any())
                 return 0;
 
             using var connection = CreateOpenConnection();
 
-            var accountsTable = BuildChartOfAccountsTable(accounts);
+            var rows = accounts.Select(ToPersistenceRow).ToList();
+            var accountsTable = BuildChartOfAccountsTable(rows);
             var parameters = new DynamicParameters();
             parameters.Add("@Accounts", accountsTable.AsTableValuedParameter("dbo.ChartOfAccountsUpsertType"));
 
             return await connection.ExecuteAsync("dbo.UpsertChartOfAccounts", parameters, commandType: CommandType.StoredProcedure);
         }
+
+        private static ChartOfAccounts ToPersistenceRow(ChartOfAccountsUpsertDto d) =>
+            new()
+            {
+                QBOId = d.QboId,
+                Name = d.Name,
+                SubAccount = d.SubAccount,
+                FullyQualifiedName = d.FullyQualifiedName,
+                Active = d.Active,
+                Classification = d.Classification,
+                AccountType = d.AccountType,
+                AccountSubType = d.AccountSubType,
+                CurrentBalance = d.CurrentBalance,
+                CurrentBalanceWithSubAccounts = d.CurrentBalanceWithSubAccounts,
+                CurrencyRefValue = d.CurrencyRefValue,
+                CurrencyRefName = d.CurrencyRefName,
+                Domain = d.Domain,
+                Sparse = d.Sparse,
+                SyncToken = d.SyncToken,
+                CreateTime = d.CreateTime,
+                LastUpdatedTime = d.LastUpdatedTime,
+                UserId = d.UserId,
+                RealmId = d.RealmId
+            };
 
         private static DataTable BuildChartOfAccountsTable(IEnumerable<ChartOfAccounts> accounts)
         {

@@ -12,7 +12,10 @@ public static class QuickBooksApiWebApplicationExtensions
     {
         var allowedOrigins = app.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 
-        if (app.Environment.IsDevelopment())
+        if (app.Environment.IsDevelopment() || string.Equals(
+                app.Environment.EnvironmentName,
+                "OpenApiExport",
+                StringComparison.OrdinalIgnoreCase))
         {
             app.UseSwagger();
             app.UseSwaggerUI(c =>

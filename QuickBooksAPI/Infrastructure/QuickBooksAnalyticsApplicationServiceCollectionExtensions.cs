@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Application.Interfaces.Analytics;
+using QuickBooksAPI.Features.Analytics.Queries;
 using QuickBooksAPI.Features.CloseIssues;
 using QuickBooksAPI.Features.Forecast;
 using QuickBooksAPI.Services;
@@ -16,6 +17,8 @@ public static class QuickBooksAnalyticsApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddQuickBooksAnalyticsApplicationServices(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<AnalyticsQueries>();
         services.AddScoped<ICashRunwayService, CashRunwayService>();
         services.AddScoped<IVendorAnalyticsService, VendorAnalyticsService>();
         services.AddScoped<ICustomerProfitabilityService, CustomerProfitabilityService>();

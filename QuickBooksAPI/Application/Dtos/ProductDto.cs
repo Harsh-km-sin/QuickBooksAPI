@@ -1,7 +1,7 @@
 namespace QuickBooksAPI.Application.Dtos;
 
 /// <summary>
-/// Product row returned by list APIs; maps from persistence (<see cref="DataAccessLayer.Models.Products"/>).
+/// Product row returned by list APIs; materialized at the repository boundary from persistence.
 /// </summary>
 public sealed class ProductDto
 {

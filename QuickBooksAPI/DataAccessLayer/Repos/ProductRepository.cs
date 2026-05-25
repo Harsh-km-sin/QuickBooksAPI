@@ -1,6 +1,8 @@
 using Dapper;
-using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
+using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.Application.Mapping;
 using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.DataAccessLayer.Sql;
 using System.Data;
@@ -23,14 +25,15 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return conn;
         }
 
-        public async Task<int> UpsertProductsAsync(IEnumerable<Products> products)
+        public async Task<int> UpsertProductsAsync(IEnumerable<ProductUpsertDto> products)
         {
             if (products == null || !products.Any())
                 return 0;
 
             using var connection = CreateOpenConnection();
 
-            var productsTable = BuildProductTable(products);
+            var rows = products.Select(ToPersistenceRow).ToList();
+            var productsTable = BuildProductTable(rows);
             var parameters = new DynamicParameters();
             parameters.Add("@Products", productsTable.AsTableValuedParameter("dbo.ProductUpsertType"));
 
@@ -48,7 +51,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return await connection.QuerySingleOrDefaultAsync<DateTime?>(sql, new { UserId = userId, RealmId = realmId });
         }
 
-        public async Task<IEnumerable<Products>> GetAllByUserAndRealmAsync(int userId, string realmId)
+        public async Task<IEnumerable<ProductDto>> GetAllByUserAndRealmAsync(int userId, string realmId)
         {
             using var connection = CreateOpenConnection();
             const string sql = @"
@@ -57,10 +60,11 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                     AssetAccountRefValue, AssetAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
                     InvStartDate, Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
                 FROM Products WHERE UserId = @UserId AND RealmId = @RealmId AND Active = 1 ORDER BY Name";
-            return await connection.QueryAsync<Products>(sql, new { UserId = userId, RealmId = realmId });
+            var rows = await connection.QueryAsync<Products>(sql, new { UserId = userId, RealmId = realmId });
+            return rows.Select(ProductReadMapping.ToDto);
         }
 
-        public async Task<PagedResult<Products>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, bool? activeFilter = true)
+        public async Task<PagedResult<ProductDto>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, bool? activeFilter = true)
         {
             using var connection = CreateOpenConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
@@ -85,9 +89,40 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 ORDER BY Name
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
             var items = await connection.QueryAsync<Products>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, ActiveFilter = activeFilter, Skip = skip, PageSize = pageSize });
+            var dtoItems = items.Select(ProductReadMapping.ToDto).ToList();
 
-            return new PagedResult<Products> { Items = items.ToList(), TotalCount = totalCount, Page = page, PageSize = pageSize };
+            return new PagedResult<ProductDto> { Items = dtoItems, TotalCount = totalCount, Page = page, PageSize = pageSize };
         }
+
+        private static Products ToPersistenceRow(ProductUpsertDto d) =>
+            new()
+            {
+                QBOId = d.QboId,
+                Name = d.Name,
+                Description = d.Description,
+                Active = d.Active,
+                FullyQualifiedName = d.FullyQualifiedName,
+                Taxable = d.Taxable,
+                UnitPrice = d.UnitPrice,
+                Type = d.Type,
+                QtyOnHand = d.QtyOnHand ?? 0,
+                IncomeAccountRefValue = d.IncomeAccountRefValue,
+                IncomeAccountRefName = d.IncomeAccountRefName,
+                ExpenseAccountRefValue = d.ExpenseAccountRefValue,
+                ExpenseAccountRefName = d.ExpenseAccountRefName,
+                AssetAccountRefValue = d.AssetAccountRefValue,
+                AssetAccountRefName = d.AssetAccountRefName,
+                PurchaseCost = d.PurchaseCost,
+                TrackQtyOnHand = d.TrackQtyOnHand,
+                InvStartDate = d.InvStartDate,
+                Domain = d.Domain,
+                Sparse = d.Sparse,
+                SyncToken = d.SyncToken,
+                CreateTime = d.CreateTime,
+                LastUpdatedTime = d.LastUpdatedTime,
+                UserId = d.UserId,
+                RealmId = d.RealmId
+            };
 
         private static DataTable BuildProductTable(IEnumerable<Products> products)
         {

@@ -1,13 +1,20 @@
 using NetArchTest.Rules;
 using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.Features.Bills.Handlers;
+using QuickBooksAPI.Features.ChartOfAccounts.Handlers;
+using QuickBooksAPI.Features.Customers.Handlers;
+using QuickBooksAPI.Features.Invoices.Handlers;
+using QuickBooksAPI.Features.JournalEntries.Handlers;
+using QuickBooksAPI.Features.Products.Handlers;
+using QuickBooksAPI.Features.Vendors.Handlers;
 using QuickBooksService.Services;
 
 namespace ArchitectureTests;
 
 /// <summary>
 /// Dependency rules for AI readiness.
-/// Repository contracts (<c>I*Repository</c> in Application.Interfaces) may depend on DataAccessLayer.Models.
-/// API-facing read/list interfaces should not, once migrated (tests per interface below).
+/// Some repository contracts still use DataAccessLayer.Models; migrated ones (e.g. <see cref="IProductRepository"/>) must not.
+/// API-facing read/list interfaces should not reference persistence models (tests per interface below).
 /// </summary>
 public class DependencyRulesTests
 {
@@ -292,6 +299,167 @@ public class DependencyRulesTests
             .ResideInNamespace("QuickBooksAPI.Application.Interfaces")
             .ShouldNot()
             .HaveDependencyOn("QuickBooksAPI.DataAccessLayer.Models")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    /// <summary>
+    /// Migrated Products use cases delegate to QBO only via <c>Integrations</c> adapters; handlers must not reference <c>QuickBooksService.Services</c> directly.
+    /// </summary>
+    [Fact]
+    public void IChartOfAccountsRepository_ShouldNotDependOn_DataAccessLayer_Models()
+    {
+        var result = Types
+            .InAssembly(typeof(IChartOfAccountsRepository).Assembly)
+            .That()
+            .HaveName("IChartOfAccountsRepository")
+            .And()
+            .ResideInNamespace("QuickBooksAPI.Application.Interfaces")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.DataAccessLayer.Models")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void ChartOfAccountsFeatureHandlers_ShouldNotDependOn_DataAccessLayer_Models()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncChartOfAccountsHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.ChartOfAccounts.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.DataAccessLayer.Models")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void IProductRepository_ShouldNotDependOn_DataAccessLayer_Models()
+    {
+        var result = Types
+            .InAssembly(typeof(IProductRepository).Assembly)
+            .That()
+            .HaveName("IProductRepository")
+            .And()
+            .ResideInNamespace("QuickBooksAPI.Application.Interfaces")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.DataAccessLayer.Models")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void ProductsFeatureHandlers_ShouldNotDependOn_DataAccessLayer_Models()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncProductsHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.Products.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksAPI.DataAccessLayer.Models")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void ProductsFeatureHandlers_ShouldNotDependOn_QuickBooksService_Services()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncProductsHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.Products.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksService.Services")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void ChartOfAccountsFeatureHandlers_ShouldNotDependOn_QuickBooksService_Services()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncChartOfAccountsHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.ChartOfAccounts.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksService.Services")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void CustomersFeatureHandlers_ShouldNotDependOn_QuickBooksService_Services()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncCustomersHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.Customers.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksService.Services")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void VendorsFeatureHandlers_ShouldNotDependOn_QuickBooksService_Services()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncVendorsHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.Vendors.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksService.Services")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void BillsFeatureHandlers_ShouldNotDependOn_QuickBooksService_Services()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncBillsHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.Bills.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksService.Services")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void InvoicesFeatureHandlers_ShouldNotDependOn_QuickBooksService_Services()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncInvoicesHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.Invoices.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksService.Services")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful, FailureMessage(result));
+    }
+
+    [Fact]
+    public void JournalEntriesFeatureHandlers_ShouldNotDependOn_QuickBooksService_Services()
+    {
+        var result = Types
+            .InAssembly(typeof(SyncJournalEntriesHandler).Assembly)
+            .That()
+            .ResideInNamespace("QuickBooksAPI.Features.JournalEntries.Handlers")
+            .ShouldNot()
+            .HaveDependencyOn("QuickBooksService.Services")
             .GetResult();
 
         Assert.True(result.IsSuccessful, FailureMessage(result));

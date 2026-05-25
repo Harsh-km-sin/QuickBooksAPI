@@ -10,7 +10,7 @@ public static partial class QuickBooksApplicationServiceCollectionExtensions
 {
     private static IServiceCollection AddQuickBooksAuthAndIntegrationApplicationServices(this IServiceCollection services)
     {
-        services.AddQuickBooksOnlineIntegration();
+        services.AddAccountingProviders();
 
         services.AddSingleton<IUserSignUpValidator, UserSignUpRequestValidator>();
         services.AddScoped<IUserRegistrationService, UserRegistrationService>();

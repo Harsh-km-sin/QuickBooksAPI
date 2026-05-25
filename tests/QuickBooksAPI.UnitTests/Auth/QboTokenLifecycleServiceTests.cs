@@ -1,8 +1,9 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs;
 using QuickBooksAPI.Services.Auth;
 using QuickBooksService.Services;
@@ -71,7 +72,8 @@ public class QboTokenLifecycleServiceTests
 
         var result = await sut.RefreshTokenIfExpiredAsync(9, "r");
 
-        Assert.Same(token, result);
+        Assert.NotNull(result);
+        Assert.Equal("a", result!.AccessToken);
         qbo.Verify(x => x.RefreshTokenAsync(It.IsAny<string>()), Times.Never);
     }
 

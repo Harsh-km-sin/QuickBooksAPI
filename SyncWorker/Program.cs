@@ -44,6 +44,7 @@ var host = new HostBuilder()
         services.AddScoped<IFullSyncEntitySyncStep, FullSyncBillsStep>();
         services.AddScoped<IFullSyncEntitySyncStep, FullSyncJournalEntriesStep>();
 
+        services.AddWorkerSyncPipeline();
         services.AddScoped<IFullSyncOrchestrator, FullSyncOrchestrator>();
         services.AddScoped<IFullSyncCompletedSubscriber, LoggingFullSyncCompletedSubscriber>();
     })

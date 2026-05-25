@@ -1,3 +1,4 @@
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.DataAccessLayer.Models;
 
 namespace QuickBooksAPI.Application.Interfaces;
@@ -6,5 +7,5 @@ namespace QuickBooksAPI.Application.Interfaces;
 public interface IQboTokenLifecycleService
 {
     Task<bool> IsTokenExpiredAsync(QuickBooksToken? token);
-    Task<QuickBooksToken?> RefreshTokenIfExpiredAsync(int userId, string realmId);
+    Task<QboAccessTokenSnapshot?> RefreshTokenIfExpiredAsync(int userId, string realmId);
 }

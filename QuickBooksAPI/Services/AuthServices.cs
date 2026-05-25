@@ -1,5 +1,6 @@
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.Services.Auth;
@@ -44,7 +45,7 @@ public class AuthServices : IAuthService
     public Task<bool> IsTokenExpiredAsync(QuickBooksToken? token) =>
         _qboTokenLifecycle.IsTokenExpiredAsync(token);
 
-    public Task<QuickBooksToken?> RefreshTokenIfExpiredAsync(int userId, string realmId) =>
+    public Task<QboAccessTokenSnapshot?> RefreshTokenIfExpiredAsync(int userId, string realmId) =>
         _qboTokenLifecycle.RefreshTokenIfExpiredAsync(userId, realmId);
 
     public Task<ApiResponse<string>> DisconnectQboAsync(int userId, string realmId) =>

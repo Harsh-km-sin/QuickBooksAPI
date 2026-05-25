@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
 using QuickBooksAPI.Integrations.Abstractions;
@@ -14,7 +15,7 @@ public sealed class VendorQboSyncServiceTests
     {
         var auth = new Mock<IAuthService>();
         auth.Setup(a => a.RefreshTokenIfExpiredAsync(1, "realm"))
-            .ReturnsAsync(new QuickBooksToken { AccessToken = "tok" });
+            .ReturnsAsync(new QboAccessTokenSnapshot { AccessToken = "tok" });
 
         var gateway = new Mock<IVendorAccountingSyncGateway>();
         gateway.Setup(g => g.FetchVendorsPageAsync("tok", "realm", 1, 1000, null, It.IsAny<CancellationToken>()))

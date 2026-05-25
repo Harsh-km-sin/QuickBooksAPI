@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QuickBooksAPI.API.DTOs.Request;
 using QuickBooksAPI.API.DTOs.Response;
@@ -23,6 +25,9 @@ public class CompanyController : ControllerBase
     }
 
     [HttpPost("sync/full")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> FullSync([FromBody] SyncRequestDto dto)
     {
         var userId = _requestContext.UserId;
@@ -49,6 +54,8 @@ public class CompanyController : ControllerBase
     }
 
     [HttpGet("sync/status")]
+    [ProducesResponseType(typeof(ApiResponse<SyncStatusDto?>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetSyncStatus()
     {
         var realmId = _requestContext.RealmId;
@@ -57,10 +64,13 @@ public class CompanyController : ControllerBase
             return Unauthorized(new { success = false, message = "User context is missing." });
 
         var status = await _syncService.GetSyncStatusAsync(realmId);
-        return Ok(new { success = true, data = status });
+        return Ok(ApiResponse<SyncStatusDto?>.Ok(status));
     }
 
     [HttpPost("disconnect")]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Disconnect([FromBody] DisconnectQboRequest request)
     {
         var userId = _requestContext.UserId;
@@ -77,6 +87,9 @@ public class CompanyController : ControllerBase
     }
 
     [HttpGet("connected-companies")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ConnectedCompanyDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetConnectedCompanies()
     {
         var userId = _requestContext.UserId;

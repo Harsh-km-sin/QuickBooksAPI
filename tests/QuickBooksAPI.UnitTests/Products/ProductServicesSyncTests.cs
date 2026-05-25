@@ -1,9 +1,9 @@
 using Moq;
+using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.DataAccessLayer.Models;
+using QuickBooksAPI.Application.Sync;
+using QuickBooksAPI.Features.Products.Handlers;
 using QuickBooksAPI.Integrations.Abstractions;
-using QuickBooksAPI.Services;
-using QuickBooksService.Services;
 
 namespace QuickBooksAPI.UnitTests.Products;
 
@@ -18,7 +18,7 @@ public sealed class ProductServicesSyncTests
 
         var auth = new Mock<IAuthService>();
         auth.Setup(a => a.RefreshTokenIfExpiredAsync(1, "realm"))
-            .ReturnsAsync(new QuickBooksToken { AccessToken = "tok" });
+            .ReturnsAsync(new QboAccessTokenSnapshot { AccessToken = "tok" });
 
         var gateway = new Mock<IProductAccountingSyncGateway>();
         gateway
@@ -26,25 +26,21 @@ public sealed class ProductServicesSyncTests
             .ReturnsAsync("""{"QueryResponse":{}}""");
 
         var qboSync = new Mock<IQboSyncStateRepository>();
-        qboSync.Setup(s => s.GetLastUpdatedAfterAsync(1, "realm", QboEntityType.Products.ToString()))
+        qboSync.Setup(s => s.GetLastUpdatedAfterAsync(1, "realm", QboSyncEntityType.Products))
             .ReturnsAsync((DateTime?)null);
-        qboSync.Setup(s => s.UpdateLastUpdatedAfterAsync(1, "realm", QboEntityType.Products.ToString(), It.IsAny<DateTime>()))
+        qboSync.Setup(s => s.UpdateLastUpdatedAfterAsync(1, "realm", QboSyncEntityType.Products, It.IsAny<DateTime>()))
             .Returns(Task.CompletedTask);
 
-        var qb = new Mock<IQuickBooksProductService>();
         var repo = new Mock<IProductRepository>();
-        var tokenRepo = new Mock<ITokenRepository>();
 
-        var sut = new ProductServices(
+        var sut = new SyncProductsHandler(
             ctx.Object,
-            tokenRepo.Object,
-            qb.Object,
+            auth.Object,
             gateway.Object,
             repo.Object,
-            qboSync.Object,
-            auth.Object);
+            qboSync.Object);
 
-        var result = await sut.GetProductsAsync();
+        var result = await sut.HandleAsync();
 
         Assert.True(result.Success);
         Assert.Equal(0, result.Data);
@@ -52,7 +48,7 @@ public sealed class ProductServicesSyncTests
             g => g.FetchProductsPageAsync("tok", "realm", 1, 1000, null, It.IsAny<CancellationToken>()),
             Times.Once);
         qboSync.Verify(
-            s => s.UpdateLastUpdatedAfterAsync(1, "realm", QboEntityType.Products.ToString(), It.IsAny<DateTime>()),
+            s => s.UpdateLastUpdatedAfterAsync(1, "realm", QboSyncEntityType.Products, It.IsAny<DateTime>()),
             Times.Once);
     }
 }
