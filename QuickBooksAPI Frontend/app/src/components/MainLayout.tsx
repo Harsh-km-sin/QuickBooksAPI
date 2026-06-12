@@ -17,13 +17,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Menu,
   Home,
-  Users,
-  Package,
-  Truck,
-  FileText,
-  Receipt,
-  BookOpen,
-  BookText,
   Settings,
   LogOut,
   ChevronDown,
@@ -44,18 +37,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { title: 'Connected Companies', href: '/', icon: Building2 },
-  { title: 'Dashboard', href: '/dashboard', icon: Home },
+  { title: 'Dashboard', href: '/', icon: Home },
   { title: 'Forecast', href: '/forecast', icon: TrendingUp },
   { title: 'CFO Assistant', href: '/cfo-assistant', icon: MessageCircle },
   { title: 'Close & Data Quality', href: '/close-assistant', icon: ClipboardCheck },
-  { title: 'Customers', href: '/customers', icon: Users },
-  { title: 'Products', href: '/products', icon: Package },
-  { title: 'Vendors', href: '/vendors', icon: Truck },
-  { title: 'Bills', href: '/bills', icon: FileText },
-  { title: 'Invoices', href: '/invoices', icon: Receipt },
-  { title: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
-  { title: 'Journal Entries', href: '/journal-entries', icon: BookText },
+  { title: 'Settings', href: '/settings', icon: Settings },
 ];
 
 function Sidebar({ className }: { className?: string }) {
@@ -87,7 +73,8 @@ function Sidebar({ className }: { className?: string }) {
         <nav className="px-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentPath === item.href;
+            const isActive = currentPath === item.href ||
+            (item.href !== '/' && currentPath.startsWith(item.href + '/'));
             return (
               <Link
                 key={item.href}
@@ -166,13 +153,6 @@ function Sidebar({ className }: { className?: string }) {
                 <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuItem
-              onClick={() => {}}
-              className="hover:bg-muted hover:text-foreground"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={logout}
               className="text-destructive hover:bg-muted hover:text-destructive"

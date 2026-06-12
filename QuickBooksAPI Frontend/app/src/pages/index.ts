@@ -11,3 +11,6 @@ export { JournalEntries } from './JournalEntries';
 export { Forecast } from './Forecast';
 export { CfoAssistant } from './CfoAssistant';
 export { CloseAssistant } from './CloseAssistant';
+export { Settings } from './Settings';
+export { UserManagement } from './UserManagement';
+export { MasterData } from './MasterData';

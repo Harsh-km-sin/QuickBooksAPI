@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth, useQuickBooks } from '@/features/auth';
 import { companyApi, setRealmId, useConnectedCompanies } from '@/features/company';
 import type { ConnectedCompany } from '@/types';
@@ -14,7 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building2, RefreshCw, Loader2, Unplug, Link2 } from 'lucide-react';
+import { Building2, RefreshCw, Loader2, Unplug, Link2, ChevronLeft } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { useTheme } from '@/components/theme-provider';
 
@@ -42,6 +43,7 @@ const CONNECT_IMAGE_TRANSPARENT_1X = '/Connect_to_QuickBooks_1x/C2QB_transparent
 const CONNECT_IMAGE_TRANSPARENT_2X = '/Connect_to_QuickBooks_2x/C2QB_transparent_btn_med_default_2x.png';
 
 export function ConnectedCompanies() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, currentRealmId, setCurrentRealm } = useAuth();
   const { connect, isConnecting } = useQuickBooks();
@@ -117,12 +119,22 @@ export function ConnectedCompanies() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Connected Companies</h1>
-        <p className="text-muted-foreground">
-          Manage your linked QuickBooks companies. Switch, sync, or disconnect.
-        </p>
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <div className="bg-primary p-2 rounded-lg">
+          <Building2 className="h-5 w-5 text-primary-foreground" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Connected Companies</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage your linked QuickBooks companies. Switch, sync, or disconnect.
+          </p>
+        </div>
       </div>
+
+      <Separator />
 
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">

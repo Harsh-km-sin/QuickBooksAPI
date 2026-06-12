@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useInvoices, useDebouncedValue } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -56,6 +57,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  ChevronLeft,
 } from 'lucide-react';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -63,6 +65,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 20;
 
 export function Invoices() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -136,7 +139,12 @@ export function Invoices() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div><h1 className="text-3xl font-bold tracking-tight">Invoices</h1><p className="text-muted-foreground">Manage your customer invoices</p></div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div><h1 className="text-3xl font-bold tracking-tight">Invoices</h1><p className="text-muted-foreground">Manage your customer invoices</p></div>
+          </div>
           <Skeleton className="h-10 w-32" />
         </div>
         <Card><CardContent className="p-6"><Skeleton className="h-[400px] w-full" /></CardContent></Card>
@@ -147,7 +155,12 @@ export function Invoices() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-3xl font-bold tracking-tight">Invoices</h1><p className="text-muted-foreground">Manage your customer invoices</p></div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div><h1 className="text-3xl font-bold tracking-tight">Invoices</h1><p className="text-muted-foreground">Manage your customer invoices</p></div>
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
         </div>

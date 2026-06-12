@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCustomers, useDebouncedValue } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -23,13 +24,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, RefreshCw, Loader2, ChevronLeft } from 'lucide-react';
 import { CustomersListCard } from './customers/CustomersListCard';
 
 const SEARCH_DEBOUNCE_MS = 300;
 const DEFAULT_PAGE_SIZE = 20;
 
 export function Customers() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -125,9 +127,14 @@ export function Customers() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-            <p className="text-muted-foreground">Manage your customer accounts</p>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
+              <p className="text-muted-foreground">Manage your customer accounts</p>
+            </div>
           </div>
           <Skeleton className="h-10 w-32" />
         </div>
@@ -143,9 +150,14 @@ export function Customers() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-          <p className="text-muted-foreground">Manage your customer accounts</p>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
+            <p className="text-muted-foreground">Manage your customer accounts</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">

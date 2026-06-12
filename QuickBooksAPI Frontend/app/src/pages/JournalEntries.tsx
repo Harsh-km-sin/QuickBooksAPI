@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,9 +22,11 @@ import {
   Calendar,
   DollarSign,
   FileText,
+  ChevronLeft,
 } from 'lucide-react';
 
 export function JournalEntries() {
+  const navigate = useNavigate();
   const { entries, isLoading, isSyncing, sync } = useJournalEntries();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -39,7 +42,12 @@ export function JournalEntries() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div><h1 className="text-3xl font-bold tracking-tight">Journal Entries</h1><p className="text-muted-foreground">View your journal entries</p></div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div><h1 className="text-3xl font-bold tracking-tight">Journal Entries</h1><p className="text-muted-foreground">View your journal entries</p></div>
+          </div>
           <Skeleton className="h-10 w-32" />
         </div>
         <Card><CardContent className="p-6"><Skeleton className="h-[400px] w-full" /></CardContent></Card>
@@ -50,7 +58,12 @@ export function JournalEntries() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-3xl font-bold tracking-tight">Journal Entries</h1><p className="text-muted-foreground">View your journal entries</p></div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div><h1 className="text-3xl font-bold tracking-tight">Journal Entries</h1><p className="text-muted-foreground">View your journal entries</p></div>
+        </div>
         <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
       </div>
 

@@ -77,7 +77,7 @@ SELECT
     @RealmId AS RealmId,
     fe.VendorDimId,
     DATEFROMPARTS(YEAR(fe.Date), MONTH(fe.Date), 1) AS PeriodStart,
-    EOMONTH(fe.Date) AS PeriodEnd,
+    EOMONTH(DATEFROMPARTS(YEAR(fe.Date), MONTH(fe.Date), 1)) AS PeriodEnd,
     SUM(fe.NetAmount) AS TotalSpend,
     COUNT(DISTINCT fe.BillQboId) AS BillCount,
     MAX(fe.Date) AS LastBillDate
@@ -92,7 +92,7 @@ SELECT
     @RealmId AS RealmId,
     fr.CustomerDimId,
     DATEFROMPARTS(YEAR(fr.Date), MONTH(fr.Date), 1) AS PeriodStart,
-    EOMONTH(fr.Date) AS PeriodEnd,
+    EOMONTH(DATEFROMPARTS(YEAR(fr.Date), MONTH(fr.Date), 1)) AS PeriodEnd,
     SUM(fr.NetAmount) AS Revenue,
     SUM(fr.NetAmount) * {cogsLiteral} AS CostOfGoods
 FROM FactRevenue fr

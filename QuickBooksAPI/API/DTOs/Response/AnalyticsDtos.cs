@@ -114,3 +114,26 @@ namespace QuickBooksAPI.API.DTOs.Response
         public bool IsConsolidatedNode { get; set; }
     }
 }
+
+namespace QuickBooksAPI.API.DTOs.Response
+{
+    using QuickBooksAPI.Application.Dtos;
+    using QuickBooksAPI.Application.Interfaces;
+
+    public class DashboardSummaryDto
+    {
+        public PagedResult<CustomerDto>? Customers { get; set; }
+        public PagedResult<VendorDto>? Vendors { get; set; }
+        public PagedResult<ProductDto>? Products { get; set; }
+        public PagedResult<InvoiceListItemDto>? Invoices { get; set; }
+        public PagedResult<BillListItemDto>? Bills { get; set; }
+        public CashRunwayResult? CashRunway { get; set; }
+        public IReadOnlyList<VendorSpendDto> TopVendors { get; set; } = Array.Empty<VendorSpendDto>();
+        public IReadOnlyList<CustomerProfitabilityDto> CustomerProfitability { get; set; } = Array.Empty<CustomerProfitabilityDto>();
+        public IReadOnlyList<RevenueExpensesMonthlyDto> RevenueExpenses { get; set; } = Array.Empty<RevenueExpensesMonthlyDto>();
+        public IReadOnlyList<AnomalyDto> Anomalies { get; set; } = Array.Empty<AnomalyDto>();
+        public IReadOnlyList<CloseIssueDto> CloseIssues { get; set; } = Array.Empty<CloseIssueDto>();
+        public IReadOnlyList<KpiSnapshotDto> Kpis { get; set; } = Array.Empty<KpiSnapshotDto>();
+        public IEnumerable<ConnectedCompanyDto> ConnectedCompanies { get; set; } = Array.Empty<ConnectedCompanyDto>();
+    }
+}

@@ -17,8 +17,8 @@ var host = new HostBuilder()
     })
     .ConfigureServices((context, services) =>
     {
-        var connectionString = context.Configuration["DefaultConnection"]
-            ?? context.Configuration.GetConnectionString("DefaultConnection");
+        var connectionString = context.Configuration.GetConnectionString("DefaultConnection")
+            ?? context.Configuration["DefaultConnection"];
 
         if (string.IsNullOrWhiteSpace(connectionString))
             throw new InvalidOperationException("DefaultConnection is missing.");

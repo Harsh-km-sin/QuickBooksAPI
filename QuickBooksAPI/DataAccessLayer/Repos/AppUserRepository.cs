@@ -42,12 +42,35 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return await connection.QueryFirstOrDefaultAsync<AppUser>(sql, new { Username = username });
         }
 
+        public async Task<AppUser?> GetByIdAsync(int userId)
+        {
+            using var connection = CreateConnection();
+            return await connection.QueryFirstOrDefaultAsync<AppUser>(
+                "SELECT * FROM AppUser WHERE Id = @UserId", new { UserId = userId });
+        }
+
         public async Task<bool> UserExistsAsync(int userId)
         {
             using var connection = CreateConnection();
             var query = "SELECT COUNT(1) FROM AppUser WHERE Id = @UserId";
             var count = await connection.QuerySingleAsync<int>(query, new { UserId = userId });
             return count > 0;
+        }
+
+        public async Task UpdateProfileAsync(int userId, string firstName, string lastName, string username)
+        {
+            using var connection = CreateConnection();
+            await connection.ExecuteAsync(
+                "UPDATE AppUser SET FirstName = @FirstName, LastName = @LastName, Username = @Username WHERE Id = @UserId",
+                new { UserId = userId, FirstName = firstName, LastName = lastName, Username = username });
+        }
+
+        public async Task UpdatePasswordAsync(int userId, string hashedPassword)
+        {
+            using var connection = CreateConnection();
+            await connection.ExecuteAsync(
+                "UPDATE AppUser SET [Password] = @Password WHERE Id = @UserId",
+                new { UserId = userId, Password = hashedPassword });
         }
 
     }

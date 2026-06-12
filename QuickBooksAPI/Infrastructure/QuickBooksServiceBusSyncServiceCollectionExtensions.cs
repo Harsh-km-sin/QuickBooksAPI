@@ -1,6 +1,7 @@
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Infrastructure.Queue;
 using QuickBooksAPI.Services;
@@ -21,6 +22,15 @@ public static class QuickBooksServiceBusSyncServiceCollectionExtensions
             services.AddSingleton<ServiceBusSender>(sp =>
                 sp.GetRequiredService<ServiceBusClient>().CreateSender(serviceBusOptions.QueueName));
             services.AddSingleton<IQueuePublisher, ServiceBusPublisher>();
+        }
+        else if (!string.IsNullOrWhiteSpace(serviceBusOptions.LocalSyncWorkerUrl))
+        {
+            var url = serviceBusOptions.LocalSyncWorkerUrl;
+            services.AddSingleton<IQueuePublisher>(sp =>
+                new LocalHttpQueuePublisher(
+                    sp.GetRequiredService<IHttpClientFactory>(),
+                    url,
+                    sp.GetRequiredService<ILogger<LocalHttpQueuePublisher>>()));
         }
         else
         {
