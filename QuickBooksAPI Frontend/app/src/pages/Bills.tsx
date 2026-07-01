@@ -51,7 +51,6 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  ChevronLeft,
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 

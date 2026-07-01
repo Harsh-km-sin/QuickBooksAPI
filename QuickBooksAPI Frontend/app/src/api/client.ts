@@ -14,3 +14,4 @@ export { invoiceApi } from './invoiceApi';
 export { chartOfAccountsApi } from './chartOfAccountsApi';
 export { journalEntryApi } from './journalEntryApi';
 export { assistantApi } from './assistantApi';
+export { glReviewApi } from './glReviewApi';

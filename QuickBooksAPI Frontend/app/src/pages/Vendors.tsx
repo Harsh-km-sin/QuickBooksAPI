@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useVendors, useDebouncedValue } from '@/hooks';
+import { useVendors, useDebouncedValue, useSelectedRun, useGlEntityRisk } from '@/hooks';
+import { scoreToTierStyle } from '@/components/glReview';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   openCreateDialog,
@@ -59,7 +60,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  ChevronLeft,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -151,6 +151,26 @@ export function Vendors() {
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 
+  // GL Review risk overlay — keyed by entity name from the selected run's entity-risk analytics.
+  const { selectedRunId } = useSelectedRun();
+  const { data: entityRisk } = useGlEntityRisk(selectedRunId);
+  const riskByName = useMemo(() => {
+    const map = new Map<string, { maxRiskScore: number; flaggedCount: number }>();
+    for (const r of entityRisk ?? []) {
+      if (r.party) map.set(r.party.trim().toLowerCase(), { maxRiskScore: r.maxRiskScore, flaggedCount: r.flaggedCount });
+    }
+    return map;
+  }, [entityRisk]);
+  const lookupRisk = (vendor: Vendor) => {
+    const keys = [vendor.displayName, vendor.companyName, `${vendor.givenName} ${vendor.familyName}`.trim()];
+    for (const k of keys) {
+      const hit = k && riskByName.get(k.trim().toLowerCase());
+      if (hit) return hit;
+    }
+    return null;
+  };
+  const showGlRisk = selectedRunId != null && (entityRisk?.length ?? 0) > 0;
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -207,7 +227,7 @@ export function Vendors() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow><TableHead>Name</TableHead><TableHead>Company</TableHead><TableHead>Contact</TableHead><TableHead>Balance</TableHead><TableHead>Status</TableHead><TableHead className="w-[50px]"></TableHead></TableRow>
+                  <TableRow><TableHead>Name</TableHead><TableHead>Company</TableHead><TableHead>Contact</TableHead><TableHead>Balance</TableHead>{showGlRisk && <TableHead>GL Risk</TableHead>}<TableHead>Status</TableHead><TableHead className="w-[50px]"></TableHead></TableRow>
                 </TableHeader>
                 <TableBody>
                   {vendors.map((vendor) => (
@@ -222,6 +242,20 @@ export function Vendors() {
                         </div>
                       </TableCell>
                       <TableCell><span className={vendor.balance > 0 ? 'text-destructive' : ''}>{formatCurrency(vendor.balance)}</span></TableCell>
+                      {showGlRisk && (
+                        <TableCell>
+                          {(() => {
+                            const risk = lookupRisk(vendor);
+                            if (!risk) return <span className="text-muted-foreground">—</span>;
+                            const s = scoreToTierStyle(risk.maxRiskScore);
+                            return (
+                              <Badge variant={s.variant} className={s.className} title={`${risk.flaggedCount} flagged entr${risk.flaggedCount !== 1 ? 'ies' : 'y'}`}>
+                                {s.label} {risk.maxRiskScore}
+                              </Badge>
+                            );
+                          })()}
+                        </TableCell>
+                      )}
                       <TableCell><Badge variant={vendor.active ? 'default' : 'secondary'}>{vendor.active ? 'Active' : 'Inactive'}</Badge></TableCell>
                       <TableCell>
                         <DropdownMenu>

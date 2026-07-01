@@ -57,7 +57,6 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  ChevronLeft,
 } from 'lucide-react';
 
 const SEARCH_DEBOUNCE_MS = 300;

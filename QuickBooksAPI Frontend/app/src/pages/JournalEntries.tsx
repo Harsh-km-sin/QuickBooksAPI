@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
+import { useSelectedRun, useGlTransactions } from '@/hooks';
+import { scoreToTierStyle } from '@/components/glReview';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -34,6 +36,22 @@ export function JournalEntries() {
     const searchLower = searchTerm.toLowerCase();
     return entry.docNumber?.toLowerCase().includes(searchLower) || entry.privateNote?.toLowerCase().includes(searchLower);
   });
+
+  // Best-effort GL Review overlay: opportunistically match QuickBooks docNumber to the
+  // selected run's GL journalEntryId. These are distinct datasets, so matches are partial —
+  // the authoritative per-entry view lives on the GL Review page.
+  const { selectedRunId } = useSelectedRun();
+  const { data: glTx } = useGlTransactions(selectedRunId, { page: 1, pageSize: 200 });
+  const riskByJe = useMemo(() => {
+    const map = new Map<string, { riskTier: string | null; riskScore: number | null }>();
+    for (const t of glTx?.items ?? []) {
+      if (t.journalEntryId) map.set(t.journalEntryId.trim().toLowerCase(), { riskTier: t.riskTier, riskScore: t.riskScore });
+    }
+    return map;
+  }, [glTx]);
+  const lookupJeRisk = (docNumber: string | null) =>
+    docNumber ? riskByJe.get(docNumber.trim().toLowerCase()) ?? null : null;
+  const showGlRisk = selectedRunId != null && filteredEntries.some((e) => lookupJeRisk(e.docNumber));
 
   const formatCurrency = (value: number | null) => value != null ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value) : '-';
   const formatDate = (dateString: string | null) => dateString ? new Date(dateString).toLocaleDateString() : '-';
@@ -81,7 +99,7 @@ export function JournalEntries() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow><TableHead>Doc #</TableHead><TableHead>Date</TableHead><TableHead>Total Amount</TableHead><TableHead>Adjustment</TableHead><TableHead>Note</TableHead></TableRow>
+                  <TableRow><TableHead>Doc #</TableHead><TableHead>Date</TableHead><TableHead>Total Amount</TableHead><TableHead>Adjustment</TableHead>{showGlRisk && <TableHead>GL Risk</TableHead>}<TableHead>Note</TableHead></TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEntries.map((entry) => (
@@ -90,6 +108,16 @@ export function JournalEntries() {
                       <TableCell><div className="flex items-center"><Calendar className="h-4 w-4 mr-1 text-muted-foreground" />{formatDate(entry.txnDate)}</div></TableCell>
                       <TableCell><div className="flex items-center font-medium"><DollarSign className="h-4 w-4 text-muted-foreground" />{formatCurrency(entry.totalAmount)}</div></TableCell>
                       <TableCell><Badge variant={entry.adjustment ? 'default' : 'outline'}>{entry.adjustment ? 'Yes' : 'No'}</Badge></TableCell>
+                      {showGlRisk && (
+                        <TableCell>
+                          {(() => {
+                            const risk = lookupJeRisk(entry.docNumber);
+                            if (!risk) return <span className="text-muted-foreground">—</span>;
+                            const s = scoreToTierStyle(risk.riskScore);
+                            return <Badge variant={s.variant} className={s.className}>{s.label}{risk.riskScore != null ? ` ${risk.riskScore}` : ''}</Badge>;
+                          })()}
+                        </TableCell>
+                      )}
                       <TableCell><div className="max-w-xs truncate text-muted-foreground">{entry.privateNote || '-'}</div></TableCell>
                     </TableRow>
                   ))}

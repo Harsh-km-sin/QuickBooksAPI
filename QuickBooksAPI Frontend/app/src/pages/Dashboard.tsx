@@ -17,6 +17,7 @@ import { DashboardStatCard } from './DashboardStatCard';
 import { DashboardRevenueVsExpenses } from './DashboardRevenueVsExpenses';
 import { DashboardInsights } from './DashboardInsights';
 import { DashboardVendorCharts } from './DashboardVendorCharts';
+import { GlRiskReviewCard } from '@/components/glReview';
 
 const CHART_COLORS = ['#0F766E', '#5EEAD4', '#FACC15', '#3B82F6', '#10B981'];
 
@@ -180,6 +181,8 @@ export function Dashboard() {
         profitabilityData={profitabilityData}
         formatCurrency={formatCurrency}
       />
+
+      <GlRiskReviewCard />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Outstanding Invoices</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-success">{formatCurrency(stats?.outstandingInvoiceBalance || 0)}</div><p className="text-xs text-muted-foreground">Amount owed to you</p></CardContent></Card>

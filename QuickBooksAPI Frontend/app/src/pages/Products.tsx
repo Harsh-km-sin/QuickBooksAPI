@@ -57,7 +57,6 @@ import {
   Trash2,
   Package,
   ChevronLeft,
-  ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
 

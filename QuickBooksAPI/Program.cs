@@ -22,6 +22,8 @@ builder.Services.AddQuickBooksServiceBusAndSync(builder.Configuration);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
+builder.Services.AddGlReview(builder.Configuration);
+
 builder.AddQuickBooksApiHostServices();
 
 var app = builder.Build();
