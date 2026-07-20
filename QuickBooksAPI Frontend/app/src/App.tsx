@@ -14,10 +14,6 @@ import {
   Invoices,
   ChartOfAccounts,
   JournalEntries,
-  Forecast,
-  CfoAssistant,
-  CloseAssistant,
-  GlReview,
   Settings,
   UserManagement,
   MasterData,
@@ -64,10 +60,6 @@ function App() {
       <Route path="/" element={renderProtectedPage(<Dashboard />)} />
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
       <Route path="/connected-companies" element={<Navigate to="/settings/connected-companies" replace />} />
-      <Route path="/forecast" element={renderProtectedPage(<Forecast />)} />
-      <Route path="/cfo-assistant" element={renderProtectedPage(<CfoAssistant />)} />
-      <Route path="/close-assistant" element={renderProtectedPage(<CloseAssistant />)} />
-      <Route path="/gl-review" element={renderProtectedPage(<GlReview />)} />
       {/* Settings hub */}
       <Route path="/settings" element={renderProtectedPage(<Settings />)} />
       <Route path="/settings/user-management" element={renderProtectedPage(<UserManagement />)} />

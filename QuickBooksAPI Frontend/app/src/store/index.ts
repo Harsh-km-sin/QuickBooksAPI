@@ -4,7 +4,6 @@ import productUiReducer from './slices/productUiSlice';
 import vendorUiReducer from './slices/vendorUiSlice';
 import billUiReducer from './slices/billUiSlice';
 import invoiceUiReducer from './slices/invoiceUiSlice';
-import glReviewReducer from './slices/glReviewSlice';
 
 export const store = configureStore({
   reducer: {
@@ -13,7 +12,6 @@ export const store = configureStore({
     vendorUi: vendorUiReducer,
     billUi: billUiReducer,
     invoiceUi: invoiceUiReducer,
-    glReview: glReviewReducer,
   },
 });
 
