@@ -1,0 +1,65 @@
+name: Deploy GL Analysis Worker
+
+# Builds the GlAnalysisWorker image via ACR Tasks and rolls it out to the
+# Azure Container App defined in infra/gl-analysis-worker/main.bicep.
+#
+# Required repo/environment secrets:
+#   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  - OIDC federated credential for azure/login
+#   AZURE_RESOURCE_GROUP                                     - resource group to deploy into
+#   GL_ACR_NAME                                               - Azure Container Registry name (created by the bicep template)
+#   GL_SERVICE_BUS_CONNECTION_STRING                          - Service Bus namespace connection string
+#   GL_BLOB_STORAGE_CONNECTION_STRING                         - Blob Storage connection string
+#   GL_SQL_CONNECTION_STRING                                  - Azure SQL ODBC connection string
+#   GL_SMTP_PASSWORD                                          - SMTP password for completion-alert emails (optional)
+#
+# The Azure service principal behind AZURE_CLIENT_ID needs Contributor + User Access
+# Administrator (or equivalent) on AZURE_RESOURCE_GROUP the first time this runs, since
+# it provisions the ACR/environment/role assignment, not just updates an existing app.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "GlAnalysisWorker/**"
+      - "infra/gl-analysis-worker/**"
+      - ".github/workflows/gl-worker-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build & push image via ACR Tasks
+        run: |
+          az acr build \
+            --registry ${{ secrets.GL_ACR_NAME }} \
+            --image gl-analysis-worker:${{ github.sha }} \
+            --image gl-analysis-worker:latest \
+            GlAnalysisWorker
+
+      - name: Deploy infrastructure & roll out image
+        run: |
+          az deployment group create \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --template-file infra/gl-analysis-worker/main.bicep \
+            --parameters \
+              acrName=${{ secrets.GL_ACR_NAME }} \
+              containerImage=${{ secrets.GL_ACR_NAME }}.azurecr.io/gl-analysis-worker:${{ github.sha }} \
+              serviceBusConnectionString='${{ secrets.GL_SERVICE_BUS_CONNECTION_STRING }}' \
+              blobStorageConnectionString='${{ secrets.GL_BLOB_STORAGE_CONNECTION_STRING }}' \
+              sqlConnectionString='${{ secrets.GL_SQL_CONNECTION_STRING }}' \
+              smtpPassword='${{ secrets.GL_SMTP_PASSWORD }}'
