@@ -1,6 +1,6 @@
 using QuickBooksAPI.Application.Interfaces;
 
-namespace QuickBooksAPI.Services
+namespace QuickBooksAPI.Services.Analytics
 {
     /// <summary>
     /// Application service that coordinates rebuilding the financial warehouse

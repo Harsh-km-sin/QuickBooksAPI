@@ -19,4 +19,4 @@ Frontend counterparts: `QuickBooksAPI Frontend/app/src/features/auth/`, `…/fea
 
 ### Next steps (maintainers)
 
-- **Architecture tests:** `Features_ShouldNotDependOn_DataAccessLayer_Repos` — feature code uses `Application.Interfaces` for repos; see [`AI_GUIDELINES.md`](../../AI_GUIDELINES.md).
+- **Architecture tests:** `Features_ShouldNotDependOn_DataAccessLayer_Repos` — feature code uses `Application.Interfaces` for repos; see [`AI_GUIDELINES.md`](../../docs/AI_GUIDELINES.md).

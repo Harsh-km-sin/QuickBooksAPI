@@ -38,27 +38,39 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return await connection.QueryAsync<QBOJournalEntryHeader>(sql, new { RealmId = realmId });
         }
 
-        public async Task<PagedResult<QBOJournalEntryHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search)
+        /// <summary>Maps API sort keys to whitelisted SQL columns — never interpolate SortBy directly, it's caller-controlled input.</summary>
+        private static readonly IReadOnlyDictionary<string, string> SortColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["docNumber"] = "DocNumber",
+            ["txnDate"] = "TxnDate",
+            ["totalAmount"] = "TotalAmount",
+            ["adjustment"] = "Adjustment",
+        };
+
+        public async Task<PagedResult<QBOJournalEntryHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search, string? sortBy = null, bool sortDescending = false)
         {
             using var connection = CreateOpenConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
             var skip = (page - 1) * pageSize;
+            var orderBy = (sortBy != null && SortColumns.TryGetValue(sortBy, out var mapped))
+                ? $"{mapped} {(sortDescending ? "DESC" : "ASC")}"
+                : "TxnDate DESC, LastUpdatedTime DESC";
 
             var countSql = @"
-                SELECT COUNT(*) FROM dbo.QBOJournalEntryHeader 
+                SELECT COUNT(*) FROM dbo.QBOJournalEntryHeader
                 WHERE QBRealmId = @RealmId
-                AND (@Search IS NULL OR QBJournalEntryId LIKE @Search)";
+                AND (@Search IS NULL OR DocNumber LIKE @Search OR PrivateNote LIKE @Search OR QBJournalEntryId LIKE @Search)";
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { RealmId = realmId, Search = searchPattern });
 
-            var itemsSql = @"
+            var itemsSql = $@"
                 SELECT JournalEntryId, QBJournalEntryId, QBRealmId, SyncToken, Domain,
                     TxnDate, Sparse, Adjustment, DocNumber, PrivateNote, CurrencyCode,
                     ExchangeRate, TotalAmount, HomeTotalAmount,
                     CreateTime, LastUpdatedTime, RawJson
                 FROM dbo.QBOJournalEntryHeader
                 WHERE QBRealmId = @RealmId
-                AND (@Search IS NULL OR QBJournalEntryId LIKE @Search)
-                ORDER BY TxnDate DESC, LastUpdatedTime DESC
+                AND (@Search IS NULL OR DocNumber LIKE @Search OR PrivateNote LIKE @Search OR QBJournalEntryId LIKE @Search)
+                ORDER BY {orderBy}
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
             var items = await connection.QueryAsync<QBOJournalEntryHeader>(itemsSql, new { RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
 

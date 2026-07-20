@@ -3,9 +3,8 @@ using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.Services.Auth;
 
-namespace QuickBooksAPI.Services;
+namespace QuickBooksAPI.Services.Auth;
 
 /// <summary>Compatibility façade over focused auth/QBO services (Phase 3 decomposition).</summary>
 public class AuthServices : IAuthService

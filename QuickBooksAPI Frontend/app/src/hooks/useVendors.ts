@@ -15,19 +15,7 @@ async function fetchVendors(params: ListQueryParams) {
   return response.data;
 }
 
-async function syncVendors() {
-  const response = await vendorApi.sync();
-  if (!response.success) {
-    throw new Error(response.message || 'Failed to sync vendors');
-  }
-  return response.data;
-}
-
-interface UseVendorsOptions {
-  listParams?: ListQueryParams;
-}
-
-interface UseVendorsReturn {
+interface UseVendorsListReturn {
   vendors: Vendor[];
   totalCount: number;
   page: number;
@@ -36,28 +24,54 @@ interface UseVendorsReturn {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   isLoading: boolean;
-  isSyncing: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+}
+
+/** Paged vendor list query only — pair with `useVendorMutations` for create/update/delete/sync. */
+export function useVendorsList(listParams?: ListQueryParams): UseVendorsListReturn {
+  const params = { ...defaultListParams, ...listParams };
+
+  const {
+    data: pagedData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: [...VENDORS_QUERY_KEY, params.page, params.pageSize, params.search ?? '', params.activeFilter ?? 'active', params.sortBy ?? '', params.sortDir ?? ''],
+    queryFn: () => fetchVendors(params),
+  });
+
+  return {
+    vendors: pagedData?.items ?? [],
+    totalCount: pagedData?.totalCount ?? 0,
+    page: pagedData?.page ?? 1,
+    pageSize: pagedData?.pageSize ?? defaultListParams.pageSize!,
+    totalPages: pagedData?.totalPages ?? 0,
+    hasNextPage: pagedData?.hasNextPage ?? false,
+    hasPreviousPage: pagedData?.hasPreviousPage ?? false,
+    isLoading,
+    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
+  };
+}
+
+async function syncVendors() {
+  const response = await vendorApi.sync();
+  if (!response.success) {
+    throw new Error(response.message || 'Failed to sync vendors');
+  }
+  return response.data;
+}
+
+interface UseVendorMutationsReturn {
+  isSyncing: boolean;
   sync: () => Promise<void>;
   createVendor: (data: CreateVendorRequest) => Promise<boolean>;
   updateVendor: (data: UpdateVendorRequest) => Promise<boolean>;
   softDeleteVendor: (data: SoftDeleteVendorRequest) => Promise<boolean>;
 }
 
-export function useVendors(options?: UseVendorsOptions): UseVendorsReturn {
+/** Sync/create/update/delete — no list query, safe to call from a page that doesn't own paging state. */
+export function useVendorMutations(): UseVendorMutationsReturn {
   const queryClient = useQueryClient();
-  const listParams = { ...defaultListParams, ...options?.listParams };
-
-  const {
-    data: pagedData,
-    isLoading,
-    error: queryError,
-    refetch: queryRefetch,
-  } = useQuery({
-    queryKey: [...VENDORS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? '', listParams.activeFilter ?? 'active'],
-    queryFn: () => fetchVendors(listParams),
-  });
 
   const syncMutation = useMutation({
     mutationFn: syncVendors,
@@ -131,10 +145,6 @@ export function useVendors(options?: UseVendorsOptions): UseVendorsReturn {
     },
   });
 
-  const refetch = async () => {
-    await queryRefetch();
-  };
-
   const sync = async () => {
     await syncMutation.mutateAsync();
   };
@@ -166,26 +176,8 @@ export function useVendors(options?: UseVendorsOptions): UseVendorsReturn {
     }
   };
 
-  const vendors = pagedData?.items ?? [];
-  const totalCount = pagedData?.totalCount ?? 0;
-  const page = pagedData?.page ?? 1;
-  const pageSize = pagedData?.pageSize ?? defaultListParams.pageSize!;
-  const totalPages = pagedData?.totalPages ?? 0;
-  const hasNextPage = pagedData?.hasNextPage ?? false;
-  const hasPreviousPage = pagedData?.hasPreviousPage ?? false;
-
   return {
-    vendors,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading,
     isSyncing: syncMutation.isPending,
-    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
-    refetch,
     sync,
     createVendor,
     updateVendor,

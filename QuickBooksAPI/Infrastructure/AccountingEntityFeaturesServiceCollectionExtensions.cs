@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using QuickBooksAPI.Application.Interfaces;
-using QuickBooksAPI.Services;
+using QuickBooksAPI.Services.Analytics;
 
 namespace QuickBooksAPI.Infrastructure;
 

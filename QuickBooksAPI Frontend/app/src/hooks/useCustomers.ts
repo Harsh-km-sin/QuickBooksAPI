@@ -15,19 +15,7 @@ async function fetchCustomers(params: ListQueryParams) {
   return response.data;
 }
 
-async function syncCustomers() {
-  const response = await customerApi.sync();
-  if (!response.success) {
-    throw new Error(response.message || 'Failed to sync customers');
-  }
-  return response.data;
-}
-
-interface UseCustomersOptions {
-  listParams?: ListQueryParams;
-}
-
-interface UseCustomersReturn {
+interface UseCustomersListReturn {
   customers: Customer[];
   totalCount: number;
   page: number;
@@ -36,9 +24,45 @@ interface UseCustomersReturn {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   isLoading: boolean;
-  isSyncing: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+}
+
+/** Paged customer list query only — pair with `useCustomerMutations` for create/update/delete/sync. */
+export function useCustomersList(listParams?: ListQueryParams): UseCustomersListReturn {
+  const params = { ...defaultListParams, ...listParams };
+
+  const {
+    data: pagedData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: [...CUSTOMERS_QUERY_KEY, params.page, params.pageSize, params.search ?? '', params.activeFilter ?? 'active', params.sortBy ?? '', params.sortDir ?? ''],
+    queryFn: () => fetchCustomers(params),
+  });
+
+  return {
+    customers: pagedData?.items ?? [],
+    totalCount: pagedData?.totalCount ?? 0,
+    page: pagedData?.page ?? 1,
+    pageSize: pagedData?.pageSize ?? defaultListParams.pageSize!,
+    totalPages: pagedData?.totalPages ?? 0,
+    hasNextPage: pagedData?.hasNextPage ?? false,
+    hasPreviousPage: pagedData?.hasPreviousPage ?? false,
+    isLoading,
+    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
+  };
+}
+
+async function syncCustomers() {
+  const response = await customerApi.sync();
+  if (!response.success) {
+    throw new Error(response.message || 'Failed to sync customers');
+  }
+  return response.data;
+}
+
+interface UseCustomerMutationsReturn {
+  isSyncing: boolean;
   sync: () => Promise<void>;
   getCustomerById: (id: string) => Promise<Customer | null>;
   createCustomer: (data: CreateCustomerRequest) => Promise<boolean>;
@@ -46,19 +70,9 @@ interface UseCustomersReturn {
   deleteCustomer: (data: DeleteCustomerRequest) => Promise<boolean>;
 }
 
-export function useCustomers(options?: UseCustomersOptions): UseCustomersReturn {
+/** Sync/create/update/delete/getById — no list query, safe to call from a page that doesn't own paging state. */
+export function useCustomerMutations(): UseCustomerMutationsReturn {
   const queryClient = useQueryClient();
-  const listParams = { ...defaultListParams, ...options?.listParams };
-
-  const {
-    data: pagedData,
-    isLoading,
-    error: queryError,
-    refetch: queryRefetch,
-  } = useQuery({
-    queryKey: [...CUSTOMERS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? '', listParams.activeFilter ?? 'active'],
-    queryFn: () => fetchCustomers(listParams),
-  });
 
   const syncMutation = useMutation({
     mutationFn: syncCustomers,
@@ -132,10 +146,6 @@ export function useCustomers(options?: UseCustomersOptions): UseCustomersReturn 
     },
   });
 
-  const refetch = async () => {
-    await queryRefetch();
-  };
-
   const getCustomerById = async (id: string): Promise<Customer | null> => {
     try {
       const response = await customerApi.getById(id);
@@ -176,26 +186,8 @@ export function useCustomers(options?: UseCustomersOptions): UseCustomersReturn 
     }
   };
 
-  const customers = pagedData?.items ?? [];
-  const totalCount = pagedData?.totalCount ?? 0;
-  const page = pagedData?.page ?? 1;
-  const pageSize = pagedData?.pageSize ?? defaultListParams.pageSize!;
-  const totalPages = pagedData?.totalPages ?? 0;
-  const hasNextPage = pagedData?.hasNextPage ?? false;
-  const hasPreviousPage = pagedData?.hasPreviousPage ?? false;
-
   return {
-    customers,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading,
     isSyncing: syncMutation.isPending,
-    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
-    refetch,
     sync,
     getCustomerById,
     createCustomer,

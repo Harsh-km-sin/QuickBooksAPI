@@ -65,4 +65,4 @@ az servicebus queue send --resource-group <rg> --namespace-name <namespace> --na
 
 ## After you run this smoke
 
-Check the box in `PHASE2_IMPLEMENTATION_TRACKER.md` §2.2 / `PHASE3_IMPLEMENTATION_TRACKER.md` carry-over once verified in a real environment.
+Check the box in `docs/PHASE2_IMPLEMENTATION_TRACKER.md` §2.2 / `docs/PHASE3_IMPLEMENTATION_TRACKER.md` carry-over once verified in a real environment.

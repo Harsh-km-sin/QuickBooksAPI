@@ -53,27 +53,40 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return await connection.QueryAsync<QBOBillHeader>(sql, new { RealmId = realmId });
         }
 
-        public async Task<PagedResult<QBOBillHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search)
+        /// <summary>Maps API sort keys to whitelisted SQL columns — never interpolate SortBy directly, it's caller-controlled input.</summary>
+        private static readonly IReadOnlyDictionary<string, string> SortColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["vendorRefName"] = "VendorRefName",
+            ["txnDate"] = "TxnDate",
+            ["dueDate"] = "DueDate",
+            ["totalAmt"] = "TotalAmt",
+            ["balance"] = "Balance",
+        };
+
+        public async Task<PagedResult<QBOBillHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search, string? sortBy = null, bool sortDescending = false)
         {
             using var connection = CreateOpenConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
             var skip = (page - 1) * pageSize;
+            var orderBy = (sortBy != null && SortColumns.TryGetValue(sortBy, out var mapped))
+                ? $"{mapped} {(sortDescending ? "DESC" : "ASC")}"
+                : "TxnDate DESC, LastUpdatedTime DESC";
 
             var countSql = @"
-                SELECT COUNT(*) FROM dbo.QBOBillHeader 
+                SELECT COUNT(*) FROM dbo.QBOBillHeader
                 WHERE RealmId = @RealmId AND (IsDeleted = 0 OR IsDeleted IS NULL)
                 AND (@Search IS NULL OR VendorRefName LIKE @Search OR QBOBillId LIKE @Search)";
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { RealmId = realmId, Search = searchPattern });
 
-            var itemsSql = @"SELECT BillId, QBOBillId, RealmId, SyncToken, Domain, Sparse,
+            var itemsSql = $@"SELECT BillId, QBOBillId, RealmId, SyncToken, Domain, Sparse,
                 APAccountRefValue, APAccountRefName, VendorRefValue, VendorRefName,
                 TxnDate, DueDate, TotalAmt, Balance, IsDeleted,
                 CurrencyRefValue, CurrencyRefName, SalesTermRefValue,
                 CreateTime, LastUpdatedTime, RawJson
-                FROM dbo.QBOBillHeader 
+                FROM dbo.QBOBillHeader
                 WHERE RealmId = @RealmId AND (IsDeleted = 0 OR IsDeleted IS NULL)
                 AND (@Search IS NULL OR VendorRefName LIKE @Search OR QBOBillId LIKE @Search)
-                ORDER BY TxnDate DESC, LastUpdatedTime DESC
+                ORDER BY {orderBy}
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
             var items = await connection.QueryAsync<QBOBillHeader>(itemsSql, new { RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
 

@@ -1,7 +1,7 @@
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
 
-namespace QuickBooksAPI.Services
+namespace QuickBooksAPI.Services.Analytics
 {
     /// <summary>
     /// Exposes customer profitability from the financial warehouse for CFO analytics.

@@ -1,8 +1,7 @@
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.DataAccessLayer.Models;
-using QuickBooksAPI.Application.Interfaces;
 
-namespace QuickBooksAPI.Services
+namespace QuickBooksAPI.Services.Analytics
 {
     /// <summary>
     /// Runs rules-based anomaly detection after warehouse rebuild and persists results to anomaly_events.

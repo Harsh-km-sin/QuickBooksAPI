@@ -39,19 +39,32 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return await connection.QueryAsync<QBOInvoiceHeader>(sql, new { RealmId = realmId });
         }
 
-        public async Task<PagedResult<QBOInvoiceHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search)
+        /// <summary>Maps API sort keys to whitelisted SQL columns — never interpolate SortBy directly, it's caller-controlled input.</summary>
+        private static readonly IReadOnlyDictionary<string, string> SortColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["customerRefName"] = "CustomerRefName",
+            ["txnDate"] = "TxnDate",
+            ["dueDate"] = "DueDate",
+            ["totalAmt"] = "TotalAmt",
+            ["balance"] = "Balance",
+        };
+
+        public async Task<PagedResult<QBOInvoiceHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search, string? sortBy = null, bool sortDescending = false)
         {
             using var connection = CreateOpenConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
             var skip = (page - 1) * pageSize;
+            var orderBy = (sortBy != null && SortColumns.TryGetValue(sortBy, out var mapped))
+                ? $"{mapped} {(sortDescending ? "DESC" : "ASC")}"
+                : "TxnDate DESC, LastUpdatedTime DESC";
 
             var countSql = @"
-                SELECT COUNT(*) FROM dbo.QBOInvoiceHeader 
+                SELECT COUNT(*) FROM dbo.QBOInvoiceHeader
                 WHERE RealmId = @RealmId
                 AND (@Search IS NULL OR CustomerRefName LIKE @Search OR QBOInvoiceId LIKE @Search)";
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { RealmId = realmId, Search = searchPattern });
 
-            var itemsSql = @"
+            var itemsSql = $@"
                 SELECT InvoiceId, QBOInvoiceId, RealmId, SyncToken, Domain, Sparse,
                     TxnDate, DueDate, CustomerRefId, CustomerRefName,
                     CurrencyCode, ExchangeRate, TotalAmt, Balance,
@@ -59,7 +72,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 FROM dbo.QBOInvoiceHeader
                 WHERE RealmId = @RealmId
                 AND (@Search IS NULL OR CustomerRefName LIKE @Search OR QBOInvoiceId LIKE @Search)
-                ORDER BY TxnDate DESC, LastUpdatedTime DESC
+                ORDER BY {orderBy}
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
             var items = await connection.QueryAsync<QBOInvoiceHeader>(itemsSql, new { RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
 

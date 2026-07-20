@@ -1,5 +1,5 @@
 using QuickBooksAPI.Application.Interfaces;
-namespace QuickBooksAPI.Services
+namespace QuickBooksAPI.Services.Analytics
 {
     /// <summary>
     /// Computes a simple, explainable cash runway using chart of accounts and

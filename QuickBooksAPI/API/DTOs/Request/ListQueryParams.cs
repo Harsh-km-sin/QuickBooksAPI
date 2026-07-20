@@ -17,6 +17,12 @@ namespace QuickBooksAPI.API.DTOs.Request
         /// <summary>Filter by active status: "active", "inactive", or null/empty for all.</summary>
         public string? ActiveFilter { get; set; }
 
+        /// <summary>Column to sort by. Repository maps this to a whitelisted SQL column; unrecognized values fall back to the default sort.</summary>
+        public string? SortBy { get; set; }
+
+        /// <summary>Sort direction: "asc" or "desc". Default: "asc".</summary>
+        public string? SortDir { get; set; }
+
         public bool? GetActiveFilter() => ActiveFilter?.ToLower() switch
         {
             "active" => true,
@@ -27,5 +33,6 @@ namespace QuickBooksAPI.API.DTOs.Request
         public int GetSkip() => Math.Max(0, (Page - 1) * GetPageSize());
         public int GetPageSize() => Math.Clamp(PageSize, 1, 100);
         public int GetPage() => Math.Max(1, Page);
+        public bool IsDescending() => string.Equals(SortDir, "desc", StringComparison.OrdinalIgnoreCase);
     }
 }

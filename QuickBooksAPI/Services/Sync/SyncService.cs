@@ -3,7 +3,7 @@ using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Infrastructure.Queue;
 using QuickBooksShared.Messages;
 
-namespace QuickBooksAPI.Services
+namespace QuickBooksAPI.Services.Sync
 {
     public class SyncService : ISyncService
     {

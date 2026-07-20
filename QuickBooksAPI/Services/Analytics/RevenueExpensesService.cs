@@ -1,7 +1,7 @@
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Interfaces;
 
-namespace QuickBooksAPI.Services
+namespace QuickBooksAPI.Services.Analytics
 {
     /// <summary>
     /// Exposes revenue vs expenses from the financial warehouse for CFO dashboard charts.

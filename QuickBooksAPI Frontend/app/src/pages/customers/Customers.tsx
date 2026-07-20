@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCustomers, useDebouncedValue } from '@/hooks';
+import { useCustomerMutations } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   openCreateDialog,
@@ -14,7 +14,6 @@ import {
 import { CustomerForm } from '@/features/customers';
 import type { Customer, CreateCustomerRequest, UpdateCustomerRequest } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -23,55 +22,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, RefreshCw, Loader2, ChevronLeft } from 'lucide-react';
-import { CustomersListCard } from './customers/CustomersListCard';
-
-const SEARCH_DEBOUNCE_MS = 300;
-const DEFAULT_PAGE_SIZE = 20;
+import { CustomerTable } from './CustomerTable';
 
 export function Customers() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [activeFilter, setActiveFilter] = useState<'active' | 'inactive' | 'all'>('active');
-  const debouncedSearch = useDebouncedValue(searchTerm.trim(), SEARCH_DEBOUNCE_MS);
-
-  const listParams = useMemo(
-    () => ({ page, pageSize, search: debouncedSearch || undefined, activeFilter }),
-    [page, pageSize, debouncedSearch, activeFilter]
-  );
-  const {
-    customers,
-    totalCount,
-    page: currentPage,
-    totalPages,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading,
-    isSyncing,
-    getCustomerById,
-    createCustomer,
-    updateCustomer,
-    deleteCustomer,
-    sync,
-  } = useCustomers({ listParams });
+  const { isSyncing, sync, getCustomerById, createCustomer, updateCustomer, deleteCustomer } = useCustomerMutations();
   const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
-
-  const goToPage = (nextPage: number) => setPage(() => Math.max(1, Math.min(nextPage, totalPages || 1)));
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setPage(1);
-  };
-  const handlePageSizeChange = (value: number) => {
-    setPageSize(value);
-    setPage(1);
-  };
-  const handleActiveFilterChange = (value: 'active' | 'inactive' | 'all') => {
-    setActiveFilter(value);
-    setPage(1);
-  };
 
   const dispatch = useAppDispatch();
   const {
@@ -116,40 +73,9 @@ export function Customers() {
     if (fullCustomer) dispatch(openEditDialog(fullCustomer));
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-              <p className="text-muted-foreground">Manage your customer accounts</p>
-            </div>
-          </div>
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <Skeleton className="h-[400px] w-full" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="flex h-[calc(100vh-3rem)] lg:h-[calc(100vh-4rem)] flex-col space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
             <ChevronLeft className="h-5 w-5" />
@@ -160,7 +86,7 @@ export function Customers() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={sync} disabled={isSyncing} className="hover:bg-muted hover:text-foreground">
+          <Button variant="outline" onClick={sync} disabled={isSyncing}>
             {isSyncing ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
@@ -175,26 +101,11 @@ export function Customers() {
         </div>
       </div>
 
-      <CustomersListCard
-        searchTerm={searchTerm}
-        onSearchChange={handleSearchChange}
-        activeFilter={activeFilter}
-        onActiveFilterChange={handleActiveFilterChange}
-        totalCount={totalCount}
-        customers={customers}
-        debouncedSearch={debouncedSearch}
+      <CustomerTable
         onOpenCreate={() => dispatch(openCreateDialog())}
-        formatCurrency={formatCurrency}
         onOpenEdit={handleOpenEditDialog}
         onOpenDelete={(c) => dispatch(openDeleteDialog(c))}
         isLoadingCustomer={isLoadingCustomer}
-        currentPage={currentPage}
-        pageSize={pageSize}
-        onPageSizeChange={handlePageSizeChange}
-        totalPages={totalPages}
-        hasNextPage={hasNextPage}
-        hasPreviousPage={hasPreviousPage}
-        onGoToPage={goToPage}
       />
 
       <Dialog open={isCreateDialogOpen} onOpenChange={(open) => !open && dispatch(closeCreateDialog())}>

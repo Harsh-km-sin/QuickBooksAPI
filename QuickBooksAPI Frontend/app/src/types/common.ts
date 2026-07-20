@@ -1,8 +1,12 @@
+export type SortDirection = 'asc' | 'desc';
+
 export interface ListQueryParams {
   page?: number;
   pageSize?: number;
   search?: string;
   activeFilter?: 'active' | 'inactive' | 'all';
+  sortBy?: string;
+  sortDir?: SortDirection;
 }
 
 export interface PagedResult<T> {
