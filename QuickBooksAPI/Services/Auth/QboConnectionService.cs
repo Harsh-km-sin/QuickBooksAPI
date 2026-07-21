@@ -98,15 +98,34 @@ public class QboConnectionService : IQboConnectionService
             await _tokenRepo.SaveTokenAsync(token);
 
             string? companyName = null;
+            DateTime? companyStartDate = null;
+            int? fiscalYearStartMonth = null;
             try
             {
                 var companyInfoJson = await _quickBooksAuthService.GetCompanyInfoAsync(token.AccessToken, realmId);
                 var companyInfo = JsonSerializer.Deserialize<QuickBooksCompanyInfoResponse>(companyInfoJson);
                 companyName = companyInfo?.CompanyInfo?.CompanyName ?? companyInfo?.CompanyInfo?.LegalName;
+                companyStartDate = QuickBooksCompanyMetadataParser.ParseCompanyStartDate(companyInfo?.CompanyInfo?.CompanyStartDate);
+                fiscalYearStartMonth = QuickBooksCompanyMetadataParser.ParseFiscalYearStartMonth(companyInfo?.CompanyInfo?.FiscalYearStartMonth);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to fetch QuickBooks CompanyInfo for UserId={UserId}, RealmId={RealmId}", userId, realmId);
+            }
+
+            // Separate try: preferences live on a different endpoint, so a failure there must not
+            // discard the CompanyInfo we already have (and vice versa). Both are best-effort —
+            // report sync backfills them later if either is missing.
+            string? accountingBasis = null;
+            try
+            {
+                var preferencesJson = await _quickBooksAuthService.GetPreferencesAsync(token.AccessToken, realmId);
+                var preferences = JsonSerializer.Deserialize<QuickBooksPreferencesResponse>(preferencesJson);
+                accountingBasis = QuickBooksCompanyMetadataParser.ParseAccountingBasis(preferences?.Preferences?.ReportPrefs?.ReportBasis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch QuickBooks Preferences for UserId={UserId}, RealmId={RealmId}", userId, realmId);
             }
 
             var company = new Company
@@ -119,7 +138,10 @@ public class QboConnectionService : IQboConnectionService
                 TokenExpiryUtc = token.CreatedAt.AddSeconds(token.ExpiresIn),
                 IsQboConnected = true,
                 ConnectedAtUtc = token.CreatedAt,
-                DisconnectedAtUtc = null
+                DisconnectedAtUtc = null,
+                AccountingBasis = accountingBasis,
+                CompanyStartDate = companyStartDate,
+                FiscalYearStartMonth = fiscalYearStartMonth
             };
 
             await _companyRepository.UpsertCompanyAsync(company);

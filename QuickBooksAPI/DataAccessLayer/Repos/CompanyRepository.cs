@@ -29,7 +29,10 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                     ConnectedAtUtc,
                                     DisconnectedAtUtc,
                                     CreatedAtUtc,
-                                    UpdatedAtUtc
+                                    UpdatedAtUtc,
+                                    AccountingBasis,
+                                    CompanyStartDate,
+                                    FiscalYearStartMonth
                                 FROM dbo.Companies
                                 WHERE UserId = @UserId
                                   AND QboRealmId = @RealmId;";
@@ -55,7 +58,10 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                     ConnectedAtUtc,
                                     DisconnectedAtUtc,
                                     CreatedAtUtc,
-                                    UpdatedAtUtc
+                                    UpdatedAtUtc,
+                                    AccountingBasis,
+                                    CompanyStartDate,
+                                    FiscalYearStartMonth
                                 FROM dbo.Companies
                                 WHERE UserId = @UserId
                                   AND IsQboConnected = 1;";
@@ -95,7 +101,11 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                         IsQboConnected    = @IsQboConnected,
                                         ConnectedAtUtc    = COALESCE(target.ConnectedAtUtc, @ConnectedAtUtc),
                                         DisconnectedAtUtc = @DisconnectedAtUtc,
-                                        UpdatedAtUtc      = SYSDATETIMEOFFSET()
+                                        UpdatedAtUtc      = SYSDATETIMEOFFSET(),
+                                        -- COALESCE so a failed best-effort metadata fetch never wipes good values.
+                                        AccountingBasis      = COALESCE(@AccountingBasis, target.AccountingBasis),
+                                        CompanyStartDate     = COALESCE(@CompanyStartDate, target.CompanyStartDate),
+                                        FiscalYearStartMonth = COALESCE(@FiscalYearStartMonth, target.FiscalYearStartMonth)
                                 WHEN NOT MATCHED THEN
                                     INSERT (
                                         UserId,
@@ -108,7 +118,10 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                         ConnectedAtUtc,
                                         DisconnectedAtUtc,
                                         CreatedAtUtc,
-                                        UpdatedAtUtc
+                                        UpdatedAtUtc,
+                                        AccountingBasis,
+                                        CompanyStartDate,
+                                        FiscalYearStartMonth
                                     )
                                     VALUES (
                                         @UserId,
@@ -121,7 +134,10 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                                         @ConnectedAtUtc,
                                         @DisconnectedAtUtc,
                                         SYSDATETIMEOFFSET(),
-                                        SYSDATETIMEOFFSET()
+                                        SYSDATETIMEOFFSET(),
+                                        @AccountingBasis,
+                                        @CompanyStartDate,
+                                        @FiscalYearStartMonth
                                     );";
 
             using var connection = _connectionFactory.CreateConnection();
@@ -135,7 +151,40 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 company.TokenExpiryUtc,
                 company.IsQboConnected,
                 company.ConnectedAtUtc,
-                company.DisconnectedAtUtc
+                company.DisconnectedAtUtc,
+                company.AccountingBasis,
+                company.CompanyStartDate,
+                company.FiscalYearStartMonth
+            });
+        }
+
+        public async Task UpdateCompanyMetadataAsync(
+            int userId,
+            string realmId,
+            string? accountingBasis,
+            DateTime? companyStartDate,
+            int? fiscalYearStartMonth)
+        {
+            // Touches the three metadata columns only — never the token columns.
+            // COALESCE keeps a stored value when the caller could not fetch a fresh one.
+            const string sql = @"
+                                UPDATE dbo.Companies
+                                SET
+                                    AccountingBasis      = COALESCE(@AccountingBasis, AccountingBasis),
+                                    CompanyStartDate     = COALESCE(@CompanyStartDate, CompanyStartDate),
+                                    FiscalYearStartMonth = COALESCE(@FiscalYearStartMonth, FiscalYearStartMonth),
+                                    UpdatedAtUtc         = SYSDATETIMEOFFSET()
+                                WHERE UserId = @UserId
+                                  AND QboRealmId = @RealmId;";
+
+            using var connection = _connectionFactory.CreateConnection();
+            await connection.ExecuteAsync(sql, new
+            {
+                UserId = userId,
+                RealmId = realmId,
+                AccountingBasis = accountingBasis,
+                CompanyStartDate = companyStartDate,
+                FiscalYearStartMonth = fiscalYearStartMonth
             });
         }
 

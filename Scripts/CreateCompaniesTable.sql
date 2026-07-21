@@ -12,6 +12,11 @@ CREATE TABLE dbo.Companies
     DisconnectedAtUtc DATETIMEOFFSET,
     CreatedAtUtc      DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
     UpdatedAtUtc      DATETIMEOFFSET,
+    -- QBO metadata used by Reports sync. See Scripts/AlterCompanies_AddQboPreferences.sql
+    -- for what each field drives; kept here so fresh installs match migrated databases.
+    AccountingBasis      NVARCHAR(20),
+    CompanyStartDate     DATE,
+    FiscalYearStartMonth INT,
     CONSTRAINT UQ_Companies_UserId_QboRealmId UNIQUE (UserId, QboRealmId)
 );
 

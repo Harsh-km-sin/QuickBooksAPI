@@ -43,6 +43,9 @@ var host = new HostBuilder()
         services.AddScoped<IFullSyncEntitySyncStep, FullSyncInvoicesStep>();
         services.AddScoped<IFullSyncEntitySyncStep, FullSyncBillsStep>();
         services.AddScoped<IFullSyncEntitySyncStep, FullSyncJournalEntriesStep>();
+        // Last on purpose: needs ChartOfAccounts resident, and its skip-if-unchanged check reads the
+        // entity watermarks, which the transaction steps above have advanced by this point.
+        services.AddScoped<IFullSyncEntitySyncStep, FullSyncReportsStep>();
 
         services.AddWorkerSyncPipeline();
         services.AddScoped<IFullSyncOrchestrator, FullSyncOrchestrator>();

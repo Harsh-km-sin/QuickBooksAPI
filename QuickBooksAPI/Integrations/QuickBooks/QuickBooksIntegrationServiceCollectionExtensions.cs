@@ -27,6 +27,7 @@ public static class QuickBooksIntegrationServiceCollectionExtensions
         services.AddScoped<QboTokenRefreshClient>();
         services.AddScoped<QboTokenRevokeClient>();
         services.AddScoped<QboCompanyInfoClient>();
+        services.AddScoped<QboPreferencesClient>();
         services.AddScoped<IQuickBooksAuthService, QuickBooksAuthService>();
         services.AddScoped<IQuickBooksChartOfAccountsService, QuickBooksChartOfAccountsService>();
         services.AddScoped<IQuickBooksProductService, QuickBooksProductService>();
