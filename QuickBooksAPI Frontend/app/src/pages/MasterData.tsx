@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Users, Package, Truck, FileText, Receipt, BookOpen, BookText, ChevronLeft, ChevronRight, Database } from 'lucide-react';
+import { Users, Package, Truck, BookOpen, ChevronLeft, ChevronRight, Database } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -8,10 +8,7 @@ const entities = [
   { href: '/settings/master-data/customers', icon: Users, title: 'Customers', description: 'View and manage customer records' },
   { href: '/settings/master-data/vendors', icon: Truck, title: 'Vendors', description: 'View and manage vendor records' },
   { href: '/settings/master-data/products', icon: Package, title: 'Products', description: 'View and manage products and services' },
-  { href: '/settings/master-data/invoices', icon: Receipt, title: 'Invoices', description: 'View and manage customer invoices' },
-  { href: '/settings/master-data/bills', icon: FileText, title: 'Bills', description: 'View and manage vendor bills' },
   { href: '/settings/master-data/chart-of-accounts', icon: BookOpen, title: 'Chart of Accounts', description: 'View and manage account categories' },
-  { href: '/settings/master-data/journal-entries', icon: BookText, title: 'Journal Entries', description: 'View and manage journal entries' },
 ];
 
 export function MasterData() {
@@ -34,7 +31,7 @@ export function MasterData() {
 
       <Separator />
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         {entities.map(({ href, icon: Icon, title, description }) => (
           <Card
             key={href}

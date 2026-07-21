@@ -60,6 +60,10 @@ function App() {
       <Route path="/" element={renderProtectedPage(<Dashboard />)} />
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
       <Route path="/connected-companies" element={<Navigate to="/settings/connected-companies" replace />} />
+      {/* Top-level transactional pages */}
+      <Route path="/invoices" element={renderProtectedPage(<Invoices />)} />
+      <Route path="/bills" element={renderProtectedPage(<Bills />)} />
+      <Route path="/journal-entries" element={renderProtectedPage(<JournalEntries />)} />
       {/* Settings hub */}
       <Route path="/settings" element={renderProtectedPage(<Settings />)} />
       <Route path="/settings/user-management" element={renderProtectedPage(<UserManagement />)} />
@@ -67,19 +71,17 @@ function App() {
       <Route path="/settings/master-data/customers" element={renderProtectedPage(<Customers />)} />
       <Route path="/settings/master-data/vendors" element={renderProtectedPage(<Vendors />)} />
       <Route path="/settings/master-data/products" element={renderProtectedPage(<ProductsPage />)} />
-      <Route path="/settings/master-data/bills" element={renderProtectedPage(<Bills />)} />
-      <Route path="/settings/master-data/invoices" element={renderProtectedPage(<Invoices />)} />
       <Route path="/settings/master-data/chart-of-accounts" element={renderProtectedPage(<ChartOfAccounts />)} />
-      <Route path="/settings/master-data/journal-entries" element={renderProtectedPage(<JournalEntries />)} />
       <Route path="/settings/connected-companies" element={renderProtectedPage(<ConnectedCompanies />)} />
+      {/* Bills/Invoices/Journal Entries moved out of Master Data to top-level nav */}
+      <Route path="/settings/master-data/bills" element={<Navigate to="/bills" replace />} />
+      <Route path="/settings/master-data/invoices" element={<Navigate to="/invoices" replace />} />
+      <Route path="/settings/master-data/journal-entries" element={<Navigate to="/journal-entries" replace />} />
       {/* Old entity routes redirect to master data */}
       <Route path="/customers" element={<Navigate to="/settings/master-data" replace />} />
       <Route path="/vendors" element={<Navigate to="/settings/master-data" replace />} />
       <Route path="/products" element={<Navigate to="/settings/master-data" replace />} />
-      <Route path="/bills" element={<Navigate to="/settings/master-data" replace />} />
-      <Route path="/invoices" element={<Navigate to="/settings/master-data" replace />} />
       <Route path="/chart-of-accounts" element={<Navigate to="/settings/master-data" replace />} />
-      <Route path="/journal-entries" element={<Navigate to="/settings/master-data" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
