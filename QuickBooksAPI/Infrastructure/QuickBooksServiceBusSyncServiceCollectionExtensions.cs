@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksAPI.Infrastructure.Queue;
-using QuickBooksAPI.Services;
+using QuickBooksAPI.Services.Sync;
 using QuickBooksShared.Options;
 
 namespace QuickBooksAPI.Infrastructure;

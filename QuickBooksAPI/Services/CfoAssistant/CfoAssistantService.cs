@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 using QuickBooksAPI.Application.Interfaces;
 using QuickBooksShared.Options;
 
-namespace QuickBooksAPI.Services;
+namespace QuickBooksAPI.Services.CfoAssistant;
 
 /// <summary>
 /// Answers CFO questions using warehouse-backed metrics; optionally uses Azure OpenAI to summarize.

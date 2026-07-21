@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
-import { useChartOfAccounts } from '@/hooks';
+import { useChartOfAccountsList } from '@/hooks';
 import { productFormSchema, type ProductFormValues } from './productFormSchema';
 import { ProductFormBasicPricing } from './ProductFormBasicPricing';
 import { ProductFormAccountRefs } from './ProductFormAccountRefs';
@@ -22,9 +22,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
   const [iSell, setISell] = useState(product ? !!product.incomeAccountRefValue : true);
   const [iPurchase, setIPurchase] = useState(product ? !!product.expenseAccountRefValue : false);
 
-  const { accounts, isLoading: isLoadingAccounts } = useChartOfAccounts({
-    listParams: { page: 1, pageSize: 500 },
-  });
+  const { accounts, isLoading: isLoadingAccounts } = useChartOfAccountsList({ page: 1, pageSize: 500 });
 
   const incomeAccounts = accounts.filter((acc) => {
     const type = acc.accountType?.toLowerCase();

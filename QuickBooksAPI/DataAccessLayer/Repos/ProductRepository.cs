@@ -64,29 +64,41 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return rows.Select(ProductReadMapping.ToDto);
         }
 
-        public async Task<PagedResult<ProductDto>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, bool? activeFilter = true)
+        /// <summary>Maps API sort keys to whitelisted SQL columns — never interpolate SortBy directly, it's caller-controlled input.</summary>
+        private static readonly IReadOnlyDictionary<string, string> SortColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = "Name",
+            ["type"] = "Type",
+            ["unitPrice"] = "UnitPrice",
+            ["qtyOnHand"] = "QtyOnHand",
+            ["active"] = "Active",
+        };
+
+        public async Task<PagedResult<ProductDto>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, bool? activeFilter = true, string? sortBy = null, bool sortDescending = false)
         {
             using var connection = CreateOpenConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
             var skip = (page - 1) * pageSize;
+            var sortColumn = (sortBy != null && SortColumns.TryGetValue(sortBy, out var mapped)) ? mapped : "Name";
+            var direction = sortDescending ? "DESC" : "ASC";
 
             var countSql = @"
-                SELECT COUNT(*) FROM Products 
+                SELECT COUNT(*) FROM Products
                 WHERE UserId = @UserId AND RealmId = @RealmId
                 AND (@ActiveFilter IS NULL OR Active = @ActiveFilter)
                 AND (@Search IS NULL OR Name LIKE @Search OR Description LIKE @Search OR FullyQualifiedName LIKE @Search)";
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, ActiveFilter = activeFilter });
 
-            var itemsSql = @"
+            var itemsSql = $@"
                 SELECT Id, QBOId, Name, Description, Active, FullyQualifiedName, Taxable, UnitPrice, Type,
                     IncomeAccountRefValue, IncomeAccountRefName, ExpenseAccountRefValue, ExpenseAccountRefName,
                     AssetAccountRefValue, AssetAccountRefName, PurchaseCost, TrackQtyOnHand, QtyOnHand,
                     InvStartDate, Domain, Sparse, SyncToken, CreateTime, LastUpdatedTime, UserId, RealmId
-                FROM Products 
+                FROM Products
                 WHERE UserId = @UserId AND RealmId = @RealmId
                 AND (@ActiveFilter IS NULL OR Active = @ActiveFilter)
                 AND (@Search IS NULL OR Name LIKE @Search OR Description LIKE @Search OR FullyQualifiedName LIKE @Search)
-                ORDER BY Name
+                ORDER BY {sortColumn} {direction}
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
             var items = await connection.QueryAsync<Products>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, ActiveFilter = activeFilter, Skip = skip, PageSize = pageSize });
             var dtoItems = items.Select(ProductReadMapping.ToDto).ToList();

@@ -22,19 +22,7 @@ async function fetchInvoices(params: ListQueryParams) {
   return response.data;
 }
 
-async function syncInvoices() {
-  const response = await invoiceApi.sync();
-  if (!response.success) {
-    throw new Error(response.message || 'Failed to sync invoices');
-  }
-  return response.data;
-}
-
-interface UseInvoicesOptions {
-  listParams?: ListQueryParams;
-}
-
-interface UseInvoicesReturn {
+interface UseInvoicesListReturn {
   invoices: QBOInvoiceHeader[];
   totalCount: number;
   page: number;
@@ -43,9 +31,45 @@ interface UseInvoicesReturn {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   isLoading: boolean;
-  isSyncing: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+}
+
+/** Paged invoice list query only — pair with `useInvoiceMutations` for create/update/delete/void/sync. */
+export function useInvoicesList(listParams?: ListQueryParams): UseInvoicesListReturn {
+  const params = { ...defaultListParams, ...listParams };
+
+  const {
+    data: pagedData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: [...INVOICES_QUERY_KEY, params.page, params.pageSize, params.search ?? '', params.sortBy ?? '', params.sortDir ?? ''],
+    queryFn: () => fetchInvoices(params),
+  });
+
+  return {
+    invoices: pagedData?.items ?? [],
+    totalCount: pagedData?.totalCount ?? 0,
+    page: pagedData?.page ?? 1,
+    pageSize: pagedData?.pageSize ?? defaultListParams.pageSize!,
+    totalPages: pagedData?.totalPages ?? 0,
+    hasNextPage: pagedData?.hasNextPage ?? false,
+    hasPreviousPage: pagedData?.hasPreviousPage ?? false,
+    isLoading,
+    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
+  };
+}
+
+async function syncInvoices() {
+  const response = await invoiceApi.sync();
+  if (!response.success) {
+    throw new Error(response.message || 'Failed to sync invoices');
+  }
+  return response.data;
+}
+
+interface UseInvoiceMutationsReturn {
+  isSyncing: boolean;
   sync: () => Promise<void>;
   createInvoice: (data: CreateInvoiceRequest) => Promise<boolean>;
   updateInvoice: (data: UpdateInvoiceRequest) => Promise<boolean>;
@@ -53,19 +77,9 @@ interface UseInvoicesReturn {
   voidInvoice: (data: VoidInvoiceRequest) => Promise<boolean>;
 }
 
-export function useInvoices(options?: UseInvoicesOptions): UseInvoicesReturn {
+/** Sync/create/update/delete/void — no list query, safe to call from a page that doesn't own paging state. */
+export function useInvoiceMutations(): UseInvoiceMutationsReturn {
   const queryClient = useQueryClient();
-  const listParams = { ...defaultListParams, ...options?.listParams };
-
-  const {
-    data: pagedData,
-    isLoading,
-    error: queryError,
-    refetch: queryRefetch,
-  } = useQuery({
-    queryKey: [...INVOICES_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? ''],
-    queryFn: () => fetchInvoices(listParams),
-  });
 
   const syncMutation = useMutation({
     mutationFn: syncInvoices,
@@ -150,10 +164,6 @@ export function useInvoices(options?: UseInvoicesOptions): UseInvoicesReturn {
     },
   });
 
-  const refetch = async () => {
-    await queryRefetch();
-  };
-
   const sync = async () => {
     await syncMutation.mutateAsync();
   };
@@ -194,26 +204,8 @@ export function useInvoices(options?: UseInvoicesOptions): UseInvoicesReturn {
     }
   };
 
-  const invoices = pagedData?.items ?? [];
-  const totalCount = pagedData?.totalCount ?? 0;
-  const page = pagedData?.page ?? 1;
-  const pageSize = pagedData?.pageSize ?? defaultListParams.pageSize!;
-  const totalPages = pagedData?.totalPages ?? 0;
-  const hasNextPage = pagedData?.hasNextPage ?? false;
-  const hasPreviousPage = pagedData?.hasPreviousPage ?? false;
-
   return {
-    invoices,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading,
     isSyncing: syncMutation.isPending,
-    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
-    refetch,
     sync,
     createInvoice,
     updateInvoice,

@@ -15,19 +15,7 @@ async function fetchBills(params: ListQueryParams) {
   return response.data;
 }
 
-async function syncBills() {
-  const response = await billApi.sync();
-  if (!response.success) {
-    throw new Error(response.message || 'Failed to sync bills');
-  }
-  return response.data;
-}
-
-interface UseBillsOptions {
-  listParams?: ListQueryParams;
-}
-
-interface UseBillsReturn {
+interface UseBillsListReturn {
   bills: QBOBillHeader[];
   totalCount: number;
   page: number;
@@ -36,9 +24,45 @@ interface UseBillsReturn {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   isLoading: boolean;
-  isSyncing: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+}
+
+/** Paged bill list query only — pair with `useBillMutations` for create/update/delete/sync. */
+export function useBillsList(listParams?: ListQueryParams): UseBillsListReturn {
+  const params = { ...defaultListParams, ...listParams };
+
+  const {
+    data: pagedData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: [...BILLS_QUERY_KEY, params.page, params.pageSize, params.search ?? '', params.sortBy ?? '', params.sortDir ?? ''],
+    queryFn: () => fetchBills(params),
+  });
+
+  return {
+    bills: pagedData?.items ?? [],
+    totalCount: pagedData?.totalCount ?? 0,
+    page: pagedData?.page ?? 1,
+    pageSize: pagedData?.pageSize ?? defaultListParams.pageSize!,
+    totalPages: pagedData?.totalPages ?? 0,
+    hasNextPage: pagedData?.hasNextPage ?? false,
+    hasPreviousPage: pagedData?.hasPreviousPage ?? false,
+    isLoading,
+    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
+  };
+}
+
+async function syncBills() {
+  const response = await billApi.sync();
+  if (!response.success) {
+    throw new Error(response.message || 'Failed to sync bills');
+  }
+  return response.data;
+}
+
+interface UseBillMutationsReturn {
+  isSyncing: boolean;
   sync: () => Promise<void>;
   getBillById: (id: string) => Promise<QBOBillHeader | null>;
   createBill: (data: CreateBillRequest) => Promise<boolean>;
@@ -46,19 +70,9 @@ interface UseBillsReturn {
   deleteBill: (data: DeleteBillRequest) => Promise<boolean>;
 }
 
-export function useBills(options?: UseBillsOptions): UseBillsReturn {
+/** Sync/create/update/delete/getById — no list query, safe to call from a page that doesn't own paging state. */
+export function useBillMutations(): UseBillMutationsReturn {
   const queryClient = useQueryClient();
-  const listParams = { ...defaultListParams, ...options?.listParams };
-
-  const {
-    data: pagedData,
-    isLoading,
-    error: queryError,
-    refetch: queryRefetch,
-  } = useQuery({
-    queryKey: [...BILLS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? ''],
-    queryFn: () => fetchBills(listParams),
-  });
 
   const syncMutation = useMutation({
     mutationFn: syncBills,
@@ -126,10 +140,6 @@ export function useBills(options?: UseBillsOptions): UseBillsReturn {
     },
   });
 
-  const refetch = async () => {
-    await queryRefetch();
-  };
-
   const getBillById = async (id: string): Promise<QBOBillHeader | null> => {
     try {
       const response = await billApi.getById(id);
@@ -170,26 +180,8 @@ export function useBills(options?: UseBillsOptions): UseBillsReturn {
     }
   };
 
-  const bills = pagedData?.items ?? [];
-  const totalCount = pagedData?.totalCount ?? 0;
-  const page = pagedData?.page ?? 1;
-  const pageSize = pagedData?.pageSize ?? defaultListParams.pageSize!;
-  const totalPages = pagedData?.totalPages ?? 0;
-  const hasNextPage = pagedData?.hasNextPage ?? false;
-  const hasPreviousPage = pagedData?.hasPreviousPage ?? false;
-
   return {
-    bills,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading,
     isSyncing: syncMutation.isPending,
-    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
-    refetch,
     sync,
     getBillById,
     createBill,

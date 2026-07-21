@@ -1014,7 +1014,7 @@ For frontend implementation:
 | RateLimiting | WindowSeconds | Window in seconds (default 60) |
 | HealthChecks | IncludeDatabase | When `true`, `/health` and `/health/ready` probe SQL (`SELECT 1`); default `false` |
 
-For local development, use User Secrets (see USER_SECRETS.md).
+For local development, use User Secrets (see docs/USER_SECRETS.md).
 
 ---
 

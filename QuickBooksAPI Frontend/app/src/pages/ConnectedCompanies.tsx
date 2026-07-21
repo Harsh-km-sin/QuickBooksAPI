@@ -150,7 +150,7 @@ export function ConnectedCompanies() {
             </CardDescription>
           </div>
           {connectImageError ? (
-            <Button variant="outline" onClick={connect} disabled={isConnecting} className="shrink-0 bg-background hover:bg-muted hover:text-foreground border-input">
+            <Button variant="outline" onClick={connect} disabled={isConnecting} className="shrink-0 bg-background border-input">
               {isConnecting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Connect to QuickBooks
             </Button>
@@ -223,7 +223,6 @@ export function ConnectedCompanies() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="hover:bg-muted hover:text-foreground"
                           onClick={() => handleUseCompany(company)}
                           disabled={currentRealmId === company.qboRealmId}
                         >
@@ -233,7 +232,6 @@ export function ConnectedCompanies() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="hover:bg-muted hover:text-foreground"
                           onClick={() => handleSync(company)}
                           disabled={isSyncing(company) || currentRealmId !== company.qboRealmId}
                           title={currentRealmId !== company.qboRealmId ? 'Switch to this company to sync' : undefined}

@@ -15,19 +15,7 @@ async function fetchChartOfAccounts(params: ListQueryParams) {
   return response.data;
 }
 
-async function syncChartOfAccounts() {
-  const response = await chartOfAccountsApi.sync();
-  if (!response.success) {
-    throw new Error(response.message || 'Failed to sync chart of accounts');
-  }
-  return response.data;
-}
-
-interface UseChartOfAccountsOptions {
-  listParams?: ListQueryParams;
-}
-
-interface UseChartOfAccountsReturn {
+interface UseChartOfAccountsListReturn {
   accounts: ChartOfAccounts[];
   totalCount: number;
   page: number;
@@ -36,25 +24,51 @@ interface UseChartOfAccountsReturn {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   isLoading: boolean;
-  isSyncing: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
-  sync: () => Promise<void>;
 }
 
-export function useChartOfAccounts(options?: UseChartOfAccountsOptions): UseChartOfAccountsReturn {
-  const queryClient = useQueryClient();
-  const listParams = { ...defaultListParams, ...options?.listParams };
+/** Paged chart-of-accounts list query only — pair with `useChartOfAccountsMutations` for sync. */
+export function useChartOfAccountsList(listParams?: ListQueryParams): UseChartOfAccountsListReturn {
+  const params = { ...defaultListParams, ...listParams };
 
   const {
     data: pagedData,
     isLoading,
     error: queryError,
-    refetch: queryRefetch,
   } = useQuery({
-    queryKey: [...CHART_OF_ACCOUNTS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? ''],
-    queryFn: () => fetchChartOfAccounts(listParams),
+    queryKey: [...CHART_OF_ACCOUNTS_QUERY_KEY, params.page, params.pageSize, params.search ?? '', params.sortBy ?? '', params.sortDir ?? ''],
+    queryFn: () => fetchChartOfAccounts(params),
   });
+
+  return {
+    accounts: pagedData?.items ?? [],
+    totalCount: pagedData?.totalCount ?? 0,
+    page: pagedData?.page ?? 1,
+    pageSize: pagedData?.pageSize ?? defaultListParams.pageSize!,
+    totalPages: pagedData?.totalPages ?? 0,
+    hasNextPage: pagedData?.hasNextPage ?? false,
+    hasPreviousPage: pagedData?.hasPreviousPage ?? false,
+    isLoading,
+    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
+  };
+}
+
+async function syncChartOfAccounts() {
+  const response = await chartOfAccountsApi.sync();
+  if (!response.success) {
+    throw new Error(response.message || 'Failed to sync chart of accounts');
+  }
+  return response.data;
+}
+
+interface UseChartOfAccountsMutationsReturn {
+  isSyncing: boolean;
+  sync: () => Promise<void>;
+}
+
+/** Sync only — no list query, safe to call from a page that doesn't own paging state. */
+export function useChartOfAccountsMutations(): UseChartOfAccountsMutationsReturn {
+  const queryClient = useQueryClient();
 
   const syncMutation = useMutation({
     mutationFn: syncChartOfAccounts,
@@ -71,34 +85,12 @@ export function useChartOfAccounts(options?: UseChartOfAccountsOptions): UseChar
     },
   });
 
-  const refetch = async () => {
-    await queryRefetch();
-  };
-
   const sync = async () => {
     await syncMutation.mutateAsync();
   };
 
-  const accounts = pagedData?.items ?? [];
-  const totalCount = pagedData?.totalCount ?? 0;
-  const page = pagedData?.page ?? 1;
-  const pageSize = pagedData?.pageSize ?? defaultListParams.pageSize!;
-  const totalPages = pagedData?.totalPages ?? 0;
-  const hasNextPage = pagedData?.hasNextPage ?? false;
-  const hasPreviousPage = pagedData?.hasPreviousPage ?? false;
-
   return {
-    accounts,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading,
     isSyncing: syncMutation.isPending,
-    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
-    refetch,
     sync,
   };
 }

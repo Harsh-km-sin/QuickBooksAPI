@@ -122,20 +122,32 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return await connection.QueryAsync<Vendor>(sql, new { UserId = userId, RealmId = realmId });
         }
 
-        public async Task<PagedResult<Vendor>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, bool? activeFilter = true)
+        /// <summary>Maps API sort keys to whitelisted SQL columns — never interpolate SortBy directly, it's caller-controlled input.</summary>
+        private static readonly IReadOnlyDictionary<string, string> SortColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["displayName"] = "DisplayName",
+            ["companyName"] = "CompanyName",
+            ["primaryEmailAddr"] = "PrimaryEmailAddr",
+            ["balance"] = "Balance",
+            ["active"] = "Active",
+        };
+
+        public async Task<PagedResult<Vendor>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, bool? activeFilter = true, string? sortBy = null, bool sortDescending = false)
         {
             using var connection = CreateConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
             var skip = (page - 1) * pageSize;
+            var sortColumn = (sortBy != null && SortColumns.TryGetValue(sortBy, out var mapped)) ? mapped : "DisplayName";
+            var direction = sortDescending ? "DESC" : "ASC";
 
             var countSql = @"
-                SELECT COUNT(*) FROM dbo.Vendor 
+                SELECT COUNT(*) FROM dbo.Vendor
                 WHERE UserId = @UserId AND RealmId = @RealmId AND (DeletedAt IS NULL)
                 AND (@ActiveFilter IS NULL OR Active = @ActiveFilter)
                 AND (@Search IS NULL OR DisplayName LIKE @Search OR GivenName LIKE @Search OR FamilyName LIKE @Search OR CompanyName LIKE @Search OR PrimaryEmailAddr LIKE @Search)";
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, ActiveFilter = activeFilter, Search = searchPattern });
 
-            var itemsSql = @"
+            var itemsSql = $@"
                 SELECT QboId, UserId, RealmId, SyncToken, Title, GivenName, MiddleName, FamilyName, Suffix,
                     DisplayName, CompanyName, PrintOnCheckName, Active, Balance,
                     PrimaryEmailAddr, PrimaryPhone, Mobile, WebAddr, TaxIdentifier, AcctNum,
@@ -146,7 +158,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 WHERE UserId = @UserId AND RealmId = @RealmId AND (DeletedAt IS NULL)
                 AND (@ActiveFilter IS NULL OR Active = @ActiveFilter)
                 AND (@Search IS NULL OR DisplayName LIKE @Search OR GivenName LIKE @Search OR FamilyName LIKE @Search OR CompanyName LIKE @Search OR PrimaryEmailAddr LIKE @Search)
-                ORDER BY DisplayName
+                ORDER BY {sortColumn} {direction}
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
             var items = await connection.QueryAsync<Vendor>(itemsSql, new { UserId = userId, RealmId = realmId, ActiveFilter = activeFilter, Search = searchPattern, Skip = skip, PageSize = pageSize });
 

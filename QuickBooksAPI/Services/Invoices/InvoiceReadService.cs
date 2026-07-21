@@ -26,7 +26,7 @@ public sealed class InvoiceReadService : IInvoiceReadService
         var page = query.GetPage();
         var pageSize = query.GetPageSize();
         var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
-        var result = await _invoiceRepository.GetPagedByRealmAsync(realmId, page, pageSize, search);
+        var result = await _invoiceRepository.GetPagedByRealmAsync(realmId, page, pageSize, search, query.SortBy, query.IsDescending());
         return ApiResponse<PagedResult<InvoiceListItemDto>>.Ok(InvoiceBillReadMapping.ToInvoiceDtoPaged(result));
     }
 }

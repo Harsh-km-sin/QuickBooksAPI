@@ -38,7 +38,7 @@ public sealed class ListProductsHandler
         var pageSize = query.GetPageSize();
         var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim();
         var activeFilter = query.GetActiveFilter();
-        var result = await _productRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search, activeFilter);
+        var result = await _productRepository.GetPagedByUserAndRealmAsync(userId, realmId, page, pageSize, search, activeFilter, query.SortBy, query.IsDescending());
         return ApiResponse<PagedResult<ProductDto>>.Ok(result);
     }
 }

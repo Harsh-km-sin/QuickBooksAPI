@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuickBooksAPI.Integrations.Abstractions;
 using QuickBooksService.Services;
 using QuickBooksService.Services.AuthTransport;
+using QuickBooksService.Services.Resilience;
 
 namespace QuickBooksAPI.Integrations.QuickBooks;
 
@@ -34,6 +35,15 @@ public static class QuickBooksIntegrationServiceCollectionExtensions
         services.AddScoped<IQuickBooksInvoiceService, QuickBooksInvoiceService>();
         services.AddScoped<IQuickBooksVendorService, QuickBooksVendorService>();
         services.AddScoped<IQuickBooksBillService, QuickBooksBillService>();
+
+        // Reports client only: QBO's Reports endpoint has a tighter rate limit (200 req/min) than the
+        // rest of the API, so this is the first (and only, for now) QBO client with retry/backoff on 429.
+        // QboRetryHandler itself is generic — attach it to other named clients later if we backport this.
+        services.AddTransient<QboRetryHandler>();
+        services.AddHttpClient(QuickBooksReportsService.HttpClientName)
+            .AddHttpMessageHandler<QboRetryHandler>();
+        services.AddScoped<IQuickBooksReportsService, QuickBooksReportsService>();
+
         return services;
     }
 }

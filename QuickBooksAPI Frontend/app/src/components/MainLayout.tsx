@@ -23,9 +23,6 @@ import {
   Building2,
   Sun,
   Moon,
-  TrendingUp,
-  MessageCircle,
-  ClipboardCheck,
 } from 'lucide-react';
 import { useConnectedCompanies } from '@/features/company';
 import { useTheme } from '@/components/theme-provider';
@@ -38,9 +35,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', href: '/', icon: Home },
-  { title: 'Forecast', href: '/forecast', icon: TrendingUp },
-  { title: 'CFO Assistant', href: '/cfo-assistant', icon: MessageCircle },
-  { title: 'Close & Data Quality', href: '/close-assistant', icon: ClipboardCheck },
   { title: 'Settings', href: '/settings', icon: Settings },
 ];
 

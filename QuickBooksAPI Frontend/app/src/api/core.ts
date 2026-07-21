@@ -1,7 +1,7 @@
 import type { ApiResponse } from '@/types';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7135';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7135';
 
 // Custom error class for API errors
 export class ApiError extends Error {

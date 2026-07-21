@@ -41,19 +41,32 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             return rows.Select(ChartOfAccountsReadMapping.ToDto);
         }
 
-        public async Task<PagedResult<ChartOfAccountsItemDto>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search)
+        /// <summary>Maps API sort keys to whitelisted SQL columns — never interpolate SortBy directly, it's caller-controlled input.</summary>
+        private static readonly IReadOnlyDictionary<string, string> SortColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = "Name",
+            ["accountType"] = "AccountType",
+            ["classification"] = "Classification",
+            ["currentBalance"] = "CurrentBalance",
+            ["active"] = "Active",
+        };
+
+        public async Task<PagedResult<ChartOfAccountsItemDto>> GetPagedByUserAndRealmAsync(int userId, string realmId, int page, int pageSize, string? search, string? sortBy = null, bool sortDescending = false)
         {
             using var connection = CreateOpenConnection();
             var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
             var skip = (page - 1) * pageSize;
+            var orderBy = (sortBy != null && SortColumns.TryGetValue(sortBy, out var mapped))
+                ? $"{mapped} {(sortDescending ? "DESC" : "ASC")}"
+                : "FullyQualifiedName";
 
             var countSql = @"
-                SELECT COUNT(*) FROM dbo.ChartOfAccounts 
+                SELECT COUNT(*) FROM dbo.ChartOfAccounts
                 WHERE UserId = @UserId AND RealmId = @RealmId
                 AND (@Search IS NULL OR Name LIKE @Search OR FullyQualifiedName LIKE @Search OR AccountType LIKE @Search)";
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId, RealmId = realmId, Search = searchPattern });
 
-            var itemsSql = @"
+            var itemsSql = $@"
                 SELECT Id, QBOId, Name, SubAccount, FullyQualifiedName, Active, Classification,
                     AccountType, AccountSubType, CurrentBalance, CurrentBalanceWithSubAccounts,
                     CurrencyRefValue, CurrencyRefName, Domain, Sparse, SyncToken,
@@ -61,7 +74,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
                 FROM dbo.ChartOfAccounts
                 WHERE UserId = @UserId AND RealmId = @RealmId
                 AND (@Search IS NULL OR Name LIKE @Search OR FullyQualifiedName LIKE @Search OR AccountType LIKE @Search)
-                ORDER BY FullyQualifiedName
+                ORDER BY {orderBy}
                 OFFSET @Skip ROWS FETCH NEXT @PageSize ROWS ONLY";
             var items = await connection.QueryAsync<ChartOfAccounts>(itemsSql, new { UserId = userId, RealmId = realmId, Search = searchPattern, Skip = skip, PageSize = pageSize });
             var dtoItems = items.Select(ChartOfAccountsReadMapping.ToDto).ToList();

@@ -2,7 +2,6 @@
  * API barrel: shared HTTP core + feature modules. Prefer `@/api/<feature>Api` for focused edits.
  */
 export * from './core';
-export { analyticsApi } from './analyticsApi';
 export { authApi } from './authApi';
 export { companyApi } from './companyApi';
 export { buildListQuery } from './listQuery';
@@ -13,4 +12,3 @@ export { billApi } from './billApi';
 export { invoiceApi } from './invoiceApi';
 export { chartOfAccountsApi } from './chartOfAccountsApi';
 export { journalEntryApi } from './journalEntryApi';
-export { assistantApi } from './assistantApi';

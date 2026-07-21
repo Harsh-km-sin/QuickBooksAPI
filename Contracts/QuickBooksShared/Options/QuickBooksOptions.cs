@@ -13,6 +13,9 @@ public class QuickBooksOptions
     public string RedirectUri { get; set; } = string.Empty;
     public string FrontendBaseUrl { get; set; } = string.Empty;
 
+    // Optional. Sent as ?minorversion=N on requests that need it (e.g. Reports). Omitted if blank.
+    public string MinorVersion { get; set; } = string.Empty;
+
     // Used only for environment-based validation decisions.
     public string Environment { get; set; } = string.Empty;
 }

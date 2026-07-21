@@ -15,19 +15,7 @@ async function fetchProducts(params: ListQueryParams) {
   return response.data;
 }
 
-async function syncProducts() {
-  const response = await productApi.sync();
-  if (!response.success) {
-    throw new Error(response.message || 'Failed to sync products');
-  }
-  return response.data;
-}
-
-interface UseProductsOptions {
-  listParams?: ListQueryParams;
-}
-
-interface UseProductsReturn {
+interface UseProductsListReturn {
   products: Products[];
   totalCount: number;
   page: number;
@@ -36,28 +24,54 @@ interface UseProductsReturn {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   isLoading: boolean;
-  isSyncing: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+}
+
+/** Paged product list query only — pair with `useProductMutations` for create/update/delete/sync. */
+export function useProductsList(listParams?: ListQueryParams): UseProductsListReturn {
+  const params = { ...defaultListParams, ...listParams };
+
+  const {
+    data: pagedData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: [...PRODUCTS_QUERY_KEY, params.page, params.pageSize, params.search ?? '', params.activeFilter ?? 'active', params.sortBy ?? '', params.sortDir ?? ''],
+    queryFn: () => fetchProducts(params),
+  });
+
+  return {
+    products: pagedData?.items ?? [],
+    totalCount: pagedData?.totalCount ?? 0,
+    page: pagedData?.page ?? 1,
+    pageSize: pagedData?.pageSize ?? defaultListParams.pageSize!,
+    totalPages: pagedData?.totalPages ?? 0,
+    hasNextPage: pagedData?.hasNextPage ?? false,
+    hasPreviousPage: pagedData?.hasPreviousPage ?? false,
+    isLoading,
+    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
+  };
+}
+
+async function syncProducts() {
+  const response = await productApi.sync();
+  if (!response.success) {
+    throw new Error(response.message || 'Failed to sync products');
+  }
+  return response.data;
+}
+
+interface UseProductMutationsReturn {
+  isSyncing: boolean;
   sync: () => Promise<void>;
   createProduct: (data: CreateProductRequest) => Promise<boolean>;
   updateProduct: (data: UpdateProductRequest) => Promise<boolean>;
   deleteProduct: (data: DeleteProductRequest) => Promise<boolean>;
 }
 
-export function useProducts(options?: UseProductsOptions): UseProductsReturn {
+/** Sync/create/update/delete — no list query, safe to call from a page that doesn't own paging state. */
+export function useProductMutations(): UseProductMutationsReturn {
   const queryClient = useQueryClient();
-  const listParams = { ...defaultListParams, ...options?.listParams };
-
-  const {
-    data: pagedData,
-    isLoading,
-    error: queryError,
-    refetch: queryRefetch,
-  } = useQuery({
-    queryKey: [...PRODUCTS_QUERY_KEY, listParams.page, listParams.pageSize, listParams.search ?? '', listParams.activeFilter ?? 'active'],
-    queryFn: () => fetchProducts(listParams),
-  });
 
   const syncMutation = useMutation({
     mutationFn: syncProducts,
@@ -131,10 +145,6 @@ export function useProducts(options?: UseProductsOptions): UseProductsReturn {
     },
   });
 
-  const refetch = async () => {
-    await queryRefetch();
-  };
-
   const sync = async () => {
     await syncMutation.mutateAsync();
   };
@@ -166,26 +176,8 @@ export function useProducts(options?: UseProductsOptions): UseProductsReturn {
     }
   };
 
-  const products = pagedData?.items ?? [];
-  const totalCount = pagedData?.totalCount ?? 0;
-  const page = pagedData?.page ?? 1;
-  const pageSize = pagedData?.pageSize ?? defaultListParams.pageSize!;
-  const totalPages = pagedData?.totalPages ?? 0;
-  const hasNextPage = pagedData?.hasNextPage ?? false;
-  const hasPreviousPage = pagedData?.hasPreviousPage ?? false;
-
   return {
-    products,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading,
     isSyncing: syncMutation.isPending,
-    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
-    refetch,
     sync,
     createProduct,
     updateProduct,

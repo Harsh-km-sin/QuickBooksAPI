@@ -4,7 +4,6 @@ using QuickBooksAPI.Application.Interfaces.Analytics;
 using QuickBooksAPI.Features.Analytics.Queries;
 using QuickBooksAPI.Features.CloseIssues;
 using QuickBooksAPI.Features.Forecast;
-using QuickBooksAPI.Services;
 using QuickBooksAPI.Services.Analytics;
 using QuickBooksAPI.Services.CfoAssistant;
 

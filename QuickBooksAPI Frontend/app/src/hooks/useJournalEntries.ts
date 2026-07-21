@@ -1,76 +1,96 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { journalEntryApi } from '@/api/journalEntryApi';
-import type { QBOJournalEntryHeader } from '@/types';
+import type { QBOJournalEntryHeader, ListQueryParams } from '@/types';
 import { toast } from 'sonner';
 
-interface UseJournalEntriesReturn {
+const JOURNAL_ENTRIES_QUERY_KEY = ['journalEntries'] as const;
+
+const defaultListParams: ListQueryParams = { page: 1, pageSize: 20 };
+
+async function fetchJournalEntries(params: ListQueryParams) {
+  const response = await journalEntryApi.list(params);
+  if (!response.success || !response.data) {
+    throw new Error(response.message || 'Failed to fetch journal entries');
+  }
+  return response.data;
+}
+
+interface UseJournalEntriesListReturn {
   entries: QBOJournalEntryHeader[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
   isLoading: boolean;
-  isSyncing: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+}
+
+/** Paged journal entry list query only — pair with `useJournalEntryMutations` for sync. */
+export function useJournalEntriesList(listParams?: ListQueryParams): UseJournalEntriesListReturn {
+  const params = { ...defaultListParams, ...listParams };
+
+  const {
+    data: pagedData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: [...JOURNAL_ENTRIES_QUERY_KEY, params.page, params.pageSize, params.search ?? '', params.sortBy ?? '', params.sortDir ?? ''],
+    queryFn: () => fetchJournalEntries(params),
+  });
+
+  return {
+    entries: pagedData?.items ?? [],
+    totalCount: pagedData?.totalCount ?? 0,
+    page: pagedData?.page ?? 1,
+    pageSize: pagedData?.pageSize ?? defaultListParams.pageSize!,
+    totalPages: pagedData?.totalPages ?? 0,
+    hasNextPage: pagedData?.hasNextPage ?? false,
+    hasPreviousPage: pagedData?.hasPreviousPage ?? false,
+    isLoading,
+    error: queryError ? (queryError instanceof Error ? queryError.message : 'An unexpected error occurred') : null,
+  };
+}
+
+async function syncJournalEntries() {
+  const response = await journalEntryApi.sync();
+  if (!response.success) {
+    throw new Error(response.message || 'Failed to sync journal entries');
+  }
+  return response.data;
+}
+
+interface UseJournalEntryMutationsReturn {
+  isSyncing: boolean;
   sync: () => Promise<void>;
 }
 
-export function useJournalEntries(): UseJournalEntriesReturn {
-  const [entries, setEntries] = useState<QBOJournalEntryHeader[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+/** Sync only — no list query, safe to call from a page that doesn't own paging state. */
+export function useJournalEntryMutations(): UseJournalEntryMutationsReturn {
+  const queryClient = useQueryClient();
 
-  const fetchEntries = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await journalEntryApi.list();
-      
-      if (response.success && response.data) {
-        setEntries(response.data.items);
-      } else {
-        setError(response.message || 'Failed to fetch journal entries');
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const sync = useCallback(async () => {
-    try {
-      setIsSyncing(true);
-      const response = await journalEntryApi.sync();
-      
-      if (response.success) {
-        toast.success('Sync completed', {
-          description: `${response.data} journal entries synced from QuickBooks`,
-        });
-        await fetchEntries();
-      } else {
-        toast.error('Sync failed', {
-          description: response.message || 'Failed to sync journal entries',
-        });
-      }
-    } catch (err) {
+  const syncMutation = useMutation({
+    mutationFn: syncJournalEntries,
+    onSuccess: (count) => {
+      toast.success('Sync completed', {
+        description: `${count} journal entries synced from QuickBooks`,
+      });
+      queryClient.invalidateQueries({ queryKey: JOURNAL_ENTRIES_QUERY_KEY });
+    },
+    onError: (err) => {
       toast.error('Sync failed', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred',
       });
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [fetchEntries]);
+    },
+  });
 
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+  const sync = async () => {
+    await syncMutation.mutateAsync();
+  };
 
   return {
-    entries,
-    isLoading,
-    isSyncing,
-    error,
-    refetch: fetchEntries,
+    isSyncing: syncMutation.isPending,
     sync,
   };
 }
