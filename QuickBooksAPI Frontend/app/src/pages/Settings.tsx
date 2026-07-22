@@ -14,7 +14,7 @@ const sections = [
     href: '/settings/master-data',
     icon: Database,
     title: 'Master Data',
-    description: 'Manage customers, vendors, products, invoices, bills, chart of accounts and journal entries',
+    description: 'Manage customers, vendors, products and chart of accounts',
   },
   {
     href: '/settings/connected-companies',

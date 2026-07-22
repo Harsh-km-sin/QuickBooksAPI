@@ -65,7 +65,7 @@ export function ProductsPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3rem)] lg:h-[calc(100vh-4rem)] flex-col space-y-6">
+    <div className="flex h-[calc(100vh-7rem)] lg:h-[calc(100vh-8rem)] flex-col space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
