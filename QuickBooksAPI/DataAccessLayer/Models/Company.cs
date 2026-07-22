@@ -14,6 +14,15 @@ namespace QuickBooksAPI.DataAccessLayer.Models
         public DateTimeOffset? DisconnectedAtUtc { get; set; }
         public DateTimeOffset CreatedAtUtc { get; set; }
         public DateTimeOffset? UpdatedAtUtc { get; set; }
+
+        /// <summary>"Cash" or "Accrual" — from QBO ReportPrefs.ReportBasis. Every synced report uses this basis.</summary>
+        public string? AccountingBasis { get; set; }
+
+        /// <summary>Lower bound for report history backfill. Null means "discover it by walking back".</summary>
+        public DateTime? CompanyStartDate { get; set; }
+
+        /// <summary>1-12. Pins the Balance Sheet start_date and drives the fiscal-year read filter.</summary>
+        public int? FiscalYearStartMonth { get; set; }
     }
 }
 

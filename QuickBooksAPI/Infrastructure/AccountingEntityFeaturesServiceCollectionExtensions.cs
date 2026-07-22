@@ -19,6 +19,7 @@ public static class AccountingEntityFeaturesServiceCollectionExtensions
         services.AddBillsFeature();
         services.AddInvoicesFeature();
         services.AddJournalEntriesFeature();
+        services.AddReportsFeature();
         return services;
     }
 }

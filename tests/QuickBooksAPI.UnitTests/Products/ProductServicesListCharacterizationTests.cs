@@ -75,7 +75,9 @@ public sealed class ProductServicesListCharacterizationTests
             Page = 2,
             PageSize = 10
         };
-        repo.Setup(r => r.GetPagedByUserAndRealmAsync(1, "r", 2, 10, "find", null))
+        // All eight arguments are spelled out: Moq builds an expression tree from this lambda, and
+        // expression trees cannot bind optional parameters (CS0854).
+        repo.Setup(r => r.GetPagedByUserAndRealmAsync(1, "r", 2, 10, "find", null, null, false))
             .ReturnsAsync(paged);
 
         var sut = new ListProductsHandler(ctx.Object, repo.Object);
@@ -85,7 +87,7 @@ public sealed class ProductServicesListCharacterizationTests
 
         Assert.True(result.Success);
         repo.Verify(
-            r => r.GetPagedByUserAndRealmAsync(1, "r", 2, 10, "find", null),
+            r => r.GetPagedByUserAndRealmAsync(1, "r", 2, 10, "find", null, null, false),
             Times.Once);
     }
 }

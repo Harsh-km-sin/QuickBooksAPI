@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Lets the unit tests exercise internal mappers/helpers (e.g. QuickBooksReportMapper)
+         without widening the public API surface. -->
+    <InternalsVisibleTo Include="QuickBooksAPI.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />

@@ -8,5 +8,7 @@ namespace QuickBooksService.Services
         Task<bool> DisconnectQboAsync(string refreshToken);
         /// <summary>Fetches company info JSON for the specified realm using the given access token.</summary>
         Task<string> GetCompanyInfoAsync(string accessToken, string realmId);
+        /// <summary>Fetches company preferences JSON (includes <c>ReportPrefs.ReportBasis</c>) for the specified realm.</summary>
+        Task<string> GetPreferencesAsync(string accessToken, string realmId);
     }
 }

@@ -26,8 +26,8 @@ const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/', icon: LayoutDashboard },
   { title: 'Invoices', href: '/invoices', icon: FileText },
   { title: 'Journal Entries', href: '/journal-entries', icon: BookText },
-  { title: 'P&L Statements', icon: BarChart3, disabled: true, badge: 'Soon' },
-  { title: 'Balance Sheets', icon: Wallet, disabled: true, badge: 'Soon' },
+  { title: 'P&L Statements', href: '/reports/profit-and-loss', icon: BarChart3 },
+  { title: 'Balance Sheets', href: '/reports/balance-sheet', icon: Wallet },
   { title: 'Bills', href: '/bills', icon: Receipt },
 ];
 

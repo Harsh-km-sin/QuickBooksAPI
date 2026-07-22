@@ -11,3 +11,5 @@ export { JournalEntries } from './journalEntries/JournalEntries';
 export { Settings } from './Settings';
 export { UserManagement } from './UserManagement';
 export { MasterData } from './MasterData';
+export { ProfitAndLoss } from './reports/ProfitAndLoss';
+export { BalanceSheet } from './reports/BalanceSheet';

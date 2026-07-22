@@ -38,6 +38,9 @@ public static partial class DependencyInjection
         services.AddScoped<IBillRepository>(sp =>
             new BillRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
+        services.AddScoped<IReportRepository>(sp =>
+            new ReportRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
+
         services.AddScoped<IQboSyncStateRepository>(sp =>
             new QboSyncStateRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 

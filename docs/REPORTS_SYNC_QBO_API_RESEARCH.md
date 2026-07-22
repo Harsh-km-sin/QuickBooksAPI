@@ -294,6 +294,29 @@ Consequences of removing the bound:
 - **Re-pulling all history on every sync gets more wasteful the deeper the history.** Fine at current scale. If it becomes a problem the obvious fix is to re-pull only open/recent periods and leave closed prior years untouched — deferred, not needed now.
 - **This is a scale-driven decision, not a permanent one.** Worth revisiting before the first real production account with many years of books is connected.
 
+### 9.2 Balance Sheet equity split & the fiscal-year filter — **decided**
+
+Splits into a sync-time rule and a query-time feature. They are deliberately separate: the UI never calls QBO (§9 Option B), so no user filter may influence a sync parameter — otherwise stored numbers stop being reproducible.
+
+**Sync-time rule.** `start_date` is always pinned to the **fiscal-year start containing the requested `end_date`** — never to the chunk window. This makes each stored month-end column's Retained-Earnings/Net-Income split stable and chunk-boundary-independent, and it matches the accounting convention that "Net Income" on a balance sheet means fiscal-year-to-date. It also de-risks the open question in §7: whichever way QBO actually treats `start_date`, pinning it consistently removes the stitching artifact. That live check drops from blocker to nice-to-have confirmation.
+
+**Query-time feature.** A "Use Fiscal Year" filter, served **entirely from our DB — no QBO call**:
+- Fiscal-year start month is company metadata persisted on the company record, so the UI resolves fiscal-year boundaries locally.
+- For any user-selected range, the equity split is *derived*, not re-fetched: **Net Income** = sum of stored monthly P&L net income over the range; **Retained Earnings** = total equity from the stored BS month-end snapshot − that figure. P&L is already synced at monthly grain, so this needs no extra data.
+- The toggle therefore just switches the displayed "current period" between fiscal-YTD and the selected range. Works retroactively over all stored history, and gives more flexibility than a live QBO call would.
+
+**Reminder (stock vs. flow):** the BS side of this reads a single month-end snapshot column; only the P&L side is summed. Balance sheet columns are never added together — "Q1" on a balance sheet is the March 31 column, not January + February + March. The schema must carry a per-report-type flag distinguishing additive (flow) from point-in-time (stock) values, and the aggregation layer must branch on it; getting this wrong produces numbers that look plausible and are badly wrong.
+
+**Prerequisite — one task, three fields.** None of the required company metadata is currently read; `QuickBooksCompanyInfo` maps only `Id`/`CompanyName`/`LegalName`. Fetch and persist on the company record at connect/sync time:
+
+| Field | Source | Needed for |
+|---|---|---|
+| Accounting basis (`ReportPrefs.ReportBasis`) | `/preferences` | §8.3 — which basis reports are synced under |
+| `CompanyStartDate` | `CompanyInfo` | §9.1 — lower bound for full-history backfill |
+| `FiscalYearStartMonth` | `CompanyInfo` | §9.2 — sync-time `start_date` pinning + the UI filter |
+
+All three behave the same way: rarely changed, but a change invalidates stored reports and should trigger a full report re-sync. Compare stored vs. fetched on each sync and force a re-pull on mismatch.
+
 ## 10. Proposed relational schema (reference: a real production QBO→SQL pattern)
 
 Rather than design this from scratch, I looked at how a company that has actually shipped a QBO-Reports-to-SQL pipeline in production (SyncHub, a data-integration vendor) models it. Their real, shipped schema for `ProfitAndLossReport` (and identically for `BalanceSheetReport`) is four tables:
