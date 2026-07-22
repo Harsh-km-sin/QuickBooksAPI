@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useBillMutations } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { openEditDialog, closeEditDialog, openDeleteDialog, closeDeleteDialog, setSubmitting } from '@/store/slices/billUiSlice';
@@ -15,11 +14,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { RefreshCw, Loader2, ChevronLeft } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 import { BillTable } from './BillTable';
 
 export function Bills() {
-  const navigate = useNavigate();
   const { isSyncing, sync, getBillById, updateBill, deleteBill } = useBillMutations();
   const [isLoadingBill, setIsLoadingBill] = useState(false);
 
@@ -62,13 +60,11 @@ export function Bills() {
   const formatCurrency = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 
   return (
-    <div className="flex h-[calc(100vh-3rem)] lg:h-[calc(100vh-4rem)] flex-col space-y-6">
+    <div className="flex h-[calc(100vh-7rem)] lg:h-[calc(100vh-8rem)] flex-col space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <div><h1 className="text-3xl font-bold tracking-tight">Bills</h1><p className="text-muted-foreground">Manage your vendor bills</p></div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Bills</h1>
+          <p className="text-muted-foreground">Manage your vendor bills</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={sync} disabled={isSyncing}>{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>

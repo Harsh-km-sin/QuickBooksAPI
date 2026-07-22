@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useInvoiceMutations } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -18,11 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { RefreshCw, Loader2, ChevronLeft } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 import { InvoiceTable } from './InvoiceTable';
 
 export function Invoices() {
-  const navigate = useNavigate();
   const { isSyncing, sync, deleteInvoice, voidInvoice } = useInvoiceMutations();
 
   const dispatch = useAppDispatch();
@@ -50,13 +48,11 @@ export function Invoices() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3rem)] lg:h-[calc(100vh-4rem)] flex-col space-y-6">
+    <div className="flex h-[calc(100vh-7rem)] lg:h-[calc(100vh-8rem)] flex-col space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/settings/master-data')}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <div><h1 className="text-3xl font-bold tracking-tight">Invoices</h1><p className="text-muted-foreground">Manage your customer invoices</p></div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
+          <p className="text-muted-foreground">Manage your customer invoices</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={sync} disabled={isSyncing}>{isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}Sync</Button>
