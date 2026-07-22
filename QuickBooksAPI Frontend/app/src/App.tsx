@@ -17,6 +17,8 @@ import {
   Settings,
   UserManagement,
   MasterData,
+  ProfitAndLoss,
+  BalanceSheet,
 } from '@/pages';
 
 function renderProtectedPage(page: React.ReactNode) {
@@ -64,6 +66,8 @@ function App() {
       <Route path="/invoices" element={renderProtectedPage(<Invoices />)} />
       <Route path="/bills" element={renderProtectedPage(<Bills />)} />
       <Route path="/journal-entries" element={renderProtectedPage(<JournalEntries />)} />
+      <Route path="/reports/profit-and-loss" element={renderProtectedPage(<ProfitAndLoss />)} />
+      <Route path="/reports/balance-sheet" element={renderProtectedPage(<BalanceSheet />)} />
       {/* Settings hub */}
       <Route path="/settings" element={renderProtectedPage(<Settings />)} />
       <Route path="/settings/user-management" element={renderProtectedPage(<UserManagement />)} />
