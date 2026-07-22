@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useProfitAndLoss, useReportPeriods } from '@/hooks';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DatePicker, parseApiDate } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -42,21 +42,21 @@ export function ProfitAndLoss() {
         <CardContent className="flex flex-col sm:flex-row sm:items-end gap-4 pt-6">
           <div className="space-y-2">
             <Label htmlFor="startDate">From</Label>
-            <Input
+            <DatePicker
               id="startDate"
-              type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={setStartDate}
               disabled={useFiscalYear}
+              toDate={parseApiDate(endDate)}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="endDate">To</Label>
-            <Input
+            <DatePicker
               id="endDate"
-              type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={setEndDate}
+              fromDate={useFiscalYear ? undefined : parseApiDate(startDate)}
             />
           </div>
           <Button

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBalanceSheet, useReportPeriods } from '@/hooks';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -37,12 +37,7 @@ export function BalanceSheet() {
         <CardContent className="flex flex-col sm:flex-row sm:items-end gap-4 pt-6">
           <div className="space-y-2">
             <Label htmlFor="asOfDate">As of</Label>
-            <Input
-              id="asOfDate"
-              type="date"
-              value={asOfDate}
-              onChange={(e) => setAsOfDate(e.target.value)}
-            />
+            <DatePicker id="asOfDate" value={asOfDate} onChange={setAsOfDate} />
           </div>
           {periods.length > 0 && (
             <p className="text-xs text-muted-foreground sm:ml-auto sm:pb-2">
