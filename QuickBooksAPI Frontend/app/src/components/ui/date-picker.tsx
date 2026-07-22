@@ -1,8 +1,16 @@
 import { format, parse, isValid } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
+import type { DropdownProps } from 'react-day-picker';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 /** The wire format used by the reports API. */
@@ -21,6 +29,45 @@ export function toApiDate(date: Date): string {
   // Formatted from local parts, never via toISOString(), which would shift the day
   // backwards for anyone east of UTC.
   return format(date, API_DATE_FORMAT);
+}
+
+/**
+ * Month/year dropdown for the calendar caption.
+ *
+ * react-day-picker renders a native <select> by default, and a browser paints that popup list
+ * itself — it cannot be themed. Swapping in the app's Select keeps the caption consistent with
+ * everything else and gives the year list a scroll cap.
+ */
+function CalendarDropdown({ options, value, onChange, 'aria-label': ariaLabel }: DropdownProps) {
+  const selected = options?.find((option) => option.value === Number(value));
+
+  return (
+    <Select
+      value={String(value)}
+      onValueChange={(next) => {
+        // react-day-picker expects a change event; it only reads target.value.
+        onChange?.({ target: { value: next } } as React.ChangeEvent<HTMLSelectElement>);
+      }}
+    >
+      <SelectTrigger
+        aria-label={ariaLabel}
+        className="h-8 w-auto gap-1 border-none px-2 text-sm font-medium shadow-none focus:ring-0 focus:ring-offset-0"
+      >
+        <SelectValue>{selected?.label}</SelectValue>
+      </SelectTrigger>
+      <SelectContent className="max-h-60">
+        {options?.map((option) => (
+          <SelectItem
+            key={option.value}
+            value={String(option.value)}
+            disabled={option.disabled}
+          >
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 }
 
 interface DatePickerProps {
@@ -52,6 +99,12 @@ export function DatePicker({
   className,
 }: DatePickerProps) {
   const selected = parseApiDate(value);
+
+  // Without an explicit range the year dropdown offers only the current year, which is useless
+  // for reports that go back years. Ten years matches the backend's maximum backfill depth, and
+  // a future date can never have report data, so today is the natural upper bound.
+  const navigationStart = fromDate ?? new Date(new Date().getFullYear() - 10, 0, 1);
+  const navigationEnd = toDate ?? new Date();
 
   return (
     <Popover>
@@ -87,13 +140,12 @@ export function DatePicker({
           // Month/year dropdowns matter here: reports go back years, and paging a month at a
           // time to reach 2023 would be miserable.
           captionLayout="dropdown"
-          startMonth={fromDate}
-          endMonth={toDate}
-          disabled={
-            fromDate || toDate
-              ? (date) => (fromDate ? date < fromDate : false) || (toDate ? date > toDate : false)
-              : undefined
-          }
+          // Replaces the whole caption dropdown, including react-day-picker's own label and
+          // chevron, so nothing is rendered twice.
+          components={{ Dropdown: CalendarDropdown }}
+          startMonth={navigationStart}
+          endMonth={navigationEnd}
+          disabled={(date) => date < navigationStart || date > navigationEnd}
           autoFocus
         />
       </PopoverContent>
