@@ -105,7 +105,7 @@ export function TopNavBar({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 cursor-pointer group px-1">
+            <button className="flex items-center gap-2 cursor-pointer group px-1 outline-none focus:outline-none focus-visible:outline-none">
               <Avatar className="h-8 w-8 border border-border">
                 <AvatarFallback>{user?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
