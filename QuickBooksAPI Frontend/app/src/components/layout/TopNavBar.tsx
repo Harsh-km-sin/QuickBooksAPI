@@ -11,7 +11,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -121,9 +120,9 @@ export function TopNavBar({
               <p className="text-sm font-semibold text-foreground leading-none">{user?.name || 'My Account'}</p>
               <p className="text-[11px] text-muted-foreground mt-1 truncate">Admin User</p>
             </div>
-            
+
             <DropdownMenuSeparator className="bg-border/40" />
-            
+
             {hasMultipleRealms && (
               <>
                 <div className="px-2.5 py-1">
@@ -133,9 +132,8 @@ export function TopNavBar({
                   <DropdownMenuItem
                     key={company.qboRealmId}
                     onClick={() => setCurrentRealm(company.qboRealmId)}
-                    className={`rounded-lg px-2.5 py-2 cursor-pointer transition-colors ${
-                      currentRealmId === company.qboRealmId ? 'bg-muted font-medium' : ''
-                    }`}
+                    className={`rounded-lg px-2.5 py-2 cursor-pointer transition-colors ${currentRealmId === company.qboRealmId ? 'bg-muted font-medium' : ''
+                      }`}
                   >
                     <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
                     <span className="truncate">{company.companyName || company.qboRealmId.slice(0, 12) + '...'}</span>
@@ -145,7 +143,7 @@ export function TopNavBar({
                 <DropdownMenuSeparator className="bg-border/40" />
               </>
             )}
-            
+
             <DropdownMenuItem
               onClick={() => navigate('/settings')}
               className="rounded-lg px-2.5 py-2 cursor-pointer transition-colors focus:bg-accent focus:text-accent-foreground"
@@ -153,9 +151,9 @@ export function TopNavBar({
               <Settings className="h-4 w-4 mr-2 text-muted-foreground" />
               Settings
             </DropdownMenuItem>
-            
+
             <DropdownMenuSeparator className="bg-border/40" />
-            
+
             <DropdownMenuItem
               onClick={logout}
               variant="destructive"
