@@ -1,13 +1,22 @@
 export interface DashboardStats {
+  totalIncome: number | null;
+  totalExpenses: number | null;
+  netIncome: number | null;
+  pnlRangeStart: string | null;
+  pnlRangeEnd: string | null;
+  pnlAccountingMethod: string | null;
+
+  totalAssets: number | null;
+  totalLiabilities: number | null;
+  totalEquity: number | null;
+  bsAsOfDate: string | null;
+  bsAccountingMethod: string | null;
+
   customersCount: number;
-  productsCount: number;
   vendorsCount: number;
-  billsCount: number;
+  productsCount: number;
   invoicesCount: number;
-  totalInvoiceAmount: number;
-  totalBillAmount: number;
-  outstandingInvoiceBalance: number;
-  outstandingBillBalance: number;
+  billsCount: number;
 }
 
 export interface NavItem {

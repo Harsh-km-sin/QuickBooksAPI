@@ -1,9 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { billApi } from '@/api/billApi';
-import { customerApi } from '@/api/customerApi';
-import { invoiceApi } from '@/api/invoiceApi';
-import { productApi } from '@/api/productApi';
-import { vendorApi } from '@/api/vendorApi';
+import { dashboardApi } from '@/api/dashboardApi';
 import type { DashboardStats } from '@/types';
 
 interface UseDashboardStatsReturn {
@@ -23,43 +19,12 @@ export function useDashboardStats(): UseDashboardStatsReturn {
       setIsLoading(true);
       setError(null);
 
-      // Fetch all data in parallel
-      const [customersRes, productsRes, vendorsRes, billsRes, invoicesRes] = await Promise.all([
-        customerApi.list(),
-        productApi.list(),
-        vendorApi.list(),
-        billApi.list(),
-        invoiceApi.list(),
-      ]);
-
-      // Calculate stats (use totalCount from paged response for accurate counts)
-      const customers = customersRes.success ? customersRes.data?.items ?? [] : [];
-      const products = productsRes.success ? productsRes.data?.items ?? [] : [];
-      const vendors = vendorsRes.success ? vendorsRes.data?.items ?? [] : [];
-      const bills = billsRes.success ? billsRes.data?.items ?? [] : [];
-      const invoices = invoicesRes.success ? invoicesRes.data?.items ?? [] : [];
-      const customersCount = customersRes.success && customersRes.data ? customersRes.data.totalCount : customers.length;
-      const productsCount = productsRes.success && productsRes.data ? productsRes.data.totalCount : products.length;
-      const vendorsCount = vendorsRes.success && vendorsRes.data ? vendorsRes.data.totalCount : vendors.length;
-      const billsCount = billsRes.success && billsRes.data ? billsRes.data.totalCount : bills.length;
-      const invoicesCount = invoicesRes.success && invoicesRes.data ? invoicesRes.data.totalCount : invoices.length;
-
-      const totalInvoiceAmount = invoices.reduce((sum, inv) => sum + (inv.totalAmt || 0), 0);
-      const totalBillAmount = bills.reduce((sum, bill) => sum + (bill.totalAmt || 0), 0);
-      const outstandingInvoiceBalance = invoices.reduce((sum, inv) => sum + (inv.balance || 0), 0);
-      const outstandingBillBalance = bills.reduce((sum, bill) => sum + (bill.balance || 0), 0);
-
-      setStats({
-        customersCount,
-        productsCount,
-        vendorsCount,
-        billsCount,
-        invoicesCount,
-        totalInvoiceAmount,
-        totalBillAmount,
-        outstandingInvoiceBalance,
-        outstandingBillBalance,
-      });
+      const response = await dashboardApi.getStats();
+      if (response.success && response.data) {
+        setStats(response.data);
+      } else {
+        setError(response.message || 'Failed to load dashboard statistics');
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred';
       setError(message);

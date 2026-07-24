@@ -20,6 +20,7 @@ public class DashboardController : ControllerBase
     private readonly IBillReadService _billReadService;
     private readonly AnalyticsQueries _queries;
     private readonly IConnectedCompanyQueryService _connectedCompanyQueryService;
+    private readonly IDashboardRepository _dashboardRepository;
 
     public DashboardController(
         IRequestContext requestContext,
@@ -29,7 +30,8 @@ public class DashboardController : ControllerBase
         IInvoiceReadService invoiceReadService,
         IBillReadService billReadService,
         AnalyticsQueries queries,
-        IConnectedCompanyQueryService connectedCompanyQueryService)
+        IConnectedCompanyQueryService connectedCompanyQueryService,
+        IDashboardRepository dashboardRepository)
     {
         _requestContext = requestContext;
         _customerReadService = customerReadService;
@@ -39,6 +41,25 @@ public class DashboardController : ControllerBase
         _billReadService = billReadService;
         _queries = queries;
         _connectedCompanyQueryService = connectedCompanyQueryService;
+        _dashboardRepository = dashboardRepository;
+    }
+
+    /// <summary>
+    /// Returns lightweight dashboard financial KPIs and entity counts in a single SQL query via stored procedure.
+    /// </summary>
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
+    {
+        if (!int.TryParse(_requestContext.UserId, out var userId) || string.IsNullOrWhiteSpace(_requestContext.RealmId))
+            return Unauthorized(ApiResponse<QuickBooksAPI.Application.Dtos.DashboardStatsDto>.Fail("User context missing."));
+
+        var stats = await _dashboardRepository.GetStatsAsync(userId, _requestContext.RealmId!, cancellationToken);
+        if (stats == null)
+        {
+            stats = new QuickBooksAPI.Application.Dtos.DashboardStatsDto();
+        }
+
+        return Ok(ApiResponse<QuickBooksAPI.Application.Dtos.DashboardStatsDto>.Ok(stats, "Dashboard statistics retrieved successfully."));
     }
 
     /// <summary>

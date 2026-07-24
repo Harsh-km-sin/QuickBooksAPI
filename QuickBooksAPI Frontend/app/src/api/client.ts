@@ -12,3 +12,5 @@ export { billApi } from './billApi';
 export { invoiceApi } from './invoiceApi';
 export { chartOfAccountsApi } from './chartOfAccountsApi';
 export { journalEntryApi } from './journalEntryApi';
+export { dashboardApi } from './dashboardApi';
+
