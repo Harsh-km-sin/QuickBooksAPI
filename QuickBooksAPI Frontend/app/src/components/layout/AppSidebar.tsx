@@ -1,5 +1,4 @@
 import { useLocation, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   FileText,
@@ -8,11 +7,8 @@ import {
   Wallet,
   Receipt,
   LineChart,
-  Bot,
-  Plus,
-  Landmark,
+  Bot
 } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface NavItem {
   title: string;
