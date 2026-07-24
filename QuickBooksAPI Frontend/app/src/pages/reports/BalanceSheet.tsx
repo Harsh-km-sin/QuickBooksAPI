@@ -33,7 +33,7 @@ export function BalanceSheet() {
       </div>
 
       <Card className="shrink-0">
-        <CardContent className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-6">
+        <CardContent className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <ReportPeriodSelector
             startDate={asOfDate}
             endDate={asOfDate}
@@ -51,7 +51,7 @@ export function BalanceSheet() {
       </Card>
 
       <Card className="flex-1 min-h-0 overflow-hidden">
-        <CardContent className="h-full overflow-y-auto pt-6">
+        <CardContent className="h-full overflow-y-auto">
           {isLoading && (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
