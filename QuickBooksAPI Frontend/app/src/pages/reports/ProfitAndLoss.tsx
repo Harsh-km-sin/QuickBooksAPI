@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { useProfitAndLoss, useReportPeriods } from '@/hooks';
-import { Button } from '@/components/ui/button';
-import { DatePicker, parseApiDate } from '@/components/ui/date-picker';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { ReportTreeView } from './ReportTreeView';
 import { GenerateReportsButton } from './GenerateReportsButton';
+import { ReportPeriodSelector } from '@/components/reports/ReportPeriodSelector';
+import type { AccountingMethod } from '@/components/reports/AccountingMethodSwitch';
 
-/** First day of the current month, and today, as yyyy-MM-dd. */
 function defaultRange() {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
-  const start = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+  const start = `${now.getFullYear()}-01-01`;
   const end = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   return { start, end };
 }
@@ -21,9 +19,13 @@ export function ProfitAndLoss() {
   const initial = defaultRange();
   const [startDate, setStartDate] = useState(initial.start);
   const [endDate, setEndDate] = useState(initial.end);
-  const [useFiscalYear, setUseFiscalYear] = useState(false);
+  const [accountingMethod, setAccountingMethod] = useState<AccountingMethod>('Accrual');
 
-  const { report, isLoading, error } = useProfitAndLoss({ startDate, endDate, useFiscalYear });
+  const { report, isLoading, error } = useProfitAndLoss({
+    startDate,
+    endDate,
+    accountingMethod,
+  });
   const { periods } = useReportPeriods('ProfitAndLoss');
 
   return (
@@ -39,35 +41,19 @@ export function ProfitAndLoss() {
       </div>
 
       <Card className="shrink-0">
-        <CardContent className="flex flex-col sm:flex-row sm:items-end gap-4 pt-6">
-          <div className="space-y-2">
-            <Label htmlFor="startDate">From</Label>
-            <DatePicker
-              id="startDate"
-              value={startDate}
-              onChange={setStartDate}
-              disabled={useFiscalYear}
-              toDate={parseApiDate(endDate)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="endDate">To</Label>
-            <DatePicker
-              id="endDate"
-              value={endDate}
-              onChange={setEndDate}
-              fromDate={useFiscalYear ? undefined : parseApiDate(startDate)}
-            />
-          </div>
-          <Button
-            variant={useFiscalYear ? 'default' : 'outline'}
-            onClick={() => setUseFiscalYear((v) => !v)}
-            title="Resolves the fiscal year from the company's QuickBooks settings"
-          >
-            {useFiscalYear ? 'Fiscal year: on' : 'Use fiscal year'}
-          </Button>
+        <CardContent className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <ReportPeriodSelector
+            startDate={startDate}
+            endDate={endDate}
+            onRangeChange={(start, end) => {
+              setStartDate(start);
+              setEndDate(end);
+            }}
+            accountingMethod={accountingMethod}
+            onAccountingMethodChange={setAccountingMethod}
+          />
           {periods.length > 0 && (
-            <p className="text-xs text-muted-foreground sm:ml-auto sm:pb-2">
+            <p className="text-xs text-muted-foreground sm:pb-2">
               {periods.length} period{periods.length === 1 ? '' : 's'} synced locally
             </p>
           )}
@@ -75,7 +61,7 @@ export function ProfitAndLoss() {
       </Card>
 
       <Card className="flex-1 min-h-0 overflow-hidden">
-        <CardContent className="h-full overflow-y-auto pt-6">
+        <CardContent className="h-full overflow-y-auto">
           {isLoading && (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -95,15 +81,21 @@ export function ProfitAndLoss() {
 
           {!isLoading && !error && report && (
             <>
-              <p className="mb-4 text-xs text-muted-foreground">
-                {report.rangeStart.slice(0, 10)} to {report.rangeEnd.slice(0, 10)} · {report.accountingMethod} basis
-              </p>
               {report.rows.length === 0 ? (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  Nothing synced for this period yet. Use “Generate Reports” to pull from QuickBooks.
-                </p>
+                <>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {report.rangeStart.slice(0, 10)} to {report.rangeEnd.slice(0, 10)} · {report.accountingMethod} basis
+                  </p>
+                  <p className="py-12 text-center text-sm text-muted-foreground">
+                    Nothing synced for this period and accounting method yet. Use “Generate Reports” to pull from QuickBooks.
+                  </p>
+                </>
               ) : (
-                <ReportTreeView rows={report.rows} />
+                <ReportTreeView rows={report.rows}>
+                  <p className="text-xs text-muted-foreground">
+                    {report.rangeStart.slice(0, 10)} to {report.rangeEnd.slice(0, 10)} · {report.accountingMethod} basis
+                  </p>
+                </ReportTreeView>
               )}
             </>
           )}

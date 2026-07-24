@@ -1,6 +1,7 @@
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.Application.Reports;
 using QuickBooksAPI.Features.Shared;
 
 namespace QuickBooksAPI.Features.Reports.Handlers;
@@ -19,7 +20,8 @@ public sealed class GetReportHandler
     public async Task<ApiResponse<ReportTreeDto>> HandleProfitAndLossAsync(
         DateTime? startDate,
         DateTime? endDate,
-        bool useFiscalYear)
+        bool useFiscalYear,
+        AccountingMethod? accountingMethod = null)
     {
         if (!FeatureRequestContextGuard.TryGetUserRealm(_requestContext, out var userId, out var realmId, out var err))
             return ApiResponse<ReportTreeDto>.Fail(err!);
@@ -27,19 +29,21 @@ public sealed class GetReportHandler
         // "Use fiscal year" resolves its boundaries from the company's stored FiscalYearStartMonth,
         // so the filter is served entirely from our DB with no QBO call.
         if (useFiscalYear)
-            return await _read.GetProfitAndLossForFiscalYearAsync(userId, realmId, endDate ?? DateTime.UtcNow.Date);
+            return await _read.GetProfitAndLossForFiscalYearAsync(userId, realmId, endDate ?? DateTime.UtcNow.Date, accountingMethod);
 
         if (startDate is null || endDate is null)
             return ApiResponse<ReportTreeDto>.Fail("startDate and endDate are required unless useFiscalYear is true.");
 
-        return await _read.GetProfitAndLossAsync(userId, realmId, startDate.Value, endDate.Value);
+        return await _read.GetProfitAndLossAsync(userId, realmId, startDate.Value, endDate.Value, accountingMethod);
     }
 
-    public async Task<ApiResponse<ReportTreeDto>> HandleBalanceSheetAsync(DateTime? asOfDate)
+    public async Task<ApiResponse<ReportTreeDto>> HandleBalanceSheetAsync(
+        DateTime? asOfDate,
+        AccountingMethod? accountingMethod = null)
     {
         if (!FeatureRequestContextGuard.TryGetUserRealm(_requestContext, out var userId, out var realmId, out var err))
             return ApiResponse<ReportTreeDto>.Fail(err!);
 
-        return await _read.GetBalanceSheetAsync(userId, realmId, asOfDate ?? DateTime.UtcNow.Date);
+        return await _read.GetBalanceSheetAsync(userId, realmId, asOfDate ?? DateTime.UtcNow.Date, accountingMethod);
     }
 }
