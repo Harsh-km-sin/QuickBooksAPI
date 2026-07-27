@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useBalanceSheet, useReportPeriods } from '@/hooks';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { ReportTreeView } from './ReportTreeView';
 import { GenerateReportsButton } from './GenerateReportsButton';
+import { ReportPeriodSelector } from '@/components/reports/ReportPeriodSelector';
+import type { AccountingMethod } from '@/components/reports/AccountingMethodSwitch';
 
 function today() {
   const now = new Date();
@@ -14,11 +14,10 @@ function today() {
 }
 
 export function BalanceSheet() {
-  // A balance sheet is a snapshot at an instant, so there is a single date here rather than a
-  // range — the backend resolves it to the latest stored month-end at or before this date.
   const [asOfDate, setAsOfDate] = useState(today());
+  const [accountingMethod, setAccountingMethod] = useState<AccountingMethod>('Accrual');
 
-  const { report, isLoading, error } = useBalanceSheet({ asOfDate });
+  const { report, isLoading, error } = useBalanceSheet({ asOfDate, accountingMethod });
   const { periods } = useReportPeriods('BalanceSheet');
 
   return (
@@ -34,13 +33,17 @@ export function BalanceSheet() {
       </div>
 
       <Card className="shrink-0">
-        <CardContent className="flex flex-col sm:flex-row sm:items-end gap-4 pt-6">
-          <div className="space-y-2">
-            <Label htmlFor="asOfDate">As of</Label>
-            <DatePicker id="asOfDate" value={asOfDate} onChange={setAsOfDate} />
-          </div>
+        <CardContent className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <ReportPeriodSelector
+            startDate={asOfDate}
+            endDate={asOfDate}
+            onRangeChange={(_start, end) => setAsOfDate(end)}
+            accountingMethod={accountingMethod}
+            onAccountingMethodChange={setAccountingMethod}
+            isPointInTime={true}
+          />
           {periods.length > 0 && (
-            <p className="text-xs text-muted-foreground sm:ml-auto sm:pb-2">
+            <p className="text-xs text-muted-foreground sm:pb-2">
               {periods.length} period{periods.length === 1 ? '' : 's'} synced locally
             </p>
           )}
@@ -48,7 +51,7 @@ export function BalanceSheet() {
       </Card>
 
       <Card className="flex-1 min-h-0 overflow-hidden">
-        <CardContent className="h-full overflow-y-auto pt-6">
+        <CardContent className="h-full overflow-y-auto">
           {isLoading && (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -68,15 +71,21 @@ export function BalanceSheet() {
 
           {!isLoading && !error && report && (
             <>
-              <p className="mb-4 text-xs text-muted-foreground">
-                As of {report.rangeEnd.slice(0, 10)} · {report.accountingMethod} basis
-              </p>
               {report.rows.length === 0 ? (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  Nothing synced at or before this date yet. Use “Generate Reports” to pull from QuickBooks.
-                </p>
+                <>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    As of {report.rangeEnd.slice(0, 10)} · {report.accountingMethod} basis
+                  </p>
+                  <p className="py-12 text-center text-sm text-muted-foreground">
+                    Nothing synced at or before this date yet. Use “Generate Reports” to pull from QuickBooks.
+                  </p>
+                </>
               ) : (
-                <ReportTreeView rows={report.rows} />
+                <ReportTreeView rows={report.rows}>
+                  <p className="text-xs text-muted-foreground">
+                    As of {report.rangeEnd.slice(0, 10)} · {report.accountingMethod} basis
+                  </p>
+                </ReportTreeView>
               )}
             </>
           )}

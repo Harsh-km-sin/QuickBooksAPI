@@ -84,7 +84,7 @@ public sealed class ReportQboSyncService : IReportQboSyncService
             // A basis or fiscal-year change invalidates every stored period: the numbers were
             // computed on a different basis, and the chunk boundaries no longer line up (stale runs
             // would overlap the new ones). Wipe and re-pull rather than trying to reconcile.
-            var invalidated = await ClearInvalidatedRunsAsync(userId, realmId, accountingMethod, fiscalYearStartMonth);
+            var invalidated = await ClearInvalidatedRunsAsync(userId, realmId, fiscalYearStartMonth);
             var mustRepull = force || invalidated;
 
             if (!mustRepull && !await HasFinancialDataChangedAsync(userId, realmId))
@@ -99,22 +99,27 @@ public sealed class ReportQboSyncService : IReportQboSyncService
             var rangeStart = DetermineBackfillStart(company.CompanyStartDate, rangeEnd);
 
             var totalPeriods = 0;
-            foreach (var reportType in ReportTypes.All)
+            var methodsToSync = new[] { "Accrual", "Cash" };
+
+            foreach (var method in methodsToSync)
             {
-                totalPeriods += await SyncReportTypeAsync(
-                    token.AccessToken,
-                    userId,
-                    realmId,
-                    reportType,
-                    accountingMethod,
-                    fiscalYearStartMonth,
-                    rangeStart,
-                    rangeEnd);
+                foreach (var reportType in ReportTypes.All)
+                {
+                    totalPeriods += await SyncReportTypeAsync(
+                        token.AccessToken,
+                        userId,
+                        realmId,
+                        reportType,
+                        method,
+                        fiscalYearStartMonth,
+                        rangeStart,
+                        rangeEnd);
+                }
             }
 
             _logger.LogInformation(
-                "Reports sync stored {PeriodCount} periods for UserId={UserId} RealmId={RealmId} Method={AccountingMethod}",
-                totalPeriods, userId, realmId, accountingMethod);
+                "Reports sync stored {PeriodCount} periods for UserId={UserId} RealmId={RealmId}",
+                totalPeriods, userId, realmId);
 
             return ApiResponse<int>.Ok(totalPeriods, $"Successfully synced {totalPeriods} report periods.");
         }
@@ -255,7 +260,6 @@ public sealed class ReportQboSyncService : IReportQboSyncService
     private async Task<bool> ClearInvalidatedRunsAsync(
         int userId,
         string realmId,
-        string accountingMethod,
         int fiscalYearStartMonth)
     {
         var invalidated = false;
@@ -266,16 +270,14 @@ public sealed class ReportQboSyncService : IReportQboSyncService
             if (runs.Count == 0)
                 continue;
 
-            var basisChanged = runs.Any(r => !string.Equals(r.AccountingMethod, accountingMethod, StringComparison.OrdinalIgnoreCase));
             var fiscalYearChanged = runs.Any(r => r.PeriodStart.Month != fiscalYearStartMonth);
 
-            if (!basisChanged && !fiscalYearChanged)
+            if (!fiscalYearChanged)
                 continue;
 
             _logger.LogWarning(
-                "Discarding stored {ReportType} runs for UserId={UserId} RealmId={RealmId}: " +
-                "BasisChanged={BasisChanged}, FiscalYearChanged={FiscalYearChanged}. A full re-pull follows.",
-                reportType, userId, realmId, basisChanged, fiscalYearChanged);
+                "Discarding stored {ReportType} runs for UserId={UserId} RealmId={RealmId}: FiscalYearChanged={FiscalYearChanged}. A full re-pull follows.",
+                reportType, userId, realmId, fiscalYearChanged);
 
             await _reportRepository.DeleteAllRunsAsync(userId, realmId, reportType);
             invalidated = true;

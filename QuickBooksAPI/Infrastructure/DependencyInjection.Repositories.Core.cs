@@ -49,5 +49,8 @@ public static partial class DependencyInjection
 
         services.AddScoped<ISyncStatusRepository>(sp =>
             new SyncStatusRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
+
+        services.AddScoped<IDashboardRepository>(sp =>
+            new DashboardRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
     }
 }

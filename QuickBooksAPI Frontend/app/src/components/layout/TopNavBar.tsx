@@ -11,7 +11,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -105,7 +104,7 @@ export function TopNavBar({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 cursor-pointer group px-1">
+            <button className="flex items-center gap-2 cursor-pointer group px-1 outline-none focus:outline-none focus-visible:outline-none">
               <Avatar className="h-8 w-8 border border-border">
                 <AvatarFallback>{user?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
               </Avatar>
@@ -113,32 +112,53 @@ export function TopNavBar({
               <ChevronDown className="hidden sm:inline h-3.5 w-3.5 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="truncate">{user?.name || 'My Account'}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
+          <DropdownMenuContent
+            align="end"
+            className="w-56 p-1.5 rounded-xl border border-border/40 bg-popover/95 backdrop-blur-md shadow-lg space-y-0.5"
+          >
+            <div className="px-2.5 py-2">
+              <p className="text-sm font-semibold text-foreground leading-none">{user?.name || 'My Account'}</p>
+              <p className="text-[11px] text-muted-foreground mt-1 truncate">Admin User</p>
+            </div>
+
+            <DropdownMenuSeparator className="bg-border/40" />
+
             {hasMultipleRealms && (
               <>
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Switch Company</DropdownMenuLabel>
+                <div className="px-2.5 py-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Switch Company</p>
+                </div>
                 {connectedCompanies.map((company) => (
                   <DropdownMenuItem
                     key={company.qboRealmId}
                     onClick={() => setCurrentRealm(company.qboRealmId)}
-                    className={currentRealmId === company.qboRealmId ? 'bg-muted' : ''}
+                    className={`rounded-lg px-2.5 py-2 cursor-pointer transition-colors ${currentRealmId === company.qboRealmId ? 'bg-muted font-medium' : ''
+                      }`}
                   >
-                    <Building2 className="h-4 w-4 mr-2" />
+                    <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
                     <span className="truncate">{company.companyName || company.qboRealmId.slice(0, 12) + '...'}</span>
                     {currentRealmId === company.qboRealmId && <Badge className="ml-auto">Active</Badge>}
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-border/40" />
               </>
             )}
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Settings className="h-4 w-4 mr-2" />
+
+            <DropdownMenuItem
+              onClick={() => navigate('/settings')}
+              className="rounded-lg px-2.5 py-2 cursor-pointer transition-colors focus:bg-accent focus:text-accent-foreground"
+            >
+              <Settings className="h-4 w-4 mr-2 text-muted-foreground" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive hover:bg-muted hover:text-destructive">
+
+            <DropdownMenuSeparator className="bg-border/40" />
+
+            <DropdownMenuItem
+              onClick={logout}
+              variant="destructive"
+              className="rounded-lg px-2.5 py-2 cursor-pointer transition-colors"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </DropdownMenuItem>

@@ -1,6 +1,7 @@
 using QuickBooksAPI.API.DTOs.Response;
 using QuickBooksAPI.Application.Dtos;
 using QuickBooksAPI.Application.Interfaces;
+using QuickBooksAPI.Application.Reports;
 using QuickBooksAPI.Features.Reports.Handlers;
 
 namespace QuickBooksAPI.Features.Reports;
@@ -25,11 +26,13 @@ public sealed class ReportServiceMigrationFacade : IReportService
         _sync = sync;
     }
 
-    public Task<ApiResponse<ReportTreeDto>> GetProfitAndLossAsync(DateTime? startDate, DateTime? endDate, bool useFiscalYear) =>
-        _get.HandleProfitAndLossAsync(startDate, endDate, useFiscalYear);
+    public Task<ApiResponse<ReportTreeDto>> GetProfitAndLossAsync(
+        DateTime? startDate, DateTime? endDate, bool useFiscalYear, AccountingMethod? accountingMethod = null) =>
+        _get.HandleProfitAndLossAsync(startDate, endDate, useFiscalYear, accountingMethod);
 
-    public Task<ApiResponse<ReportTreeDto>> GetBalanceSheetAsync(DateTime? asOfDate) =>
-        _get.HandleBalanceSheetAsync(asOfDate);
+    public Task<ApiResponse<ReportTreeDto>> GetBalanceSheetAsync(
+        DateTime? asOfDate, AccountingMethod? accountingMethod = null) =>
+        _get.HandleBalanceSheetAsync(asOfDate, accountingMethod);
 
     public Task<ApiResponse<IEnumerable<ReportPeriodDto>>> GetSyncedPeriodsAsync(string reportType) =>
         _periods.HandleAsync(reportType);

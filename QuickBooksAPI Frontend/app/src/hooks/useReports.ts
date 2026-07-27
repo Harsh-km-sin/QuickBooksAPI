@@ -23,14 +23,15 @@ export function useProfitAndLoss(params: {
   startDate?: string;
   endDate?: string;
   useFiscalYear?: boolean;
+  accountingMethod?: string;
   enabled?: boolean;
 }): UseReportReturn {
-  const { startDate, endDate, useFiscalYear = false, enabled = true } = params;
+  const { startDate, endDate, useFiscalYear = false, accountingMethod = 'Accrual', enabled = true } = params;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: [...REPORTS_QUERY_KEY, 'profit-and-loss', startDate ?? '', endDate ?? '', useFiscalYear],
+    queryKey: [...REPORTS_QUERY_KEY, 'profit-and-loss', startDate ?? '', endDate ?? '', useFiscalYear, accountingMethod],
     queryFn: async () => {
-      const response = await reportApi.profitAndLoss({ startDate, endDate, useFiscalYear });
+      const response = await reportApi.profitAndLoss({ startDate, endDate, useFiscalYear, accountingMethod });
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Failed to load the Profit and Loss report');
       }
@@ -43,13 +44,17 @@ export function useProfitAndLoss(params: {
 }
 
 /** Balance Sheet as of a date. Point-in-time — the backend returns one month-end snapshot. */
-export function useBalanceSheet(params: { asOfDate?: string; enabled?: boolean }): UseReportReturn {
-  const { asOfDate, enabled = true } = params;
+export function useBalanceSheet(params: {
+  asOfDate?: string;
+  accountingMethod?: string;
+  enabled?: boolean;
+}): UseReportReturn {
+  const { asOfDate, accountingMethod = 'Accrual', enabled = true } = params;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: [...REPORTS_QUERY_KEY, 'balance-sheet', asOfDate ?? ''],
+    queryKey: [...REPORTS_QUERY_KEY, 'balance-sheet', asOfDate ?? '', accountingMethod],
     queryFn: async () => {
-      const response = await reportApi.balanceSheet(asOfDate);
+      const response = await reportApi.balanceSheet(asOfDate, accountingMethod);
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Failed to load the Balance Sheet report');
       }

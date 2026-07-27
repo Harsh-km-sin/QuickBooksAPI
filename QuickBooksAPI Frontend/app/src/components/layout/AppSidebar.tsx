@@ -1,5 +1,4 @@
 import { useLocation, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   FileText,
@@ -8,11 +7,8 @@ import {
   Wallet,
   Receipt,
   LineChart,
-  Bot,
-  Plus,
-  Landmark,
+  Bot
 } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface NavItem {
   title: string;
@@ -63,9 +59,8 @@ function NavRow({
     return (
       <div
         title={collapsed ? item.title : undefined}
-        className={`flex items-center gap-3 py-3 rounded-lg text-muted-foreground opacity-50 cursor-not-allowed ${
-          collapsed ? 'justify-center px-0' : 'px-3'
-        }`}
+        className={`flex items-center gap-3 py-3 rounded-lg text-muted-foreground opacity-50 cursor-not-allowed ${collapsed ? 'justify-center px-0' : 'px-3'
+          }`}
       >
         {content}
       </div>
@@ -77,11 +72,9 @@ function NavRow({
       to={item.href}
       onClick={onNavigate}
       title={collapsed ? item.title : undefined}
-      className={`flex items-center gap-3 py-3 rounded-lg text-sm font-medium transition-colors ${
-        collapsed ? 'justify-center px-0' : 'px-3'
-      } ${
-        isActive ? 'bg-secondary text-secondary-foreground font-bold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-      }`}
+      className={`flex items-center gap-3 py-3 rounded-lg text-sm font-medium transition-colors ${collapsed ? 'justify-center px-0' : 'px-3'
+        } ${isActive ? 'bg-secondary text-secondary-foreground font-bold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        }`}
     >
       {content}
     </Link>
@@ -103,8 +96,8 @@ export function AppSidebar({
     !!href && (pathname === href || (href !== '/' && pathname.startsWith(href + '/')));
 
   return (
-    <div className={`flex flex-col h-full w-full bg-card ${className ?? ''}`}>
-      <Link
+    <div className={`flex flex-col h-full w-full bg-card pt-4 ${className ?? ''}`}>
+      {/* <Link
         to="/"
         onClick={onNavigate}
         className={`flex items-center gap-3 py-4 mb-2 shrink-0 min-w-0 ${collapsed ? 'justify-center px-0' : 'px-3'}`}
@@ -122,16 +115,16 @@ export function AppSidebar({
             <p className="text-xs text-muted-foreground">Accounting Suite</p>
           </div>
         )}
-      </Link>
+      </Link> */}
 
-      <Button
+      {/* <Button
         className={`mb-4 rounded-xl font-bold shrink-0 ${collapsed ? 'h-10 w-10 self-center p-0' : 'h-11 mx-3'}`}
         onClick={() => toast.info('Quick create is not available yet')}
         title={collapsed ? 'Create New' : undefined}
       >
         <Plus className="h-4 w-4" />
         {!collapsed && 'Create New'}
-      </Button>
+      </Button> */}
 
       <nav className="flex-1 flex flex-col gap-1 px-3 overflow-y-auto overflow-x-hidden">
         {mainNavItems.map((item) => (

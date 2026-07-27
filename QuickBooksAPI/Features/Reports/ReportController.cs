@@ -34,9 +34,10 @@ public class ReportController : ControllerBase
     public async Task<IActionResult> GetProfitAndLoss(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
-        [FromQuery] bool useFiscalYear = false)
+        [FromQuery] bool useFiscalYear = false,
+        [FromQuery] AccountingMethod? accountingMethod = null)
     {
-        var response = await _reportService.GetProfitAndLossAsync(startDate, endDate, useFiscalYear);
+        var response = await _reportService.GetProfitAndLossAsync(startDate, endDate, useFiscalYear, accountingMethod);
         return response.Success ? Ok(response) : BadRequest(response);
     }
 
@@ -45,9 +46,11 @@ public class ReportController : ControllerBase
     /// nature, so there is no range parameter: values are never summed across months.
     /// </summary>
     [HttpGet("balance-sheet")]
-    public async Task<IActionResult> GetBalanceSheet([FromQuery] DateTime? asOfDate = null)
+    public async Task<IActionResult> GetBalanceSheet(
+        [FromQuery] DateTime? asOfDate = null,
+        [FromQuery] AccountingMethod? accountingMethod = null)
     {
-        var response = await _reportService.GetBalanceSheetAsync(asOfDate);
+        var response = await _reportService.GetBalanceSheetAsync(asOfDate, accountingMethod);
         return response.Success ? Ok(response) : BadRequest(response);
     }
 

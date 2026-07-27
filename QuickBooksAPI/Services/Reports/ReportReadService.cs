@@ -31,14 +31,14 @@ public sealed class ReportReadService : IReportReadService
     }
 
     public async Task<ApiResponse<ReportTreeDto>> GetProfitAndLossAsync(
-        int userId, string realmId, DateTime startDate, DateTime endDate)
+        int userId, string realmId, DateTime startDate, DateTime endDate, AccountingMethod? accountingMethod = null)
     {
         if (endDate < startDate)
             return ApiResponse<ReportTreeDto>.Fail("End date must be on or after the start date.");
 
         try
         {
-            var accountingMethod = await ResolveAccountingMethodAsync(userId, realmId);
+            var methodStr = accountingMethod?.ToString() ?? await ResolveAccountingMethodAsync(userId, realmId);
 
             // Snap to whole months: stored columns are monthly, so a partial month would silently
             // drop that month's data rather than return a partial figure.
@@ -46,12 +46,12 @@ public sealed class ReportReadService : IReportReadService
             var rangeEnd = EndOfMonth(endDate);
 
             var lines = await _reportRepository.GetProfitAndLossAsync(
-                userId, realmId, rangeStart, rangeEnd, accountingMethod);
+                userId, realmId, rangeStart, rangeEnd, methodStr);
 
             return ApiResponse<ReportTreeDto>.Ok(new ReportTreeDto
             {
                 ReportType = ReportTypes.ProfitAndLoss,
-                AccountingMethod = accountingMethod,
+                AccountingMethod = methodStr,
                 RangeStart = rangeStart,
                 RangeEnd = rangeEnd,
                 IsPointInTime = false,
@@ -65,20 +65,21 @@ public sealed class ReportReadService : IReportReadService
         }
     }
 
-    public async Task<ApiResponse<ReportTreeDto>> GetBalanceSheetAsync(int userId, string realmId, DateTime asOfDate)
+    public async Task<ApiResponse<ReportTreeDto>> GetBalanceSheetAsync(
+        int userId, string realmId, DateTime asOfDate, AccountingMethod? accountingMethod = null)
     {
         try
         {
-            var accountingMethod = await ResolveAccountingMethodAsync(userId, realmId);
+            var methodStr = accountingMethod?.ToString() ?? await ResolveAccountingMethodAsync(userId, realmId);
             var rangeEnd = EndOfMonth(asOfDate);
 
             var lines = await _reportRepository.GetBalanceSheetAsync(
-                userId, realmId, StartOfMonth(asOfDate), rangeEnd, accountingMethod);
+                userId, realmId, StartOfMonth(asOfDate), rangeEnd, methodStr);
 
             return ApiResponse<ReportTreeDto>.Ok(new ReportTreeDto
             {
                 ReportType = ReportTypes.BalanceSheet,
-                AccountingMethod = accountingMethod,
+                AccountingMethod = methodStr,
                 RangeStart = rangeEnd,   // A balance sheet is a single instant, not a span.
                 RangeEnd = rangeEnd,
                 IsPointInTime = true,
@@ -93,7 +94,7 @@ public sealed class ReportReadService : IReportReadService
     }
 
     public async Task<ApiResponse<ReportTreeDto>> GetProfitAndLossForFiscalYearAsync(
-        int userId, string realmId, DateTime anyDateInYear)
+        int userId, string realmId, DateTime anyDateInYear, AccountingMethod? accountingMethod = null)
     {
         var company = await _companyRepository.GetByUserAndRealmAsync(userId, realmId);
         var fiscalYearStartMonth = company?.FiscalYearStartMonth is >= 1 and <= 12
@@ -103,7 +104,7 @@ public sealed class ReportReadService : IReportReadService
         var fiscalYearStart = ReportQboSyncService.FiscalYearStartFor(anyDateInYear, fiscalYearStartMonth);
         var fiscalYearEnd = fiscalYearStart.AddYears(1).AddDays(-1);
 
-        return await GetProfitAndLossAsync(userId, realmId, fiscalYearStart, fiscalYearEnd);
+        return await GetProfitAndLossAsync(userId, realmId, fiscalYearStart, fiscalYearEnd, accountingMethod);
     }
 
     public async Task<ApiResponse<IEnumerable<ReportPeriodDto>>> GetSyncedPeriodsAsync(
