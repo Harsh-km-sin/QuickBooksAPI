@@ -44,6 +44,9 @@ public static partial class DependencyInjection
         services.AddScoped<IQboSyncStateRepository>(sp =>
             new QboSyncStateRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
 
+        services.AddScoped<ITermRepository>(sp =>
+            new TermRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
+
         services.AddScoped<ISyncStatusRepository>(sp =>
             new SyncStatusRepository(sp.GetRequiredService<ISqlConnectionFactory>()));
     }

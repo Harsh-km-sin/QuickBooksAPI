@@ -23,6 +23,9 @@ public sealed class InvoiceListItemDto
     public decimal HomeBalance { get; set; }
     public string GlobalTaxCalculation { get; set; } = string.Empty;
     public string PrivateNote { get; set; } = string.Empty;
+    public string CustomerMemo { get; set; } = string.Empty;
+    public string SalesTermRefId { get; set; } = string.Empty;
+    public string SalesTermName { get; set; } = string.Empty;
     public DateTimeOffset CreateTime { get; set; }
     public DateTimeOffset LastUpdatedTime { get; set; }
     public string RawJson { get; set; } = string.Empty;

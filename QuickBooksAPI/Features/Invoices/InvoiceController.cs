@@ -25,6 +25,13 @@ public class InvoiceController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("getById/{id}")]
+    public async Task<IActionResult> GetById([FromRoute] string id)
+    {
+        var response = await _invoiceService.GetInvoiceByIdAsync(id);
+        return Ok(response);
+    }
+
     [HttpGet("sync")]
     public async Task<IActionResult> SyncInvoices()
     {

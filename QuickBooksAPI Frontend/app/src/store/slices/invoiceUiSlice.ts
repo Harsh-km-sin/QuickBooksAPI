@@ -2,6 +2,8 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { QBOInvoiceHeader } from '@/types';
 
 export interface InvoiceUiState {
+  isCreateDialogOpen: boolean;
+  isEditDialogOpen: boolean;
   isDeleteDialogOpen: boolean;
   isVoidDialogOpen: boolean;
   selectedInvoice: QBOInvoiceHeader | null;
@@ -9,6 +11,8 @@ export interface InvoiceUiState {
 }
 
 const initialState: InvoiceUiState = {
+  isCreateDialogOpen: false,
+  isEditDialogOpen: false,
   isDeleteDialogOpen: false,
   isVoidDialogOpen: false,
   selectedInvoice: null,
@@ -19,6 +23,20 @@ const invoiceUiSlice = createSlice({
   name: 'invoiceUi',
   initialState,
   reducers: {
+    openCreateDialog: (state) => {
+      state.isCreateDialogOpen = true;
+    },
+    closeCreateDialog: (state) => {
+      state.isCreateDialogOpen = false;
+    },
+    openEditDialog: (state, action: { payload: QBOInvoiceHeader }) => {
+      state.selectedInvoice = action.payload;
+      state.isEditDialogOpen = true;
+    },
+    closeEditDialog: (state) => {
+      state.isEditDialogOpen = false;
+      state.selectedInvoice = null;
+    },
     openDeleteDialog: (state, action: { payload: QBOInvoiceHeader }) => {
       state.selectedInvoice = action.payload;
       state.isDeleteDialogOpen = true;
@@ -42,6 +60,10 @@ const invoiceUiSlice = createSlice({
 });
 
 export const {
+  openCreateDialog,
+  closeCreateDialog,
+  openEditDialog,
+  closeEditDialog,
   openDeleteDialog,
   closeDeleteDialog,
   openVoidDialog,
@@ -50,3 +72,4 @@ export const {
 } = invoiceUiSlice.actions;
 
 export default invoiceUiSlice.reducer;
+

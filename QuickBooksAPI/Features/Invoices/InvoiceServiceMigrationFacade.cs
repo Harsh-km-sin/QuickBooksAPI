@@ -34,6 +34,7 @@ public sealed class InvoiceServiceMigrationFacade : IInvoiceService
 
     public Task<ApiResponse<IEnumerable<InvoiceListItemDto>>> ListInvoicesAsync() => _list.HandleListAsync();
     public Task<ApiResponse<PagedResult<InvoiceListItemDto>>> ListInvoicesAsync(ListQueryParams query) => _list.HandlePagedAsync(query);
+    public Task<ApiResponse<InvoiceListItemDto>> GetInvoiceByIdAsync(string id) => _list.HandleGetByIdAsync(id);
     public Task<ApiResponse<int>> SyncInvoicesAsync() => _sync.HandleAsync();
     public Task<ApiResponse<string>> CreateInvoiceAsync(CreateInvoiceRequest request) => _create.HandleAsync(request);
     public Task<ApiResponse<string>> UpdateInvoiceAsync(UpdateInvoiceRequest request) => _update.HandleAsync(request);

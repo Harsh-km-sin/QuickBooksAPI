@@ -31,6 +31,8 @@ namespace QuickBooksAPI.DataAccessLayer.Models
         public string GlobalTaxCalculation { get; set; }
 
         public string PrivateNote { get; set; }
+        public string CustomerMemo { get; set; }
+        public string SalesTermRefId { get; set; }
 
         // Audit
         public DateTimeOffset CreateTime { get; set; }

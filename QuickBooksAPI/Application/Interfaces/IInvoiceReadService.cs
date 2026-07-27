@@ -8,5 +8,7 @@ public interface IInvoiceReadService
 {
     Task<ApiResponse<IEnumerable<InvoiceListItemDto>>> ListAsync(string realmId);
 
+    Task<ApiResponse<InvoiceListItemDto>> GetByIdAsync(string realmId, string id);
+
     Task<ApiResponse<PagedResult<InvoiceListItemDto>>> ListPagedAsync(string realmId, ListQueryParams query);
 }

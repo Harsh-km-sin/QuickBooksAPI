@@ -24,6 +24,13 @@ public sealed class ListInvoicesHandler
         return await _read.ListAsync(realmId);
     }
 
+    public async Task<ApiResponse<InvoiceListItemDto>> HandleGetByIdAsync(string id)
+    {
+        if (!FeatureRequestContextGuard.TryGetRealm(_requestContext, out var realmId, out var err))
+            return ApiResponse<InvoiceListItemDto>.Fail(err!);
+        return await _read.GetByIdAsync(realmId, id);
+    }
+
     public async Task<ApiResponse<PagedResult<InvoiceListItemDto>>> HandlePagedAsync(ListQueryParams query)
     {
         if (!FeatureRequestContextGuard.TryGetRealm(_requestContext, out var realmId, out var err))

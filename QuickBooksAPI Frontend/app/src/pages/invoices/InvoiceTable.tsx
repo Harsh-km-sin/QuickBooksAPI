@@ -1,4 +1,4 @@
-import { Ban, Calendar, DollarSign, MoreHorizontal, Receipt, Trash2, Users } from 'lucide-react';
+import { Ban, Calendar, DollarSign, MoreHorizontal, Pencil, Receipt, Trash2, Users } from 'lucide-react';
 import { useInvoicesList, useListQueryState } from '@/hooks';
 import { DataTable, DataTablePagination, SearchBar, type DataTableColumn } from '@/components/data-table';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import {
 import type { QBOInvoiceHeader } from '@/types';
 
 export interface InvoiceTableProps {
+  onOpenEdit: (invoice: QBOInvoiceHeader) => void;
   onOpenVoid: (invoice: QBOInvoiceHeader) => void;
   onOpenDelete: (invoice: QBOInvoiceHeader) => void;
 }
@@ -25,7 +26,7 @@ const formatDate = (dateString: string | null) => (dateString ? new Date(dateStr
  * Self-contained: owns search/sort/pagination state and the list query, so
  * paging/sorting only re-renders this subtree, not the whole Invoices page.
  */
-export function InvoiceTable({ onOpenVoid, onOpenDelete }: InvoiceTableProps) {
+export function InvoiceTable({ onOpenEdit, onOpenVoid, onOpenDelete }: InvoiceTableProps) {
   const {
     searchTerm,
     debouncedSearch,
@@ -79,6 +80,16 @@ export function InvoiceTable({ onOpenVoid, onOpenDelete }: InvoiceTableProps) {
       render: (invoice) => formatDate(invoice.dueDate),
     },
     {
+      key: 'salesTermName',
+      header: 'Terms',
+      sortable: false,
+      render: (invoice) => (
+        <span className="text-xs font-medium text-muted-foreground">
+          {invoice.salesTermName || '-'}
+        </span>
+      ),
+    },
+    {
       key: 'totalAmt',
       header: 'Total Amount',
       sortable: true,
@@ -116,6 +127,10 @@ export function InvoiceTable({ onOpenVoid, onOpenDelete }: InvoiceTableProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onOpenEdit(invoice)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onOpenVoid(invoice)}>
               <Ban className="h-4 w-4 mr-2" />
               Void

@@ -34,6 +34,7 @@ public static class QuickBooksIntegrationServiceCollectionExtensions
         services.AddScoped<IQuickBooksCustomerService, QuickBooksCustomerService>();
         services.AddScoped<IQuickBooksJournalEntryService, QuickBooksJournalEntryService>();
         services.AddScoped<IQuickBooksInvoiceService, QuickBooksInvoiceService>();
+        services.AddScoped<IQuickBooksTermService, QuickBooksTermService>();
         services.AddScoped<IQuickBooksVendorService, QuickBooksVendorService>();
         services.AddScoped<IQuickBooksBillService, QuickBooksBillService>();
 

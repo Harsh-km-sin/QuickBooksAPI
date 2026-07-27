@@ -13,6 +13,8 @@ import type {
 export const invoiceApi = {
   list: (params?: ListQueryParams) =>
     apiClient.get<PagedResult<QBOInvoiceHeader>>(`/api/invoice/list${buildListQuery(params)}`),
+  getById: (id: string) =>
+    apiClient.get<QBOInvoiceHeader>(`/api/invoice/getById/${id}`),
   sync: () => apiClient.get<number>('/api/invoice/sync'),
   create: (data: CreateInvoiceRequest) =>
     apiClient.post<string>('/api/invoice/create', data),

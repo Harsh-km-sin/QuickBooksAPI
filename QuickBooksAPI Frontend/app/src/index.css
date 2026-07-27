@@ -31,7 +31,7 @@
     --info-foreground: 0 0% 98%;
     --border: 94 17% 75%;
     --input: 94 17% 75%;
-    --ring: 204 95% 40%;
+    --ring: 116 100% 21%;
     --radius: 0.5rem;
     --sidebar-background: 200 13% 95%;
     --sidebar-foreground: 195 7% 11%;
@@ -40,7 +40,7 @@
     --sidebar-accent: 200 9% 93%;
     --sidebar-accent-foreground: 195 7% 11%;
     --sidebar-border: 94 17% 75%;
-    --sidebar-ring: 204 95% 40%;
+    --sidebar-ring: 116 100% 21%;
   }
 
   .dark {
@@ -71,7 +71,7 @@
     --info-foreground: 0 0% 98%;
     --border: 192 6% 24%;
     --input: 192 6% 24%;
-    --ring: 213 100% 81%;
+    --ring: 110 68% 61%;
     --sidebar-background: 195 10% 8%;
     --sidebar-foreground: 200 10% 94%;
     --sidebar-primary: 110 68% 61%;
@@ -79,7 +79,7 @@
     --sidebar-accent: 195 8% 16%;
     --sidebar-accent-foreground: 200 10% 94%;
     --sidebar-border: 192 6% 22%;
-    --sidebar-ring: 213 100% 81%;
+    --sidebar-ring: 110 68% 61%;
   }
 }
 
@@ -117,6 +117,14 @@
 @layer base {
   * {
     @apply border-border;
+  }
+  *:focus,
+  *:focus-visible,
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus {
+    outline: none !important;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;

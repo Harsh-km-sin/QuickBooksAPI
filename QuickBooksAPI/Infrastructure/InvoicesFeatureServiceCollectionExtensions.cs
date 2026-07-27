@@ -20,6 +20,7 @@ public static class InvoicesFeatureServiceCollectionExtensions
         services.AddScoped<DeleteInvoiceHandler>();
         services.AddScoped<VoidInvoiceHandler>();
         services.AddScoped<IInvoiceService, InvoiceServiceMigrationFacade>();
+        services.AddScoped<ITermService, QuickBooksAPI.Services.Terms.TermService>();
         return services;
     }
 }

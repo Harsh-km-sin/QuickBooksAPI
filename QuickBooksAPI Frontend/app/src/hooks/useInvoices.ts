@@ -213,3 +213,18 @@ export function useInvoiceMutations(): UseInvoiceMutationsReturn {
     voidInvoice,
   };
 }
+
+export function useInvoice(id: string | null | undefined) {
+  return useQuery({
+    queryKey: [...INVOICES_QUERY_KEY, 'detail', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Invoice ID is required');
+      const response = await invoiceApi.getById(id);
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to fetch invoice details');
+      }
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}

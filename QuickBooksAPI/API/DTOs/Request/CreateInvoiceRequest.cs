@@ -25,6 +25,15 @@ namespace QuickBooksAPI.API.DTOs.Request
         [JsonPropertyName("DueDate")]
         [MaxLength(10)]
         public string? DueDate { get; set; }
+
+        [JsonPropertyName("SalesTermRef")]
+        public InvoiceRef? SalesTermRef { get; set; }
+
+        [JsonPropertyName("CustomerMemo")]
+        public InvoiceCustomerMemo? CustomerMemo { get; set; }
+
+        [JsonPropertyName("PrivateNote")]
+        public string? PrivateNote { get; set; }
     }
 
     public class CreateInvoiceLineRequest

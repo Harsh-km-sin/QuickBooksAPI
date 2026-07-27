@@ -18,6 +18,9 @@ export interface QBOInvoiceHeader {
   homeBalance?: number;
   globalTaxCalculation?: string | null;
   privateNote?: string | null;
+  customerMemo?: string | null;
+  salesTermRefId?: string | null;
+  salesTermName?: string | null;
   createTime: string;
   lastUpdatedTime: string;
   rawJson: string | null;
@@ -28,27 +31,35 @@ export interface CreateInvoiceLineRequest {
   amount: number;
   description?: string;
   salesItemLineDetail: {
-    itemRef: { value: string; name: string };
-    qty: number;
-    unitPrice: number;
-    taxCodeRef?: { value: string; name: string };
+    itemRef: { value: string; name?: string };
+    qty?: number;
+    unitPrice?: number;
+    taxCodeRef?: { value?: string; name?: string };
   };
 }
 
 export interface CreateInvoiceRequest {
   line: CreateInvoiceLineRequest[];
-  customerRef: { value: string; name: string };
-  txnDate: string;
+  customerRef: { value: string; name?: string };
+  txnDate?: string;
   dueDate?: string;
+  docNumber?: string;
+  salesTermRef?: { value: string; name?: string };
+  customerMemo?: { value: string };
+  privateNote?: string;
 }
 
 export interface UpdateInvoiceRequest {
   id: string;
   syncToken: string;
   sparse?: boolean;
-  customerRef?: { value: string; name: string };
+  customerRef?: { value: string; name?: string };
   txnDate?: string;
   dueDate?: string;
+  docNumber?: string;
+  salesTermRef?: { value: string; name?: string };
+  customerMemo?: { value: string };
+  privateNote?: string;
   line?: CreateInvoiceLineRequest[];
 }
 

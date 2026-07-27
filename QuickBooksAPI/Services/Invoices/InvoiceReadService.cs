@@ -21,6 +21,16 @@ public sealed class InvoiceReadService : IInvoiceReadService
         return ApiResponse<IEnumerable<InvoiceListItemDto>>.Ok(invoices.Select(InvoiceBillReadMapping.ToInvoiceDto));
     }
 
+    public async Task<ApiResponse<InvoiceListItemDto>> GetByIdAsync(string realmId, string id)
+    {
+        var invoice = await _invoiceRepository.GetByQbIdAsync(id, realmId);
+        if (invoice == null)
+        {
+            return ApiResponse<InvoiceListItemDto>.Fail($"Invoice with ID '{id}' was not found.");
+        }
+        return ApiResponse<InvoiceListItemDto>.Ok(InvoiceBillReadMapping.ToInvoiceDto(invoice));
+    }
+
     public async Task<ApiResponse<PagedResult<InvoiceListItemDto>>> ListPagedAsync(string realmId, ListQueryParams query)
     {
         var page = query.GetPage();

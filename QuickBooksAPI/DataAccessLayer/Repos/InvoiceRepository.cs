@@ -31,12 +31,25 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             const string sql = @"
                 SELECT InvoiceId, QBOInvoiceId, RealmId, SyncToken, Domain, Sparse,
                     TxnDate, DueDate, CustomerRefId, CustomerRefName,
-                    CurrencyCode, ExchangeRate, TotalAmt, Balance,
+                    CurrencyCode, ExchangeRate, TotalAmt, Balance, PrivateNote, CustomerMemo, SalesTermRefId,
                     CreateTime, LastUpdatedTime, RawJson
                 FROM dbo.QBOInvoiceHeader
                 WHERE RealmId = @RealmId
                 ORDER BY TxnDate DESC, LastUpdatedTime DESC";
             return await connection.QueryAsync<QBOInvoiceHeader>(sql, new { RealmId = realmId });
+        }
+
+        public async Task<QBOInvoiceHeader?> GetByQbIdAsync(string qboInvoiceId, string realmId)
+        {
+            using var connection = CreateOpenConnection();
+            const string sql = @"
+                SELECT InvoiceId, QBOInvoiceId, RealmId, SyncToken, Domain, Sparse,
+                    TxnDate, DueDate, CustomerRefId, CustomerRefName,
+                    CurrencyCode, ExchangeRate, TotalAmt, Balance, PrivateNote, CustomerMemo, SalesTermRefId,
+                    CreateTime, LastUpdatedTime, RawJson
+                FROM dbo.QBOInvoiceHeader
+                WHERE QBOInvoiceId = @QBOInvoiceId AND RealmId = @RealmId";
+            return await connection.QueryFirstOrDefaultAsync<QBOInvoiceHeader>(sql, new { QBOInvoiceId = qboInvoiceId, RealmId = realmId });
         }
 
         /// <summary>Maps API sort keys to whitelisted SQL columns — never interpolate SortBy directly, it's caller-controlled input.</summary>
@@ -67,7 +80,7 @@ namespace QuickBooksAPI.DataAccessLayer.Repos
             var itemsSql = $@"
                 SELECT InvoiceId, QBOInvoiceId, RealmId, SyncToken, Domain, Sparse,
                     TxnDate, DueDate, CustomerRefId, CustomerRefName,
-                    CurrencyCode, ExchangeRate, TotalAmt, Balance,
+                    CurrencyCode, ExchangeRate, TotalAmt, Balance, PrivateNote, CustomerMemo, SalesTermRefId,
                     CreateTime, LastUpdatedTime, RawJson
                 FROM dbo.QBOInvoiceHeader
                 WHERE RealmId = @RealmId
@@ -90,12 +103,39 @@ WHERE RealmId = @RealmId AND Balance > 0 AND DueDate < @AsOfDate;";
 
         public async Task UpsertInvoicesAsync(IEnumerable<QBOInvoiceHeader> headers, IEnumerable<InvoiceLineUpsertRow> lines, IDbConnection connection, IDbTransaction tx)
         {
-            var headersTable = BuildInvoiceHeaderTable(headers);
-            var linesTable = BuildInvoiceLineTable(lines);
-            var parameters = new DynamicParameters();
-            parameters.Add("@Headers", headersTable.AsTableValuedParameter("dbo.InvoiceHeaderUpsertType"));
-            parameters.Add("@Lines", linesTable.AsTableValuedParameter("dbo.InvoiceLineUpsertType"));
-            await connection.ExecuteAsync("dbo.UpsertInvoice", parameters, tx, commandType: CommandType.StoredProcedure);
+            if (headers != null && headers.Any())
+            {
+                await UpsertInvoiceHeadersAsync(headers, connection, tx);
+            }
+
+            if (lines != null && lines.Any())
+            {
+                var groupedLines = lines.GroupBy(l => new { l.QBOInvoiceId, l.RealmId });
+                foreach (var group in groupedLines)
+                {
+                    var localInvoiceId = await GetInvoiceIdAsync(group.Key.QBOInvoiceId, group.Key.RealmId, connection, tx);
+                    if (localInvoiceId > 0)
+                    {
+                        await DeleteInvoiceLinesAsync(localInvoiceId, connection, tx);
+                        var domainLines = group.Select(l => new QBOInvoiceLine
+                        {
+                            InvoiceId = localInvoiceId,
+                            QBLineId = l.QBLineId,
+                            LineNum = l.LineNum,
+                            DetailType = l.DetailType,
+                            Description = l.Description,
+                            Amount = l.Amount,
+                            ItemRefId = l.ItemRefId,
+                            ItemRefName = l.ItemRefName,
+                            Qty = l.Qty,
+                            UnitPrice = l.UnitPrice,
+                            TaxCodeRef = l.TaxCodeRef,
+                            RawLineJson = l.RawLineJson
+                        });
+                        await InsertInvoiceLinesAsync(domainLines, connection, tx);
+                    }
+                }
+            }
         }
 
         private static DataTable BuildInvoiceHeaderTable(IEnumerable<QBOInvoiceHeader> headers)
@@ -190,7 +230,7 @@ WHERE RealmId = @RealmId AND Balance > 0 AND DueDate < @AsOfDate;";
                 TxnDate, DueDate,
                 CustomerRefId, CustomerRefName,
                 CurrencyCode, ExchangeRate,
-                TotalAmt, Balance,
+                TotalAmt, Balance, PrivateNote, CustomerMemo, SalesTermRefId,
                 CreateTime, LastUpdatedTime,
                 RawJson, RealmId
             )
@@ -209,6 +249,9 @@ WHERE RealmId = @RealmId AND Balance > 0 AND DueDate < @AsOfDate;";
                 ExchangeRate = source.ExchangeRate,
                 TotalAmt = source.TotalAmt,
                 Balance = source.Balance,
+                PrivateNote = source.PrivateNote,
+                CustomerMemo = source.CustomerMemo,
+                SalesTermRefId = source.SalesTermRefId,
                 CreateTime = source.CreateTime,
                 LastUpdatedTime = source.LastUpdatedTime,
                 RawJson = source.RawJson
@@ -218,7 +261,7 @@ WHERE RealmId = @RealmId AND Balance > 0 AND DueDate < @AsOfDate;";
                     TxnDate, DueDate,
                     CustomerRefId, CustomerRefName,
                     CurrencyCode, ExchangeRate,
-                    TotalAmt, Balance,
+                    TotalAmt, Balance, PrivateNote, CustomerMemo, SalesTermRefId,
                     CreateTime, LastUpdatedTime,
                     RawJson, RealmId
                 )
@@ -227,7 +270,7 @@ WHERE RealmId = @RealmId AND Balance > 0 AND DueDate < @AsOfDate;";
                 source.TxnDate, source.DueDate,
                 source.CustomerRefId, source.CustomerRefName,
                 source.CurrencyCode, source.ExchangeRate,
-                source.TotalAmt, source.Balance,
+                source.TotalAmt, source.Balance, source.PrivateNote, source.CustomerMemo, source.SalesTermRefId,
                 source.CreateTime, source.LastUpdatedTime,
                 source.RawJson, source.RealmId
             );";
@@ -237,7 +280,7 @@ WHERE RealmId = @RealmId AND Balance > 0 AND DueDate < @AsOfDate;";
                 $"@TxnDate{idx}, @DueDate{idx}, " +
                 $"@CustomerRefId{idx}, @CustomerRefName{idx}, " +
                 $"@CurrencyCode{idx}, @ExchangeRate{idx}, " +
-                $"@TotalAmt{idx}, @Balance{idx}, " +
+                $"@TotalAmt{idx}, @Balance{idx}, @PrivateNote{idx}, @CustomerMemo{idx}, @SalesTermRefId{idx}, " +
                 $"@CreateTime{idx}, @LastUpdatedTime{idx}, " +
                 $"@RawJson{idx}, @RealmId{idx})");
 
@@ -260,6 +303,9 @@ WHERE RealmId = @RealmId AND Balance > 0 AND DueDate < @AsOfDate;";
                 parameters.Add($"@ExchangeRate{i}", inv.ExchangeRate);
                 parameters.Add($"@TotalAmt{i}", inv.TotalAmt);
                 parameters.Add($"@Balance{i}", inv.Balance);
+                parameters.Add($"@PrivateNote{i}", inv.PrivateNote);
+                parameters.Add($"@CustomerMemo{i}", inv.CustomerMemo);
+                parameters.Add($"@SalesTermRefId{i}", inv.SalesTermRefId);
                 parameters.Add($"@CreateTime{i}", inv.CreateTime);
                 parameters.Add($"@LastUpdatedTime{i}", inv.LastUpdatedTime);
                 parameters.Add($"@RawJson{i}", inv.RawJson);

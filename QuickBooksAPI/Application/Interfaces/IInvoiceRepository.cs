@@ -9,6 +9,7 @@ public interface IInvoiceRepository
 {
     IDbConnection CreateOpenConnection();
     Task<IEnumerable<QBOInvoiceHeader>> GetAllByRealmAsync(string realmId);
+    Task<QBOInvoiceHeader?> GetByQbIdAsync(string qboInvoiceId, string realmId);
     Task<PagedResult<QBOInvoiceHeader>> GetPagedByRealmAsync(string realmId, int page, int pageSize, string? search, string? sortBy = null, bool sortDescending = false);
     Task UpsertInvoicesAsync(IEnumerable<QBOInvoiceHeader> headers, IEnumerable<InvoiceLineUpsertRow> lines, IDbConnection connection, IDbTransaction tx);
     [Obsolete("Use UpsertInvoicesAsync with SP instead.")]

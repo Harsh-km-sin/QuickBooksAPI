@@ -26,6 +26,8 @@ internal static class InvoiceBillReadMapping
         HomeBalance = h.HomeBalance,
         GlobalTaxCalculation = h.GlobalTaxCalculation,
         PrivateNote = h.PrivateNote,
+        CustomerMemo = h.CustomerMemo,
+        SalesTermRefId = h.SalesTermRefId,
         CreateTime = h.CreateTime,
         LastUpdatedTime = h.LastUpdatedTime,
         RawJson = h.RawJson

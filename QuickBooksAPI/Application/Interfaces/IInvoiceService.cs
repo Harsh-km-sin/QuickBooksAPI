@@ -8,6 +8,7 @@ namespace QuickBooksAPI.Application.Interfaces
     {
         Task<ApiResponse<IEnumerable<InvoiceListItemDto>>> ListInvoicesAsync();
         Task<ApiResponse<PagedResult<InvoiceListItemDto>>> ListInvoicesAsync(ListQueryParams query);
+        Task<ApiResponse<InvoiceListItemDto>> GetInvoiceByIdAsync(string id);
         Task<ApiResponse<int>> SyncInvoicesAsync();
         Task<ApiResponse<string>> CreateInvoiceAsync(CreateInvoiceRequest request);
         Task<ApiResponse<string>> UpdateInvoiceAsync(UpdateInvoiceRequest request);

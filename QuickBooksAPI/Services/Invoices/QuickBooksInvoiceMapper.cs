@@ -54,6 +54,10 @@ public static class QuickBooksInvoiceMapper
             TotalAmt = inv.TotalAmt,
             Balance = inv.Balance,
 
+            PrivateNote = inv.PrivateNote,
+            CustomerMemo = inv.CustomerMemo?.Value,
+            SalesTermRefId = inv.SalesTermRef?.Value,
+
             CreateTime = inv.MetaData?.CreateTime ?? DateTimeOffset.UtcNow,
             LastUpdatedTime = inv.MetaData?.LastUpdatedTime ?? DateTimeOffset.UtcNow,
 

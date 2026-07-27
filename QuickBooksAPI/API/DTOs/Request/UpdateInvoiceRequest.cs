@@ -44,6 +44,12 @@ namespace QuickBooksAPI.API.DTOs.Request
         [JsonPropertyName("CustomerMemo")]
         public InvoiceCustomerMemo? CustomerMemo { get; set; }
 
+        [JsonPropertyName("PrivateNote")]
+        public string? PrivateNote { get; set; }
+
+        [JsonPropertyName("SalesTermRef")]
+        public InvoiceRef? SalesTermRef { get; set; }
+
         [JsonPropertyName("ProjectRef")]
         public InvoiceRef? ProjectRef { get; set; }
 

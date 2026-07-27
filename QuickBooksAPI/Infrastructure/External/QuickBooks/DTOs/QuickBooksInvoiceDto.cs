@@ -97,6 +97,15 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
         [JsonPropertyName("CustomerRef")]
         public Reference? CustomerRef { get; set; }
 
+        [JsonPropertyName("SalesTermRef")]
+        public Reference? SalesTermRef { get; set; }
+
+        [JsonPropertyName("CustomerMemo")]
+        public CustomerMemoRef? CustomerMemo { get; set; }
+
+        [JsonPropertyName("PrivateNote")]
+        public string? PrivateNote { get; set; }
+
         [JsonPropertyName("BillAddr")]
         public InvoiceAddress? BillAddr { get; set; }
 
@@ -324,6 +333,12 @@ namespace QuickBooksAPI.Infrastructure.External.QuickBooks.DTOs
         [JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonPropertyName("value")]
+        public string? Value { get; set; }
+    }
+
+    public class CustomerMemoRef
+    {
         [JsonPropertyName("value")]
         public string? Value { get; set; }
     }

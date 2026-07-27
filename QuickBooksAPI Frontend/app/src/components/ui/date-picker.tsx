@@ -56,6 +56,8 @@ interface DatePickerProps {
   /** Dates outside this range are not selectable. */
   fromDate?: Date;
   toDate?: Date;
+  /** Whether future dates are selectable. Default is true. */
+  allowFuture?: boolean;
   className?: string;
 }
 
@@ -77,6 +79,7 @@ export function DatePicker({
   placeholder = 'Pick a date',
   fromDate,
   toDate,
+  allowFuture = true,
   className,
 }: DatePickerProps) {
   const selected = parseApiDate(value);
@@ -85,10 +88,10 @@ export function DatePicker({
   // those bound which dates are *selectable*, and folding them in here would shrink navigation
   // to the selectable window — a "To" picker bounded below by the start date would offer a
   // single month and a single year. Ten years back matches the backend's maximum backfill
-  // depth; the current year is the upper bound because a future date can never have report data.
+  // depth; current year + 10 is the upper bound for future due dates.
   const currentYear = new Date().getFullYear();
   let navStart = new Date(currentYear - 10, 0, 1);
-  let navEnd = new Date(currentYear, 11, 31);
+  let navEnd = new Date(currentYear + 10, 11, 31);
 
   // A value outside that window must still be reachable, or the calendar cannot show what the
   // trigger says is selected.
@@ -99,7 +102,7 @@ export function DatePicker({
   // range stay visible but greyed, so it is obvious *why* they cannot be picked.
   const isDisabled = (date: Date) =>
     (fromDate ? date < startOfDay(fromDate) : false) ||
-    (toDate ? date > endOfDay(toDate) : date > endOfDay(new Date()));
+    (toDate ? date > endOfDay(toDate) : allowFuture === false ? date > endOfDay(new Date()) : false);
 
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>('days');
